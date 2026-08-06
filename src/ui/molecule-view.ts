@@ -1,6 +1,7 @@
 import moleculesData from '../../assets/data/molecules.json';
 import { MoleculeRenderer, MoleculeData as BaseMoleculeData } from '../render/molecule-renderer';
-import { getStrings, getLanguage, onLanguageChange } from '../i18n';
+import { getStrings, getLanguage, onLanguageChange, I18nStrings } from '../i18n';
+import { InfoModal, ConceptExplanation } from './info-modal';
 
 export interface LocalizedMoleculeData extends BaseMoleculeData {
   name_es?: string;
@@ -74,6 +75,14 @@ export class MoleculeView {
         <div class="molecule-info-card" id="molecule-info">
           ${this.renderMoleculeInfo()}
         </div>
+
+        <div class="vsepr-guide-card">
+          <div class="vsepr-guide-header">
+            <h4>${strings.vseprGuideTitle}</h4>
+            <button class="btn-info-icon" data-explain="explainVsepr" aria-label="Info">ℹ️</button>
+          </div>
+          <p>${strings.vseprGuideText}</p>
+        </div>
       </div>
     `;
 
@@ -94,15 +103,15 @@ export class MoleculeView {
       </div>
       <div class="mol-details">
         <div class="detail-row">
-          <span>${strings.vseprGeometry}:</span>
+          <span>${strings.vseprGeometry} <button class="btn-info-icon" data-explain="explainVsepr" aria-label="Info">ℹ️</button>:</span>
           <strong>${geometry}</strong>
         </div>
         <div class="detail-row">
-          <span>${strings.hybridization}:</span>
+          <span>${strings.hybridization} <button class="btn-info-icon" data-explain="explainHybridization" aria-label="Info">ℹ️</button>:</span>
           <strong><code>${m.hybridization}</code></strong>
         </div>
         <div class="detail-row">
-          <span>${strings.bondAngle}:</span>
+          <span>${strings.bondAngle} <button class="btn-info-icon" data-explain="explainBondAngle" aria-label="Info">ℹ️</button>:</span>
           <strong class="highlight-angle">${m.bond_angle}</strong>
         </div>
       </div>
@@ -119,8 +128,11 @@ export class MoleculeView {
       if (selected) {
         this.currentMolecule = selected;
         this.renderer.loadMolecule(this.currentMolecule);
-        const infoCard = this.container.querySelector('#molecule-info');
-        if (infoCard) infoCard.innerHTML = this.renderMoleculeInfo();
+        const infoCard = this.container.querySelector('#molecule-info') as HTMLElement;
+        if (infoCard) {
+          infoCard.innerHTML = this.renderMoleculeInfo();
+          this.attachInfoButtonEvents(infoCard);
+        }
       }
     });
 
@@ -128,6 +140,24 @@ export class MoleculeView {
       this.showLobes = this.renderer.toggleLobes();
       const strings = getStrings();
       btnToggle.innerHTML = this.showLobes ? '👁️ ' + strings.hideLobes : '👁️‍🗨️ ' + strings.showLobes;
+    });
+
+    this.attachInfoButtonEvents(this.container);
+  }
+
+  private attachInfoButtonEvents(parent: HTMLElement): void {
+    const infoBtns = parent.querySelectorAll('.btn-info-icon');
+    const strings = getStrings();
+    infoBtns.forEach((btn) => {
+      btn.addEventListener('click', (e: Event) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const explainKey = (btn as HTMLElement).dataset.explain as keyof I18nStrings;
+        if (explainKey && strings[explainKey]) {
+          const explanation = strings[explainKey] as ConceptExplanation;
+          InfoModal.show(explanation);
+        }
+      });
     });
   }
 
@@ -139,3 +169,4 @@ export class MoleculeView {
     }
   }
 }
+

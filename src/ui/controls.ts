@@ -1,6 +1,8 @@
 import { OrbitalParams } from '../core/wasm-bridge';
 import { RenderMode, QualityPreset, ColorPalette } from '../render/orbital-renderer';
-import { getStrings, onLanguageChange } from '../i18n';
+import { getStrings, onLanguageChange, I18nStrings } from '../i18n';
+import { InfoModal, ConceptExplanation } from './info-modal';
+import { OrbitalPhysicsPanel } from './orbital-physics-panel';
 
 export interface ExtendedOrbitalParams extends OrbitalParams {
   s: number;
@@ -16,6 +18,7 @@ export class ControlPanel {
   private container: HTMLElement;
   private onChange: (params: ExtendedOrbitalParams) => void;
   private onExportClick?: () => void;
+  private physicsPanel: OrbitalPhysicsPanel | null = null;
 
   private currentParams: ExtendedOrbitalParams = {
     n: 1,
@@ -61,25 +64,37 @@ export class ControlPanel {
         <div class="control-grid">
           <!-- Quantum Number n -->
           <div class="control-group">
-            <label for="n-select">${strings.principalQuantum}: <span id="n-val">${this.currentParams.n}</span></label>
+            <label for="n-select">
+              <span>${strings.principalQuantum}: <span id="n-val">${this.currentParams.n}</span></span>
+              <button class="btn-info-icon" data-explain="explainN" aria-label="Info">ℹ️</button>
+            </label>
             <input type="range" id="n-select" min="1" max="4" value="${this.currentParams.n}" step="1" />
           </div>
 
           <!-- Quantum Number l -->
           <div class="control-group">
-            <label for="l-select">${strings.azimuthalQuantum}: <span id="l-val">${this.currentParams.l}</span></label>
+            <label for="l-select">
+              <span>${strings.azimuthalQuantum}: <span id="l-val">${this.currentParams.l}</span></span>
+              <button class="btn-info-icon" data-explain="explainL" aria-label="Info">ℹ️</button>
+            </label>
             <input type="range" id="l-select" min="0" max="${this.currentParams.n - 1}" value="${this.currentParams.l}" step="1" />
           </div>
 
           <!-- Quantum Number m -->
           <div class="control-group">
-            <label for="m-select">${strings.magneticQuantum}: <span id="m-val">${this.currentParams.m}</span></label>
+            <label for="m-select">
+              <span>${strings.magneticQuantum}: <span id="m-val">${this.currentParams.m}</span></span>
+              <button class="btn-info-icon" data-explain="explainM" aria-label="Info">ℹ️</button>
+            </label>
             <input type="range" id="m-select" min="${-this.currentParams.l}" max="${this.currentParams.l}" value="${this.currentParams.m}" step="1" />
           </div>
 
           <!-- Spin s -->
           <div class="control-group">
-            <label for="spin-select">${strings.spinQuantum}:</label>
+            <label for="spin-select">
+              <span>${strings.spinQuantum}:</span>
+              <button class="btn-info-icon" data-explain="explainS" aria-label="Info">ℹ️</button>
+            </label>
             <select id="spin-select">
               <option value="0.5" ${this.currentParams.s === 0.5 ? 'selected' : ''}>+1/2 (↑)</option>
               <option value="-0.5" ${this.currentParams.s === -0.5 ? 'selected' : ''}>-1/2 (↓)</option>
@@ -88,7 +103,10 @@ export class ControlPanel {
 
           <!-- Render Mode -->
           <div class="control-group">
-            <label for="mode-select">${strings.mode}:</label>
+            <label for="mode-select">
+              <span>${strings.mode}:</span>
+              <button class="btn-info-icon" data-explain="explainMode" aria-label="Info">ℹ️</button>
+            </label>
             <select id="mode-select">
               <option value="points" ${this.currentParams.mode === 'points' ? 'selected' : ''}>${strings.modePoints}</option>
               <option value="isosurface" ${this.currentParams.mode === 'isosurface' ? 'selected' : ''}>${strings.modeIsosurface}</option>
@@ -98,7 +116,10 @@ export class ControlPanel {
 
           <!-- Orbital Type (Real vs Pure) -->
           <div class="control-group">
-            <label for="type-select">${strings.orbitalType}:</label>
+            <label for="type-select">
+              <span>${strings.orbitalType}:</span>
+              <button class="btn-info-icon" data-explain="explainOrbitalType" aria-label="Info">ℹ️</button>
+            </label>
             <select id="type-select">
               <option value="real" ${this.currentParams.useRealOrbital ? 'selected' : ''}>${strings.modeRealOrbital}</option>
               <option value="eigen" ${!this.currentParams.useRealOrbital ? 'selected' : ''}>${strings.modeEigenstate}</option>
@@ -107,7 +128,10 @@ export class ControlPanel {
 
           <!-- Quality Preset -->
           <div class="control-group">
-            <label for="quality-select">${strings.quality}:</label>
+            <label for="quality-select">
+              <span>${strings.quality}:</span>
+              <button class="btn-info-icon" data-explain="explainQuality" aria-label="Info">ℹ️</button>
+            </label>
             <select id="quality-select">
               <option value="low" ${this.currentParams.quality === 'low' ? 'selected' : ''}>${strings.qualityLow}</option>
               <option value="medium" ${this.currentParams.quality === 'medium' ? 'selected' : ''}>${strings.qualityMedium}</option>
@@ -120,7 +144,10 @@ export class ControlPanel {
 
           <!-- Color Palette -->
           <div class="control-group">
-            <label for="palette-select">${strings.colorPalette}:</label>
+            <label for="palette-select">
+              <span>${strings.colorPalette}:</span>
+              <button class="btn-info-icon" data-explain="explainPalette" aria-label="Info">ℹ️</button>
+            </label>
             <select id="palette-select">
               <option value="default" ${this.currentParams.colorPalette === 'default' ? 'selected' : ''}>${strings.paletteDefault}</option>
               <option value="fire" ${this.currentParams.colorPalette === 'fire' ? 'selected' : ''}>${strings.paletteFire}</option>
@@ -131,7 +158,10 @@ export class ControlPanel {
 
           <!-- Effective Nuclear Charge Z_eff -->
           <div class="control-group">
-            <label for="zeff-input">${strings.zEffCharge}: <span id="zeff-val">${this.currentParams.zEff.toFixed(2)}</span></label>
+            <label for="zeff-input">
+              <span>${strings.zEffCharge}: <span id="zeff-val">${this.currentParams.zEff.toFixed(2)}</span></span>
+              <button class="btn-info-icon" data-explain="explainZeff" aria-label="Info">ℹ️</button>
+            </label>
             <input type="range" id="zeff-input" min="1" max="36" value="${this.currentParams.zEff}" step="0.1" />
           </div>
 
@@ -158,12 +188,20 @@ export class ControlPanel {
           </div>
         </div>
       </div>
+      <div class="physics-panel-container"></div>
     `;
+
+    const physicsContainer = this.container.querySelector('.physics-panel-container') as HTMLElement;
+    if (physicsContainer) {
+      this.physicsPanel = new OrbitalPhysicsPanel(physicsContainer, this.currentParams);
+    }
 
     this.attachEventListeners();
   }
 
   private attachEventListeners(): void {
+    const strings = getStrings();
+
     const nInput = this.container.querySelector('#n-select') as HTMLInputElement;
     const lInput = this.container.querySelector('#l-select') as HTMLInputElement;
     const mInput = this.container.querySelector('#m-select') as HTMLInputElement;
@@ -190,6 +228,19 @@ export class ControlPanel {
 
     exportBtn?.addEventListener('click', () => {
       if (this.onExportClick) this.onExportClick();
+    });
+
+    const infoBtns = this.container.querySelectorAll('.btn-info-icon');
+    infoBtns.forEach((btn) => {
+      btn.addEventListener('click', (e: Event) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const explainKey = (btn as HTMLElement).dataset.explain as keyof I18nStrings;
+        if (explainKey && strings[explainKey]) {
+          const explanation = strings[explainKey] as ConceptExplanation;
+          InfoModal.show(explanation);
+        }
+      });
     });
 
     const updateControls = () => {
@@ -278,6 +329,7 @@ export class ControlPanel {
         colorPalette,
       };
 
+      this.physicsPanel?.updateParams(this.currentParams);
       this.onChange(this.currentParams);
     };
 
@@ -317,5 +369,8 @@ export class ControlPanel {
   public getParams(): ExtendedOrbitalParams {
     return this.currentParams;
   }
-}
 
+  public getPhysicsPanel(): OrbitalPhysicsPanel | null {
+    return this.physicsPanel;
+  }
+}

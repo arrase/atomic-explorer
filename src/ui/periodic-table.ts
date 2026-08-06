@@ -1,5 +1,6 @@
 import elementsData from '../../assets/data/elements.json';
 import { getStrings, getLanguage, onLanguageChange, I18nStrings } from '../i18n';
+import { InfoModal, ConceptExplanation } from './info-modal';
 
 export interface ElementData {
   Z: number;
@@ -51,6 +52,13 @@ export class PeriodicTableView {
         <div class="periodic-grid-container">
           <div class="periodic-grid" id="periodic-grid">
             ${this.renderGridCells()}
+          </div>
+          <div class="periodic-trends-card">
+            <div class="trends-card-header">
+              <h4>${strings.periodicTrendsGuideTitle}</h4>
+              <button class="btn-info-icon" data-explain="explainAtomicRadius" aria-label="Info">ℹ️</button>
+            </div>
+            <p>${strings.periodicTrendsGuideText}</p>
           </div>
         </div>
 
@@ -199,23 +207,23 @@ export class PeriodicTableView {
 
         <div class="inspector-details">
           <div class="detail-row">
-            <span>${strings.atomicMass}:</span>
+            <span>${strings.atomicMass} <button class="btn-info-icon" data-explain="explainAtomicMass" aria-label="Info">ℹ️</button>:</span>
             <strong>${el.atomic_mass} u</strong>
           </div>
           <div class="detail-row">
-            <span>${strings.electronConfig}:</span>
+            <span>${strings.electronConfig} <button class="btn-info-icon" data-explain="explainElectronConfig" aria-label="Info">ℹ️</button>:</span>
             <strong><code>${el.electron_config_str}</code></strong>
           </div>
           <div class="detail-row">
-            <span>${strings.atomicRadius}:</span>
+            <span>${strings.atomicRadius} <button class="btn-info-icon" data-explain="explainAtomicRadius" aria-label="Info">ℹ️</button>:</span>
             <strong>${el.radius_pm} pm</strong>
           </div>
           <div class="detail-row">
-            <span>${strings.electronegativity}:</span>
+            <span>${strings.electronegativity} <button class="btn-info-icon" data-explain="explainElectronegativity" aria-label="Info">ℹ️</button>:</span>
             <strong>${el.electronegativity ?? 'N/A'}</strong>
           </div>
           <div class="detail-row">
-            <span>${strings.ionizationEnergy}:</span>
+            <span>${strings.ionizationEnergy} <button class="btn-info-icon" data-explain="explainIonizationEnergy" aria-label="Info">ℹ️</button>:</span>
             <strong>${el.ionization_energy ? `${el.ionization_energy} kJ/mol` : 'N/A'}</strong>
           </div>
           <div class="detail-row">
@@ -248,6 +256,23 @@ export class PeriodicTableView {
     });
 
     this.attachCellClickEvents();
+    this.attachInfoButtonEvents(this.container);
+  }
+
+  private attachInfoButtonEvents(parent: HTMLElement): void {
+    const infoBtns = parent.querySelectorAll('.btn-info-icon');
+    const strings = getStrings();
+    infoBtns.forEach((btn) => {
+      btn.addEventListener('click', (e: Event) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const explainKey = (btn as HTMLElement).dataset.explain as keyof I18nStrings;
+        if (explainKey && strings[explainKey]) {
+          const explanation = strings[explainKey] as ConceptExplanation;
+          InfoModal.show(explanation);
+        }
+      });
+    });
   }
 
   private attachCellClickEvents(): void {
@@ -260,9 +285,10 @@ export class PeriodicTableView {
         cells.forEach((c) => c.classList.remove('selected'));
         cell.classList.add('selected');
 
-        const inspector = this.container.querySelector('#element-inspector');
+        const inspector = this.container.querySelector('#element-inspector') as HTMLElement;
         if (inspector) {
           inspector.innerHTML = this.renderInspectorContent();
+          this.attachInfoButtonEvents(inspector);
           const btnView = inspector.querySelector('#btn-view-orbital');
           btnView?.addEventListener('click', () => {
             if (this.selectedElement) {
@@ -274,3 +300,4 @@ export class PeriodicTableView {
     });
   }
 }
+

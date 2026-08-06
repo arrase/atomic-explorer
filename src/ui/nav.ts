@@ -1,4 +1,5 @@
 import { getStrings, getLanguage, setLanguage, onLanguageChange, Language } from '../i18n';
+import { GlossaryModal } from './glossary-modal';
 
 export type TabId = 'orbitals' | 'periodic-table' | 'molecules';
 
@@ -6,10 +7,12 @@ export class NavigationBar {
   private container: HTMLElement;
   private activeTab: TabId = 'orbitals';
   private onTabChange: (tab: TabId) => void;
+  private glossaryModal: GlossaryModal;
 
   constructor(container: HTMLElement, onTabChange: (tab: TabId) => void) {
     this.container = container;
     this.onTabChange = onTabChange;
+    this.glossaryModal = new GlossaryModal();
     this.render();
     onLanguageChange(() => this.render());
   }
@@ -41,6 +44,10 @@ export class NavigationBar {
           `
             )
             .join('')}
+          <button class="nav-tab nav-glossary-btn" id="nav-glossary-btn" title="${strings.btnGlossary}">
+            <span class="tab-icon">📖</span>
+            <span class="tab-label">${strings.btnGlossary}</span>
+          </button>
         </div>
         <div class="nav-lang-switcher">
           <select id="lang-select" aria-label="${strings.language}">
@@ -55,7 +62,7 @@ export class NavigationBar {
   }
 
   private attachEventListeners(): void {
-    const buttons = this.container.querySelectorAll('.nav-tab');
+    const buttons = this.container.querySelectorAll('.nav-tab[data-tab]');
     buttons.forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const target = (e.currentTarget as HTMLElement).getAttribute('data-tab') as TabId;
@@ -64,6 +71,11 @@ export class NavigationBar {
           this.onTabChange(target);
         }
       });
+    });
+
+    const glossaryBtn = this.container.querySelector('#nav-glossary-btn');
+    glossaryBtn?.addEventListener('click', () => {
+      this.glossaryModal.open();
     });
 
     const langSelect = this.container.querySelector('#lang-select') as HTMLSelectElement;
@@ -75,7 +87,7 @@ export class NavigationBar {
 
   public setActiveTab(tab: TabId): void {
     this.activeTab = tab;
-    const buttons = this.container.querySelectorAll('.nav-tab');
+    const buttons = this.container.querySelectorAll('.nav-tab[data-tab]');
     buttons.forEach((btn) => {
       if (btn.getAttribute('data-tab') === tab) {
         btn.classList.add('active');
@@ -85,3 +97,4 @@ export class NavigationBar {
     });
   }
 }
+
