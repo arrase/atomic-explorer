@@ -48,7 +48,14 @@ export class MoleculeRenderer {
   private showLobes: boolean = true;
 
   constructor(canvas: HTMLCanvasElement) {
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    this.renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: true,
+      alpha: true,
+      powerPreference: 'high-performance',
+      precision: 'highp',
+      preserveDrawingBuffer: true,
+    });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setClearColor(new THREE.Color('#0a0a1a'));
 
@@ -223,6 +230,48 @@ export class MoleculeRenderer {
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
   };
+
+  public async captureSnapshot(options: {
+    width: number;
+    height: number;
+    superSampling: number;
+    format: 'image/png' | 'image/jpeg' | 'image/webp';
+    background: 'dark' | 'black' | 'white' | 'transparent';
+  }): Promise<string> {
+    const origPixelRatio = this.renderer.getPixelRatio();
+    const origClearColor = new THREE.Color();
+    this.renderer.getClearColor(origClearColor);
+    const origClearAlpha = this.renderer.getClearAlpha();
+
+    const targetWidth = Math.round(options.width);
+    const targetHeight = Math.round(options.height);
+
+    this.renderer.setPixelRatio(options.superSampling);
+    this.renderer.setSize(targetWidth, targetHeight, false);
+
+    this.camera.aspect = targetWidth / targetHeight;
+    this.camera.updateProjectionMatrix();
+
+    if (options.background === 'black') {
+      this.renderer.setClearColor(new THREE.Color(0x000000), 1.0);
+    } else if (options.background === 'white') {
+      this.renderer.setClearColor(new THREE.Color(0xffffff), 1.0);
+    } else if (options.background === 'transparent') {
+      this.renderer.setClearColor(new THREE.Color(0x000000), 0.0);
+    } else {
+      this.renderer.setClearColor(new THREE.Color('#0a0a1a'), 1.0);
+    }
+
+    this.renderer.render(this.scene, this.camera);
+    const dataUrl = this.renderer.domElement.toDataURL(options.format, 0.95);
+
+    // Restore original size
+    this.renderer.setPixelRatio(origPixelRatio);
+    this.renderer.setClearColor(origClearColor, origClearAlpha);
+    this.onWindowResize();
+
+    return dataUrl;
+  }
 
   public animate = (): void => {
     this.animationId = requestAnimationFrame(this.animate);

@@ -1,8 +1,14 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { MarchingCubes } from 'three/addons/objects/MarchingCubes.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 export type RenderMode = 'points' | 'isosurface' | 'raymarching';
+export type QualityPreset = 'low' | 'medium' | 'high' | 'ultra' | 'extreme' | 'custom';
+export type ColorPalette = 'default' | 'fire' | 'emerald' | 'spectrum';
 
 export interface OrbitalRenderParams {
   n: number;
@@ -12,41 +18,58 @@ export interface OrbitalRenderParams {
   zEff: number;
   mode: RenderMode;
   isolevel?: number;
-  quality?: 'low' | 'medium' | 'high';
+  quality?: QualityPreset;
+  raymarchingSteps?: number;
+  pointCount?: number;
+  resolutionScale?: number;
+  colorPalette?: ColorPalette;
+  enableBloom?: boolean;
+  bloomIntensity?: number;
 }
 
 // Shader for Point Cloud rendering
 const pointVertexShader = `
   varying float vDistance;
   varying float vIntensity;
-  
+  uniform float u_pointSizeScale;
+
   void main() {
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
     gl_Position = projectionMatrix * mvPosition;
     vDistance = length(position);
-    gl_PointSize = clamp(18.0 * (10.0 / -mvPosition.z), 2.0, 32.0);
+    gl_PointSize = clamp(u_pointSizeScale * (10.0 / -mvPosition.z), 2.0, 64.0);
   }
 `;
 
 const pointFragmentShader = `
   varying float vDistance;
-  
+  uniform int u_palette;
+
+  vec3 getPointPaletteColor(float dist, int paletteId) {
+    float t = clamp(dist / 15.0, 0.0, 1.0);
+    if (paletteId == 1) { // Fire
+      return mix(vec3(1.0, 0.7, 0.1), vec3(0.9, 0.1, 0.1), t);
+    } else if (paletteId == 2) { // Emerald
+      return mix(vec3(0.2, 1.0, 0.6), vec3(0.0, 0.5, 0.4), t);
+    } else if (paletteId == 3) { // Spectrum
+      return mix(vec3(0.8, 0.2, 1.0), vec3(0.1, 0.9, 0.9), t);
+    }
+    // Default Cyan & Magenta
+    return mix(vec3(0.2, 0.85, 1.0), vec3(0.7, 0.25, 0.9), t);
+  }
+
   void main() {
     vec2 coord = gl_PointCoord - vec2(0.5);
     float dist = length(coord);
     if (dist > 0.5) discard;
-    
+
     float alpha = pow(1.0 - (dist * 2.0), 1.5);
-    vec3 coreColor = vec3(0.2, 0.85, 1.0);
-    vec3 edgeColor = vec3(0.7, 0.25, 0.9);
-    float t = clamp(vDistance / 15.0, 0.0, 1.0);
-    vec3 finalColor = mix(coreColor, edgeColor, t);
-    
+    vec3 finalColor = getPointPaletteColor(vDistance, u_palette);
     gl_FragColor = vec4(finalColor, alpha * 0.85);
   }
 `;
 
-// Shaders for GLSL Volumetric Raymarching
+// Shaders for GLSL Volumetric Raymarching with Dynamic Steps & Dithering
 const raymarchVertexShader = `
   varying vec3 vOrigin;
   varying vec3 vDirection;
@@ -73,6 +96,8 @@ const raymarchFragmentShader = `
   uniform float u_zEff;
   uniform vec3 u_boxMin;
   uniform vec3 u_boxMax;
+  uniform int u_steps;
+  uniform int u_palette;
 
   #define PI 3.14159265359
 
@@ -131,7 +156,6 @@ const raymarchFragmentShader = `
     return 0.5 * sqrt(1.0 / PI);
   }
 
-  // Calculate wavefunction psi at point p
   float evalPsi(vec3 p) {
     float r = length(p);
     if (r < 1e-4) return 0.0;
@@ -153,6 +177,23 @@ const raymarchFragmentShader = `
     return vec2(tNear, tFar);
   }
 
+  vec3 getPaletteColor(float psi, float density, int paletteId) {
+    float t = clamp(density * 12.0, 0.0, 1.0);
+    if (paletteId == 1) { // Atomic Fire
+      if (psi > 0.0) return mix(vec3(1.0, 0.4, 0.0), vec3(1.0, 0.9, 0.2), t);
+      return mix(vec3(0.8, 0.0, 0.2), vec3(0.4, 0.0, 0.6), t);
+    } else if (paletteId == 2) { // Emerald Glow
+      if (psi > 0.0) return mix(vec3(0.0, 0.8, 0.5), vec3(0.4, 1.0, 0.7), t);
+      return mix(vec3(0.8, 0.8, 0.1), vec3(0.2, 0.5, 0.2), t);
+    } else if (paletteId == 3) { // Quantum Spectrum
+      if (psi > 0.0) return mix(vec3(0.6, 0.1, 1.0), vec3(0.1, 0.8, 1.0), t);
+      return mix(vec3(1.0, 0.1, 0.5), vec3(1.0, 0.6, 0.1), t);
+    }
+    // Default Cyan & Magenta
+    if (psi > 0.0) return mix(vec3(0.1, 0.6, 1.0), vec3(0.0, 0.9, 1.0), t);
+    return mix(vec3(1.0, 0.4, 0.1), vec3(1.0, 0.8, 0.2), t);
+  }
+
   void main() {
     vec3 rayDir = normalize(vDirection);
     vec2 tHit = rayBoxIntersection(vOrigin, rayDir, u_boxMin, u_boxMax);
@@ -165,28 +206,28 @@ const raymarchFragmentShader = `
     vec3 entryPoint = vOrigin + rayDir * tHit.x;
     float dist = tHit.y - tHit.x;
 
-    int steps = 64;
-    float stepSize = dist / float(steps);
+    int maxSteps = clamp(u_steps, 32, 512);
+    float stepSize = dist / float(maxSteps);
     vec4 accumColor = vec4(0.0);
 
-    for (int i = 0; i < 64; i++) {
-      vec3 currentPos = entryPoint + rayDir * (float(i) + 0.5) * stepSize;
+    // Stochastic dithering to prevent slice banding
+    float dither = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
+    float startOffset = dither * stepSize;
+
+    for (int i = 0; i < 512; i++) {
+      if (i >= maxSteps) break;
+      vec3 currentPos = entryPoint + rayDir * (startOffset + float(i) * stepSize);
       float psi = evalPsi(currentPos);
       float density = psi * psi;
 
       if (density > 0.0001) {
-        vec3 color;
-        if (psi > 0.0) {
-          color = mix(vec3(0.1, 0.6, 1.0), vec3(0.0, 0.9, 1.0), clamp(density * 10.0, 0.0, 1.0));
-        } else {
-          color = mix(vec3(1.0, 0.4, 0.1), vec3(1.0, 0.8, 0.2), clamp(density * 10.0, 0.0, 1.0));
-        }
+        vec3 color = getPaletteColor(psi, density, u_palette);
+        float alphaSample = 1.0 - exp(-density * stepSize * 30.0);
 
-        float alphaSample = 1.0 - exp(-density * stepSize * 25.0);
         accumColor.rgb += (1.0 - accumColor.a) * color * alphaSample;
         accumColor.a += (1.0 - accumColor.a) * alphaSample;
 
-        if (accumColor.a >= 0.95) break;
+        if (accumColor.a >= 0.96) break;
       }
     }
 
@@ -201,6 +242,9 @@ export class OrbitalRenderer {
   private controls: OrbitControls;
   private animationId: number = 0;
 
+  private composer: EffectComposer | null = null;
+  private bloomPass: UnrealBloomPass | null = null;
+
   private pointsMesh: THREE.Points | null = null;
   private marchingCubesMesh: MarchingCubes | null = null;
   private raymarchingMesh: THREE.Mesh | null = null;
@@ -214,10 +258,23 @@ export class OrbitalRenderer {
     useRealOrbital: true,
     zEff: 1.0,
     mode: 'points',
+    quality: 'medium',
+    raymarchingSteps: 128,
+    colorPalette: 'default',
+    enableBloom: true,
+    bloomIntensity: 0.8,
+    resolutionScale: 1.0,
   };
 
   constructor(canvas: HTMLCanvasElement) {
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    this.renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: true,
+      alpha: true,
+      powerPreference: 'high-performance',
+      precision: 'highp',
+      preserveDrawingBuffer: true,
+    });
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setClearColor(new THREE.Color('#0a0a1a'));
 
@@ -231,6 +288,8 @@ export class OrbitalRenderer {
     this.controls.dampingFactor = 0.05;
 
     this.setupLighting();
+    this.setupPostProcessing();
+
     window.addEventListener('resize', this.onWindowResize);
     this.onWindowResize();
   }
@@ -248,6 +307,22 @@ export class OrbitalRenderer {
     this.scene.add(dirLight2);
   }
 
+  private setupPostProcessing(): void {
+    const renderPass = new RenderPass(this.scene, this.camera);
+    this.bloomPass = new UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth, window.innerHeight),
+      0.8,
+      0.4,
+      0.85
+    );
+    const outputPass = new OutputPass();
+
+    this.composer = new EffectComposer(this.renderer);
+    this.composer.addPass(renderPass);
+    this.composer.addPass(this.bloomPass);
+    this.composer.addPass(outputPass);
+  }
+
   public setPointCloud(positions: Float32Array): void {
     this.clearCurrentMesh();
     this.currentMode = 'points';
@@ -255,9 +330,15 @@ export class OrbitalRenderer {
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
 
+    const paletteId = this.paletteToId(this.currentParams.colorPalette);
+
     const material = new THREE.ShaderMaterial({
       vertexShader: pointVertexShader,
       fragmentShader: pointFragmentShader,
+      uniforms: {
+        u_pointSizeScale: { value: 18.0 },
+        u_palette: { value: paletteId },
+      },
       transparent: true,
       blending: THREE.AdditiveBlending,
       depthWrite: false,
@@ -272,19 +353,33 @@ export class OrbitalRenderer {
     this.currentMode = 'isosurface';
     this.currentParams = { ...params };
 
-    const gridRes = params.quality === 'low' ? 32 : params.quality === 'high' ? 64 : 48;
+    const gridRes =
+      params.quality === 'low'
+        ? 32
+        : params.quality === 'medium'
+        ? 48
+        : params.quality === 'high'
+        ? 64
+        : params.quality === 'ultra'
+        ? 96
+        : params.quality === 'extreme'
+        ? 128
+        : 64;
+
+    const baseColor = this.paletteToIsoColor(params.colorPalette);
+
     const material = new THREE.MeshPhysicalMaterial({
-      color: 0x2080ff,
-      roughness: 0.2,
-      metalness: 0.1,
-      transmission: 0.6,
+      color: baseColor,
+      roughness: 0.15,
+      metalness: 0.2,
+      transmission: 0.65,
       opacity: 0.85,
       transparent: true,
       side: THREE.DoubleSide,
     });
 
-    const mc = new MarchingCubes(gridRes, material, false, false, 100000);
-    const boxExtent = 4.0 * (params.n * params.n) / Math.max(params.zEff, 0.5);
+    const mc = new MarchingCubes(gridRes, material, false, false, 200000);
+    const boxExtent = (4.0 * (params.n * params.n)) / Math.max(params.zEff, 0.5);
     mc.scale.set(boxExtent, boxExtent, boxExtent);
 
     // Compute grid values
@@ -302,13 +397,13 @@ export class OrbitalRenderer {
     mc.reset();
     mc.isolation = isolevel;
 
-    const rMax = 4.0 * (n * n) / Math.max(zEff, 0.5);
+    const rMax = (4.0 * (n * n)) / Math.max(zEff, 0.5);
     for (let x = 0; x < resolution; x++) {
       for (let y = 0; y < resolution; y++) {
         for (let z = 0; z < resolution; z++) {
-          const px = ((x / (resolution - 1)) - 0.5) * 2.0 * rMax;
-          const py = ((y / (resolution - 1)) - 0.5) * 2.0 * rMax;
-          const pz = ((z / (resolution - 1)) - 0.5) * 2.0 * rMax;
+          const px = (x / (resolution - 1) - 0.5) * 2.0 * rMax;
+          const py = (y / (resolution - 1) - 0.5) * 2.0 * rMax;
+          const pz = (z / (resolution - 1) - 0.5) * 2.0 * rMax;
 
           const r = Math.hypot(px, py, pz);
           let density = 0;
@@ -333,8 +428,18 @@ export class OrbitalRenderer {
     this.currentMode = 'raymarching';
     this.currentParams = { ...params };
 
-    const boxExtent = 4.0 * (params.n * params.n) / Math.max(params.zEff, 0.5);
+    const boxExtent = (4.0 * (params.n * params.n)) / Math.max(params.zEff, 0.5);
     const geometry = new THREE.BoxGeometry(boxExtent * 2, boxExtent * 2, boxExtent * 2);
+
+    const steps = params.raymarchingSteps ?? (
+      params.quality === 'low' ? 64 :
+      params.quality === 'medium' ? 96 :
+      params.quality === 'high' ? 128 :
+      params.quality === 'ultra' ? 256 :
+      params.quality === 'extreme' ? 512 : 128
+    );
+
+    const paletteId = this.paletteToId(params.colorPalette);
 
     this.raymarchingMaterial = new THREE.ShaderMaterial({
       vertexShader: raymarchVertexShader,
@@ -347,6 +452,8 @@ export class OrbitalRenderer {
         u_zEff: { value: params.zEff },
         u_boxMin: { value: new THREE.Vector3(-boxExtent, -boxExtent, -boxExtent) },
         u_boxMax: { value: new THREE.Vector3(boxExtent, boxExtent, boxExtent) },
+        u_steps: { value: steps },
+        u_palette: { value: paletteId },
       },
       transparent: true,
       side: THREE.BackSide,
@@ -355,6 +462,24 @@ export class OrbitalRenderer {
 
     this.raymarchingMesh = new THREE.Mesh(geometry, this.raymarchingMaterial);
     this.scene.add(this.raymarchingMesh);
+  }
+
+  private paletteToId(palette?: ColorPalette): number {
+    switch (palette) {
+      case 'fire': return 1;
+      case 'emerald': return 2;
+      case 'spectrum': return 3;
+      default: return 0;
+    }
+  }
+
+  private paletteToIsoColor(palette?: ColorPalette): number {
+    switch (palette) {
+      case 'fire': return 0xff6600;
+      case 'emerald': return 0x00cc88;
+      case 'spectrum': return 0xaa22ff;
+      default: return 0x2080ff;
+    }
   }
 
   private evalRadial(n: number, l: number, zeff: number, r: number): number {
@@ -430,15 +555,84 @@ export class OrbitalRenderer {
     }
   }
 
+  public updateParams(params: Partial<OrbitalRenderParams>): void {
+    this.currentParams = { ...this.currentParams, ...params };
+    if (this.bloomPass && params.bloomIntensity !== undefined) {
+      this.bloomPass.strength = params.bloomIntensity;
+    }
+    if (params.mode) {
+      this.setMode(params.mode, this.currentParams);
+    }
+  }
+
   public getCurrentMode(): RenderMode {
     return this.currentMode;
   }
 
   private onWindowResize = (): void => {
+    const resScale = this.currentParams.resolutionScale ?? 1.0;
+    const pixelRatio = Math.min(window.devicePixelRatio * resScale, 4.0);
+
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
+
+    this.renderer.setPixelRatio(pixelRatio);
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+
+    if (this.composer) {
+      this.composer.setSize(window.innerWidth, window.innerHeight);
+    }
   };
+
+  public async captureSnapshot(options: {
+    width: number;
+    height: number;
+    superSampling: number;
+    format: 'image/png' | 'image/jpeg' | 'image/webp';
+    background: 'dark' | 'black' | 'white' | 'transparent';
+  }): Promise<string> {
+    const origPixelRatio = this.renderer.getPixelRatio();
+    const origClearColor = new THREE.Color();
+    this.renderer.getClearColor(origClearColor);
+    const origClearAlpha = this.renderer.getClearAlpha();
+
+    const targetWidth = Math.round(options.width);
+    const targetHeight = Math.round(options.height);
+
+    this.renderer.setPixelRatio(options.superSampling);
+    this.renderer.setSize(targetWidth, targetHeight, false);
+    if (this.composer) {
+      this.composer.setSize(targetWidth, targetHeight);
+    }
+
+    this.camera.aspect = targetWidth / targetHeight;
+    this.camera.updateProjectionMatrix();
+
+    if (options.background === 'black') {
+      this.renderer.setClearColor(new THREE.Color(0x000000), 1.0);
+    } else if (options.background === 'white') {
+      this.renderer.setClearColor(new THREE.Color(0xffffff), 1.0);
+    } else if (options.background === 'transparent') {
+      this.renderer.setClearColor(new THREE.Color(0x000000), 0.0);
+    } else {
+      this.renderer.setClearColor(new THREE.Color('#0a0a1a'), 1.0);
+    }
+
+    if (this.currentParams.enableBloom && this.composer) {
+      this.composer.render();
+    } else {
+      this.renderer.render(this.scene, this.camera);
+    }
+
+    const dataUrl = this.renderer.domElement.toDataURL(options.format, 0.95);
+
+    // Restore original size
+    this.renderer.setPixelRatio(origPixelRatio);
+    this.renderer.setClearColor(origClearColor, origClearAlpha);
+    this.onWindowResize();
+
+    return dataUrl;
+  }
 
   public animate = (): void => {
     this.animationId = requestAnimationFrame(this.animate);
@@ -452,7 +646,11 @@ export class OrbitalRenderer {
       this.raymarchingMesh.rotation.y += 0.001;
     }
 
-    this.renderer.render(this.scene, this.camera);
+    if (this.currentParams.enableBloom && this.composer) {
+      this.composer.render();
+    } else {
+      this.renderer.render(this.scene, this.camera);
+    }
   };
 
   public dispose(): void {
@@ -460,6 +658,10 @@ export class OrbitalRenderer {
     window.removeEventListener('resize', this.onWindowResize);
     this.clearCurrentMesh();
     this.controls.dispose();
+    if (this.composer) {
+      this.composer.dispose();
+    }
     this.renderer.dispose();
   }
 }
+

@@ -7,6 +7,7 @@ import { ControlPanel, ExtendedOrbitalParams } from './ui/controls';
 import { PeriodicTableView, ElementData } from './ui/periodic-table';
 import { MoleculeView } from './ui/molecule-view';
 import { FPSDisplay } from './ui/fps-display';
+import { ImageExporterModal } from './ui/image-exporter';
 
 async function init() {
   const canvas = document.getElementById('orbital-canvas') as HTMLCanvasElement;
@@ -44,10 +45,20 @@ async function init() {
 
   new FPSDisplay(fpsCounter);
 
-  // 4. Orbital Loader Callback
+  // 4. Image Exporter Modal
+  const imageExporterModal = new ImageExporterModal(async (options) => {
+    if (activeTab === 'molecules') {
+      return moleculeRenderer.captureSnapshot(options);
+    }
+    return orbitalRenderer.captureSnapshot(options);
+  });
+
+  // 5. Orbital Loader Callback
   const loadOrbital = async (params: ExtendedOrbitalParams) => {
     try {
       document.body.classList.add('loading');
+      orbitalRenderer.updateParams(params);
+
       if (params.mode === 'points') {
         const points = await sampleOrbitalPoints(params);
         orbitalRenderer.setPointCloud(points);
@@ -63,8 +74,12 @@ async function init() {
     }
   };
 
-  // 5. Instantiate UI Components
-  const controlPanel = new ControlPanel(viewLayers['orbitals'], loadOrbital);
+  // 6. Instantiate UI Components
+  const controlPanel = new ControlPanel(
+    viewLayers['orbitals'],
+    loadOrbital,
+    () => imageExporterModal.open()
+  );
 
   const periodicTableView = new PeriodicTableView(viewLayers['periodic-table'], (element: ElementData) => {
     // Estimate valence quantum numbers and Z_eff
@@ -83,7 +98,7 @@ async function init() {
   void periodicTableView;
   void moleculeView;
 
-  // 6. Tab Switcher
+  // 7. Tab Switcher
   const switchTab = (newTab: TabId) => {
     activeTab = newTab;
     navBar.setActiveTab(newTab);
@@ -105,9 +120,10 @@ async function init() {
 
   const navBar = new NavigationBar(navContainer, switchTab);
 
-  // 7. Initial Load
+  // 8. Initial Load
   await loadOrbital(controlPanel.getParams());
   orbitalRenderer.animate();
 }
 
 window.addEventListener('DOMContentLoaded', init);
+
