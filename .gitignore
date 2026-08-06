@@ -1,0 +1,47 @@
+# Build outputs & Bundles
+/dist
+/dist-ssr
+/target
+**/target/
+crates/*/pkg/
+**/pkg/
+.wasm-pack/
+*.wasm.map
+src-tauri/gen/schemas
+*.tsbuildinfo
+.vite/
+
+# Dependencies
+/node_modules/
+.pnpm-store/
+
+# Environment & Local Secrets
+.env
+.env.local
+.env.*.local
+
+# Logs & Caches
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.cache/
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+*~
+.vs/
+*.sublime-workspace
+*.sublime-project
+
+# OS System files
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+

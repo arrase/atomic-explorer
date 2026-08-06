@@ -1,0 +1,1181 @@
+[
+  {
+    "id": "H2",
+    "name": "Dihidrógeno",
+    "formula": "H₂",
+    "geometry": "Lineal",
+    "hybridization": "1s-1s",
+    "bond_angle": "180°",
+    "description": "Molécula diatómica simple con un enlace covalente simple sigma.",
+    "atoms": [
+      {
+        "symbol": "H",
+        "position": [
+          -1.2,
+          0,
+          0
+        ],
+        "color": "#ffffff",
+        "radius": 0.5
+      },
+      {
+        "symbol": "H",
+        "position": [
+          1.2,
+          0,
+          0
+        ],
+        "color": "#ffffff",
+        "radius": 0.5
+      }
+    ],
+    "bonds": [
+      {
+        "fromIndex": 0,
+        "toIndex": 1,
+        "type": "single"
+      }
+    ],
+    "hybrid_lobes": [
+      {
+        "position": [
+          -0.6,
+          0,
+          0
+        ],
+        "direction": [
+          1,
+          0,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 1.0,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          0.6,
+          0,
+          0
+        ],
+        "direction": [
+          -1,
+          0,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 1.0,
+        "type": "bonding"
+      }
+    ],
+    "name_es": "Dihidrógeno",
+    "name_en": "Dihydrogen",
+    "geometry_es": "Lineal",
+    "geometry_en": "Linear",
+    "description_es": "Molécula diatómica simple con un enlace covalente simple sigma.",
+    "description_en": "Simple diatomic molecule with a single covalent sigma bond."
+  },
+  {
+    "id": "H2O",
+    "name": "Agua",
+    "formula": "H₂O",
+    "geometry": "Angular",
+    "hybridization": "sp³",
+    "bond_angle": "104.5°",
+    "description": "Geometría angular con 2 pares libres de electrones en el oxígeno y hibridación sp³.",
+    "atoms": [
+      {
+        "symbol": "O",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "color": "#ff3333",
+        "radius": 0.8
+      },
+      {
+        "symbol": "H",
+        "position": [
+          1.2,
+          0.9,
+          0
+        ],
+        "color": "#ffffff",
+        "radius": 0.5
+      },
+      {
+        "symbol": "H",
+        "position": [
+          -1.2,
+          0.9,
+          0
+        ],
+        "color": "#ffffff",
+        "radius": 0.5
+      }
+    ],
+    "bonds": [
+      {
+        "fromIndex": 0,
+        "toIndex": 1,
+        "type": "single"
+      },
+      {
+        "fromIndex": 0,
+        "toIndex": 2,
+        "type": "single"
+      }
+    ],
+    "hybrid_lobes": [
+      {
+        "position": [
+          0.6,
+          0.45,
+          0
+        ],
+        "direction": [
+          0.8,
+          0.6,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.9,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          -0.6,
+          0.45,
+          0
+        ],
+        "direction": [
+          -0.8,
+          0.6,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.9,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          0,
+          -0.7,
+          0.8
+        ],
+        "direction": [
+          0,
+          -0.7,
+          0.8
+        ],
+        "color": "#ffaa22",
+        "scale": 1.1,
+        "type": "lone_pair"
+      },
+      {
+        "position": [
+          0,
+          -0.7,
+          -0.8
+        ],
+        "direction": [
+          0,
+          -0.7,
+          -0.8
+        ],
+        "color": "#ffaa22",
+        "scale": 1.1,
+        "type": "lone_pair"
+      }
+    ],
+    "name_es": "Agua",
+    "name_en": "Water",
+    "geometry_es": "Angular",
+    "geometry_en": "Bent",
+    "description_es": "Geometría angular con 2 pares libres de electrones en el oxígeno y hibridación sp³.",
+    "description_en": "Bent geometry with 2 lone electron pairs on oxygen and sp³ hybridization."
+  },
+  {
+    "id": "CO2",
+    "name": "Dióxido de Carbono",
+    "formula": "CO₂",
+    "geometry": "Lineal",
+    "hybridization": "sp",
+    "bond_angle": "180°",
+    "description": "Geometría lineal con hibridación sp en el carbono central y enlaces dobles.",
+    "atoms": [
+      {
+        "symbol": "C",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "color": "#555555",
+        "radius": 0.75
+      },
+      {
+        "symbol": "O",
+        "position": [
+          -2.0,
+          0,
+          0
+        ],
+        "color": "#ff3333",
+        "radius": 0.8
+      },
+      {
+        "symbol": "O",
+        "position": [
+          2.0,
+          0,
+          0
+        ],
+        "color": "#ff3333",
+        "radius": 0.8
+      }
+    ],
+    "bonds": [
+      {
+        "fromIndex": 0,
+        "toIndex": 1,
+        "type": "double"
+      },
+      {
+        "fromIndex": 0,
+        "toIndex": 2,
+        "type": "double"
+      }
+    ],
+    "hybrid_lobes": [
+      {
+        "position": [
+          -1.0,
+          0,
+          0
+        ],
+        "direction": [
+          -1,
+          0,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 1.0,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          1.0,
+          0,
+          0
+        ],
+        "direction": [
+          1,
+          0,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 1.0,
+        "type": "bonding"
+      }
+    ],
+    "name_es": "Dióxido de Carbono",
+    "name_en": "Carbon Dioxide",
+    "geometry_es": "Lineal",
+    "geometry_en": "Linear",
+    "description_es": "Geometría lineal con hibridación sp en el carbono central y enlaces dobles.",
+    "description_en": "Linear geometry with sp hybridization on the central carbon and double bonds."
+  },
+  {
+    "id": "NH3",
+    "name": "Amoníaco",
+    "formula": "NH₃",
+    "geometry": "Piramidal Trigonal",
+    "hybridization": "sp³",
+    "bond_angle": "107.3°",
+    "description": "Geometría piramidal con 1 par no enlazante en el nitrógeno.",
+    "atoms": [
+      {
+        "symbol": "N",
+        "position": [
+          0,
+          0.3,
+          0
+        ],
+        "color": "#3366ff",
+        "radius": 0.75
+      },
+      {
+        "symbol": "H",
+        "position": [
+          1.1,
+          -0.4,
+          0.6
+        ],
+        "color": "#ffffff",
+        "radius": 0.5
+      },
+      {
+        "symbol": "H",
+        "position": [
+          -1.1,
+          -0.4,
+          0.6
+        ],
+        "color": "#ffffff",
+        "radius": 0.5
+      },
+      {
+        "symbol": "H",
+        "position": [
+          0,
+          -0.4,
+          -1.2
+        ],
+        "color": "#ffffff",
+        "radius": 0.5
+      }
+    ],
+    "bonds": [
+      {
+        "fromIndex": 0,
+        "toIndex": 1,
+        "type": "single"
+      },
+      {
+        "fromIndex": 0,
+        "toIndex": 2,
+        "type": "single"
+      },
+      {
+        "fromIndex": 0,
+        "toIndex": 3,
+        "type": "single"
+      }
+    ],
+    "hybrid_lobes": [
+      {
+        "position": [
+          0.55,
+          -0.05,
+          0.3
+        ],
+        "direction": [
+          0.8,
+          -0.3,
+          0.5
+        ],
+        "color": "#40c0ff",
+        "scale": 0.9,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          -0.55,
+          -0.05,
+          0.3
+        ],
+        "direction": [
+          -0.8,
+          -0.3,
+          0.5
+        ],
+        "color": "#40c0ff",
+        "scale": 0.9,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          0,
+          -0.05,
+          -0.6
+        ],
+        "direction": [
+          0,
+          -0.3,
+          -0.9
+        ],
+        "color": "#40c0ff",
+        "scale": 0.9,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          0,
+          1.2,
+          0
+        ],
+        "direction": [
+          0,
+          1,
+          0
+        ],
+        "color": "#ffaa22",
+        "scale": 1.1,
+        "type": "lone_pair"
+      }
+    ],
+    "name_es": "Amoníaco",
+    "name_en": "Ammonia",
+    "geometry_es": "Piramidal Trigonal",
+    "geometry_en": "Trigonal Pyramidal",
+    "description_es": "Geometría piramidal con 1 par no enlazante en el nitrógeno.",
+    "description_en": "Trigonal pyramidal geometry with 1 non-bonding lone pair on nitrogen."
+  },
+  {
+    "id": "CH4",
+    "name": "Metano",
+    "formula": "CH₄",
+    "geometry": "Tetraédrica",
+    "hybridization": "sp³",
+    "bond_angle": "109.5°",
+    "description": "Geometría tetraédrica perfecta con hibridación sp³ del carbono central.",
+    "atoms": [
+      {
+        "symbol": "C",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "color": "#555555",
+        "radius": 0.75
+      },
+      {
+        "symbol": "H",
+        "position": [
+          0,
+          1.4,
+          0
+        ],
+        "color": "#ffffff",
+        "radius": 0.5
+      },
+      {
+        "symbol": "H",
+        "position": [
+          1.32,
+          -0.47,
+          0
+        ],
+        "color": "#ffffff",
+        "radius": 0.5
+      },
+      {
+        "symbol": "H",
+        "position": [
+          -0.66,
+          -0.47,
+          1.14
+        ],
+        "color": "#ffffff",
+        "radius": 0.5
+      },
+      {
+        "symbol": "H",
+        "position": [
+          -0.66,
+          -0.47,
+          -1.14
+        ],
+        "color": "#ffffff",
+        "radius": 0.5
+      }
+    ],
+    "bonds": [
+      {
+        "fromIndex": 0,
+        "toIndex": 1,
+        "type": "single"
+      },
+      {
+        "fromIndex": 0,
+        "toIndex": 2,
+        "type": "single"
+      },
+      {
+        "fromIndex": 0,
+        "toIndex": 3,
+        "type": "single"
+      },
+      {
+        "fromIndex": 0,
+        "toIndex": 4,
+        "type": "single"
+      }
+    ],
+    "hybrid_lobes": [
+      {
+        "position": [
+          0,
+          0.7,
+          0
+        ],
+        "direction": [
+          0,
+          1,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.9,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          0.66,
+          -0.23,
+          0
+        ],
+        "direction": [
+          0.94,
+          -0.33,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.9,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          -0.33,
+          -0.23,
+          0.57
+        ],
+        "direction": [
+          -0.47,
+          -0.33,
+          0.81
+        ],
+        "color": "#40c0ff",
+        "scale": 0.9,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          -0.33,
+          -0.23,
+          -0.57
+        ],
+        "direction": [
+          -0.47,
+          -0.33,
+          -0.81
+        ],
+        "color": "#40c0ff",
+        "scale": 0.9,
+        "type": "bonding"
+      }
+    ],
+    "name_es": "Metano",
+    "name_en": "Methane",
+    "geometry_es": "Tetraédrica",
+    "geometry_en": "Tetrahedral",
+    "description_es": "Geometría tetraédrica perfecta con hibridación sp³ del carbono central.",
+    "description_en": "Perfect tetrahedral geometry with sp³ hybridization of the central carbon."
+  },
+  {
+    "id": "BeCl2",
+    "name": "Dicloruro de Berilio",
+    "formula": "BeCl₂",
+    "geometry": "Lineal",
+    "hybridization": "sp",
+    "bond_angle": "180°",
+    "description": "Geometría lineal perfecta con hibridación sp en el berilio.",
+    "atoms": [
+      {
+        "symbol": "Be",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "color": "#99cc33",
+        "radius": 0.7
+      },
+      {
+        "symbol": "Cl",
+        "position": [
+          -2.2,
+          0,
+          0
+        ],
+        "color": "#11cc44",
+        "radius": 0.85
+      },
+      {
+        "symbol": "Cl",
+        "position": [
+          2.2,
+          0,
+          0
+        ],
+        "color": "#11cc44",
+        "radius": 0.85
+      }
+    ],
+    "bonds": [
+      {
+        "fromIndex": 0,
+        "toIndex": 1,
+        "type": "single"
+      },
+      {
+        "fromIndex": 0,
+        "toIndex": 2,
+        "type": "single"
+      }
+    ],
+    "hybrid_lobes": [
+      {
+        "position": [
+          -1.1,
+          0,
+          0
+        ],
+        "direction": [
+          -1,
+          0,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 1.0,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          1.1,
+          0,
+          0
+        ],
+        "direction": [
+          1,
+          0,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 1.0,
+        "type": "bonding"
+      }
+    ],
+    "name_es": "Dicloruro de Berilio",
+    "name_en": "Beryllium Dichloride",
+    "geometry_es": "Lineal",
+    "geometry_en": "Linear",
+    "description_es": "Geometría lineal perfecta con hibridación sp en el berilio.",
+    "description_en": "Perfect linear geometry with sp hybridization on beryllium."
+  },
+  {
+    "id": "BF3",
+    "name": "Trifluoruro de Boro",
+    "formula": "BF₃",
+    "geometry": "Plana Trigonal",
+    "hybridization": "sp²",
+    "bond_angle": "120°",
+    "description": "Geometría plana trigonal simétrica con hibridación sp².",
+    "atoms": [
+      {
+        "symbol": "B",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "color": "#ff99aa",
+        "radius": 0.7
+      },
+      {
+        "symbol": "F",
+        "position": [
+          0,
+          1.8,
+          0
+        ],
+        "color": "#77ee77",
+        "radius": 0.75
+      },
+      {
+        "symbol": "F",
+        "position": [
+          1.56,
+          -0.9,
+          0
+        ],
+        "color": "#77ee77",
+        "radius": 0.75
+      },
+      {
+        "symbol": "F",
+        "position": [
+          -1.56,
+          -0.9,
+          0
+        ],
+        "color": "#77ee77",
+        "radius": 0.75
+      }
+    ],
+    "bonds": [
+      {
+        "fromIndex": 0,
+        "toIndex": 1,
+        "type": "single"
+      },
+      {
+        "fromIndex": 0,
+        "toIndex": 2,
+        "type": "single"
+      },
+      {
+        "fromIndex": 0,
+        "toIndex": 3,
+        "type": "single"
+      }
+    ],
+    "hybrid_lobes": [
+      {
+        "position": [
+          0,
+          0.9,
+          0
+        ],
+        "direction": [
+          0,
+          1,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.9,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          0.78,
+          -0.45,
+          0
+        ],
+        "direction": [
+          0.86,
+          -0.5,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.9,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          -0.78,
+          -0.45,
+          0
+        ],
+        "direction": [
+          -0.86,
+          -0.5,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.9,
+        "type": "bonding"
+      }
+    ],
+    "name_es": "Trifluoruro de Boro",
+    "name_en": "Boron Trifluoride",
+    "geometry_es": "Plana Trigonal",
+    "geometry_en": "Trigonal Planar",
+    "description_es": "Geometría plana trigonal simétrica con hibridación sp².",
+    "description_en": "Symmetrical trigonal planar geometry with sp² hybridization."
+  },
+  {
+    "id": "PCl5",
+    "name": "Pentacloruro de Fósforo",
+    "formula": "PCl₅",
+    "geometry": "Bipirámide Trigonal",
+    "hybridization": "sp³d",
+    "bond_angle": "90° / 120°",
+    "description": "Expandió el octeto con 5 pares enlazantes en geometría bipiramidal trigonal.",
+    "atoms": [
+      {
+        "symbol": "P",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "color": "#ff9900",
+        "radius": 0.8
+      },
+      {
+        "symbol": "Cl",
+        "position": [
+          0,
+          2.0,
+          0
+        ],
+        "color": "#11cc44",
+        "radius": 0.85
+      },
+      {
+        "symbol": "Cl",
+        "position": [
+          0,
+          -2.0,
+          0
+        ],
+        "color": "#11cc44",
+        "radius": 0.85
+      },
+      {
+        "symbol": "Cl",
+        "position": [
+          1.8,
+          0,
+          0
+        ],
+        "color": "#11cc44",
+        "radius": 0.85
+      },
+      {
+        "symbol": "Cl",
+        "position": [
+          -0.9,
+          0,
+          1.56
+        ],
+        "color": "#11cc44",
+        "radius": 0.85
+      },
+      {
+        "symbol": "Cl",
+        "position": [
+          -0.9,
+          0,
+          -1.56
+        ],
+        "color": "#11cc44",
+        "radius": 0.85
+      }
+    ],
+    "bonds": [
+      {
+        "fromIndex": 0,
+        "toIndex": 1,
+        "type": "single"
+      },
+      {
+        "fromIndex": 0,
+        "toIndex": 2,
+        "type": "single"
+      },
+      {
+        "fromIndex": 0,
+        "toIndex": 3,
+        "type": "single"
+      },
+      {
+        "fromIndex": 0,
+        "toIndex": 4,
+        "type": "single"
+      },
+      {
+        "fromIndex": 0,
+        "toIndex": 5,
+        "type": "single"
+      }
+    ],
+    "hybrid_lobes": [
+      {
+        "position": [
+          0,
+          1.0,
+          0
+        ],
+        "direction": [
+          0,
+          1,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.9,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          0,
+          -1.0,
+          0
+        ],
+        "direction": [
+          0,
+          -1,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.9,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          0.9,
+          0,
+          0
+        ],
+        "direction": [
+          1,
+          0,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.9,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          -0.45,
+          0,
+          0.78
+        ],
+        "direction": [
+          -0.5,
+          0,
+          0.86
+        ],
+        "color": "#40c0ff",
+        "scale": 0.9,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          -0.45,
+          0,
+          -0.78
+        ],
+        "direction": [
+          -0.5,
+          0,
+          -0.86
+        ],
+        "color": "#40c0ff",
+        "scale": 0.9,
+        "type": "bonding"
+      }
+    ],
+    "name_es": "Pentacloruro de Fósforo",
+    "name_en": "Phosphorus Pentachloride",
+    "geometry_es": "Bipirámide Trigonal",
+    "geometry_en": "Trigonal Bipyramidal",
+    "description_es": "Expandió el octeto con 5 pares enlazantes en geometría bipiramidal trigonal.",
+    "description_en": "Expanded octet with 5 bonding pairs in trigonal bipyramidal geometry."
+  },
+  {
+    "id": "SF6",
+    "name": "Hexafluoruro de Azufre",
+    "formula": "SF₆",
+    "geometry": "Octaédrica",
+    "hybridization": "sp³d²",
+    "bond_angle": "90°",
+    "description": "Geometría octaédrica altamente simétrica con hibridación sp³d².",
+    "atoms": [
+      {
+        "symbol": "S",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "color": "#ffff33",
+        "radius": 0.8
+      },
+      {
+        "symbol": "F",
+        "position": [
+          1.8,
+          0,
+          0
+        ],
+        "color": "#77ee77",
+        "radius": 0.75
+      },
+      {
+        "symbol": "F",
+        "position": [
+          -1.8,
+          0,
+          0
+        ],
+        "color": "#77ee77",
+        "radius": 0.75
+      },
+      {
+        "symbol": "F",
+        "position": [
+          0,
+          1.8,
+          0
+        ],
+        "color": "#77ee77",
+        "radius": 0.75
+      },
+      {
+        "symbol": "F",
+        "position": [
+          0,
+          -1.8,
+          0
+        ],
+        "color": "#77ee77",
+        "radius": 0.75
+      },
+      {
+        "symbol": "F",
+        "position": [
+          0,
+          0,
+          1.8
+        ],
+        "color": "#77ee77",
+        "radius": 0.75
+      },
+      {
+        "symbol": "F",
+        "position": [
+          0,
+          0,
+          -1.8
+        ],
+        "color": "#77ee77",
+        "radius": 0.75
+      }
+    ],
+    "bonds": [
+      {
+        "fromIndex": 0,
+        "toIndex": 1,
+        "type": "single"
+      },
+      {
+        "fromIndex": 0,
+        "toIndex": 2,
+        "type": "single"
+      },
+      {
+        "fromIndex": 0,
+        "toIndex": 3,
+        "type": "single"
+      },
+      {
+        "fromIndex": 0,
+        "toIndex": 4,
+        "type": "single"
+      },
+      {
+        "fromIndex": 0,
+        "toIndex": 5,
+        "type": "single"
+      },
+      {
+        "fromIndex": 0,
+        "toIndex": 6,
+        "type": "single"
+      }
+    ],
+    "hybrid_lobes": [
+      {
+        "position": [
+          0.9,
+          0,
+          0
+        ],
+        "direction": [
+          1,
+          0,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.9,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          -0.9,
+          0,
+          0
+        ],
+        "direction": [
+          -1,
+          0,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.9,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          0,
+          0.9,
+          0
+        ],
+        "direction": [
+          0,
+          1,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.9,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          0,
+          -0.9,
+          0
+        ],
+        "direction": [
+          0,
+          -1,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.9,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          0,
+          0,
+          0.9
+        ],
+        "direction": [
+          0,
+          0,
+          1
+        ],
+        "color": "#40c0ff",
+        "scale": 0.9,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          0,
+          0,
+          -0.9
+        ],
+        "direction": [
+          0,
+          0,
+          -1
+        ],
+        "color": "#40c0ff",
+        "scale": 0.9,
+        "type": "bonding"
+      }
+    ],
+    "name_es": "Hexafluoruro de Azufre",
+    "name_en": "Sulfur Hexafluoride",
+    "geometry_es": "Octaédrica",
+    "geometry_en": "Octahedral",
+    "description_es": "Geometría octaédrica altamente simétrica con hibridación sp³d².",
+    "description_en": "Highly symmetrical octahedral geometry with sp³d² hybridization."
+  }
+]
