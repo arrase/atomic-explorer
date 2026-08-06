@@ -29,8 +29,6 @@ export const strings: I18nStrings = {
   paletteFire: 'Atomic Fire (Gold & Red)',
   paletteEmerald: 'Emerald Glow',
   paletteSpectrum: 'Quantum Spectrum (Neon)',
-  bloomEffect: 'Radiative Glow (Bloom)',
-  bloomIntensity: 'Bloom Intensity',
   exportImage: '📸 Export HD/4K Image',
   exportTitle: 'High-Resolution Snapshot Export',
   exportResolution: 'Output Resolution',

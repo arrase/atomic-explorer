@@ -1,10 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { MarchingCubes } from 'three/addons/objects/MarchingCubes.js';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 export type RenderMode = 'points' | 'isosurface' | 'raymarching';
 export type QualityPreset = 'low' | 'medium' | 'high' | 'ultra' | 'extreme' | 'custom';
@@ -23,8 +19,6 @@ export interface OrbitalRenderParams {
   pointCount?: number;
   resolutionScale?: number;
   colorPalette?: ColorPalette;
-  enableBloom?: boolean;
-  bloomIntensity?: number;
 }
 
 // Shader for Point Cloud rendering
@@ -242,8 +236,6 @@ export class OrbitalRenderer {
   private controls: OrbitControls;
   private animationId: number = 0;
 
-  private composer: EffectComposer | null = null;
-  private bloomPass: UnrealBloomPass | null = null;
 
   private pointsMesh: THREE.Points | null = null;
   private marchingCubesMesh: MarchingCubes | null = null;
@@ -261,8 +253,6 @@ export class OrbitalRenderer {
     quality: 'medium',
     raymarchingSteps: 128,
     colorPalette: 'default',
-    enableBloom: true,
-    bloomIntensity: 0.8,
     resolutionScale: 1.0,
   };
 
@@ -288,7 +278,6 @@ export class OrbitalRenderer {
     this.controls.dampingFactor = 0.05;
 
     this.setupLighting();
-    this.setupPostProcessing();
 
     window.addEventListener('resize', this.onWindowResize);
     this.onWindowResize();
@@ -307,21 +296,6 @@ export class OrbitalRenderer {
     this.scene.add(dirLight2);
   }
 
-  private setupPostProcessing(): void {
-    const renderPass = new RenderPass(this.scene, this.camera);
-    this.bloomPass = new UnrealBloomPass(
-      new THREE.Vector2(window.innerWidth, window.innerHeight),
-      0.8,
-      0.4,
-      0.85
-    );
-    const outputPass = new OutputPass();
-
-    this.composer = new EffectComposer(this.renderer);
-    this.composer.addPass(renderPass);
-    this.composer.addPass(this.bloomPass);
-    this.composer.addPass(outputPass);
-  }
 
   public setPointCloud(positions: Float32Array): void {
     this.clearCurrentMesh();
@@ -557,9 +531,6 @@ export class OrbitalRenderer {
 
   public updateParams(params: Partial<OrbitalRenderParams>): void {
     this.currentParams = { ...this.currentParams, ...params };
-    if (this.bloomPass && params.bloomIntensity !== undefined) {
-      this.bloomPass.strength = params.bloomIntensity;
-    }
     if (params.mode) {
       this.setMode(params.mode, this.currentParams);
     }
@@ -579,9 +550,6 @@ export class OrbitalRenderer {
     this.renderer.setPixelRatio(pixelRatio);
     this.renderer.setSize(window.innerWidth, window.innerHeight);
 
-    if (this.composer) {
-      this.composer.setSize(window.innerWidth, window.innerHeight);
-    }
   };
 
   public async captureSnapshot(options: {
@@ -601,9 +569,6 @@ export class OrbitalRenderer {
 
     this.renderer.setPixelRatio(options.superSampling);
     this.renderer.setSize(targetWidth, targetHeight, false);
-    if (this.composer) {
-      this.composer.setSize(targetWidth, targetHeight);
-    }
 
     this.camera.aspect = targetWidth / targetHeight;
     this.camera.updateProjectionMatrix();
@@ -618,11 +583,7 @@ export class OrbitalRenderer {
       this.renderer.setClearColor(new THREE.Color('#0a0a1a'), 1.0);
     }
 
-    if (this.currentParams.enableBloom && this.composer) {
-      this.composer.render();
-    } else {
-      this.renderer.render(this.scene, this.camera);
-    }
+    this.renderer.render(this.scene, this.camera);
 
     const dataUrl = this.renderer.domElement.toDataURL(options.format, 0.95);
 
@@ -666,11 +627,7 @@ export class OrbitalRenderer {
       this.raymarchingMesh.rotation.y += 0.001;
     }
 
-    if (this.currentParams.enableBloom && this.composer) {
-      this.composer.render();
-    } else {
-      this.renderer.render(this.scene, this.camera);
-    }
+    this.renderer.render(this.scene, this.camera);
   };
 
   public dispose(): void {
@@ -678,9 +635,6 @@ export class OrbitalRenderer {
     window.removeEventListener('resize', this.onWindowResize);
     this.clearCurrentMesh();
     this.controls.dispose();
-    if (this.composer) {
-      this.composer.dispose();
-    }
     this.renderer.dispose();
   }
 }

@@ -9,8 +9,6 @@ export interface ExtendedOrbitalParams extends OrbitalParams {
   raymarchingSteps: number;
   resolutionScale: number;
   colorPalette: ColorPalette;
-  enableBloom: boolean;
-  bloomIntensity: number;
   elementZ?: number;
 }
 
@@ -32,8 +30,6 @@ export class ControlPanel {
     raymarchingSteps: 96,
     resolutionScale: 1.0,
     colorPalette: 'default',
-    enableBloom: true,
-    bloomIntensity: 0.8,
     elementZ: 1,
   };
 
@@ -133,14 +129,6 @@ export class ControlPanel {
             </select>
           </div>
 
-          <!-- Bloom Glow Toggle -->
-          <div class="control-group checkbox-group">
-            <label for="bloom-toggle">
-              <input type="checkbox" id="bloom-toggle" ${this.currentParams.enableBloom ? 'checked' : ''} />
-              ${strings.bloomEffect}
-            </label>
-          </div>
-
           <!-- Effective Nuclear Charge Z_eff -->
           <div class="control-group">
             <label for="zeff-input">${strings.zEffCharge}: <span id="zeff-val">${this.currentParams.zEff.toFixed(2)}</span></label>
@@ -184,7 +172,6 @@ export class ControlPanel {
     const typeSelect = this.container.querySelector('#type-select') as HTMLSelectElement;
     const qualitySelect = this.container.querySelector('#quality-select') as HTMLSelectElement;
     const paletteSelect = this.container.querySelector('#palette-select') as HTMLSelectElement;
-    const bloomToggle = this.container.querySelector('#bloom-toggle') as HTMLInputElement;
     const zeffInput = this.container.querySelector('#zeff-input') as HTMLInputElement;
 
     const exportBtn = this.container.querySelector('#btn-open-export');
@@ -230,7 +217,6 @@ export class ControlPanel {
       const useRealOrbital = typeSelect.value === 'real';
       const quality = qualitySelect.value as QualityPreset;
       const colorPalette = paletteSelect.value as ColorPalette;
-      const enableBloom = bloomToggle.checked;
       const zEff = parseFloat(zeffInput.value);
       zeffVal.textContent = zEff.toFixed(2);
 
@@ -290,8 +276,6 @@ export class ControlPanel {
         raymarchingSteps,
         resolutionScale,
         colorPalette,
-        enableBloom,
-        bloomIntensity: 0.8,
       };
 
       this.onChange(this.currentParams);
@@ -305,7 +289,6 @@ export class ControlPanel {
     typeSelect.addEventListener('change', updateControls);
     qualitySelect.addEventListener('change', updateControls);
     paletteSelect.addEventListener('change', updateControls);
-    bloomToggle.addEventListener('change', updateControls);
     zeffInput.addEventListener('input', updateControls);
 
     if (ptsInput) ptsInput.addEventListener('input', updateControls);

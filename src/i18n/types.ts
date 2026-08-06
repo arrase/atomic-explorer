@@ -29,8 +29,6 @@ export interface I18nStrings {
   paletteFire: string;
   paletteEmerald: string;
   paletteSpectrum: string;
-  bloomEffect: string;
-  bloomIntensity: string;
   exportImage: string;
   exportTitle: string;
   exportResolution: string;
