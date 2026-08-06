@@ -144,7 +144,7 @@ export class ControlPanel {
           <!-- Effective Nuclear Charge Z_eff -->
           <div class="control-group">
             <label for="zeff-input">${strings.zEffCharge}: <span id="zeff-val">${this.currentParams.zEff.toFixed(2)}</span></label>
-            <input type="range" id="zeff-input" min="1" max="10" value="${this.currentParams.zEff}" step="0.1" />
+            <input type="range" id="zeff-input" min="1" max="36" value="${this.currentParams.zEff}" step="0.1" />
           </div>
 
           <!-- Custom Fine-Tuning Controls (Visible when quality=custom) -->
@@ -272,7 +272,12 @@ export class ControlPanel {
         if (stepsVal) stepsVal.textContent = String(raymarchingSteps);
       }
 
+      if (ptsInput) ptsInput.value = String(pointCount);
+      if (stepsInput) stepsInput.value = String(raymarchingSteps);
+      if (scaleSelect) scaleSelect.value = String(resolutionScale);
+
       this.currentParams = {
+        ...this.currentParams,
         n,
         l,
         m,
@@ -310,6 +315,19 @@ export class ControlPanel {
 
   public setParams(params: Partial<ExtendedOrbitalParams>): void {
     this.currentParams = { ...this.currentParams, ...params };
+    
+    if (this.currentParams.n !== undefined) {
+      this.currentParams.n = Math.max(1, Math.min(4, Math.floor(this.currentParams.n)));
+    }
+    const maxL = this.currentParams.n - 1;
+    if (this.currentParams.l > maxL) {
+      this.currentParams.l = maxL;
+    }
+    const maxM = this.currentParams.l;
+    if (Math.abs(this.currentParams.m) > maxM) {
+      this.currentParams.m = this.currentParams.m < 0 ? -maxM : maxM;
+    }
+
     this.render();
   }
 

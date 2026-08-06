@@ -273,7 +273,27 @@ export class MoleculeRenderer {
     return dataUrl;
   }
 
+  private isAnimating: boolean = false;
+
+  public start(): void {
+    if (!this.isAnimating) {
+      this.isAnimating = true;
+      if (this.animationId !== undefined) {
+        cancelAnimationFrame(this.animationId);
+      }
+      this.animate();
+    }
+  }
+
+  public stop(): void {
+    this.isAnimating = false;
+    if (this.animationId !== undefined) {
+      cancelAnimationFrame(this.animationId);
+    }
+  }
+
   public animate = (): void => {
+    if (!this.isAnimating) return;
     this.animationId = requestAnimationFrame(this.animate);
     this.controls.update();
 
