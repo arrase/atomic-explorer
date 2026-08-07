@@ -2,90 +2,91 @@
 
 ![Atomic Explorer](./screenshots/00_what.png)
 
-**Atomic Explorer** es una aplicación de escritorio para Linux diseñada para la divulgación científica. Permite a estudiantes, profesores y entusiastas de la ciencia explorar visualmente la estructura atómica en diferentes niveles de complejidad. ¡Es el equivalente a un planetario, pero para el mundo cuántico!
+**Atomic Explorer** is a desktop application for Linux designed for science popularization. It allows students, teachers, and science enthusiasts to visually explore the atomic structure at different levels of complexity. It's the equivalent of a planetarium, but for the quantum world!
 
-## ¿Qué hace la aplicación?
+## What does the application do?
 
-El mundo cuántico puede ser abstracto y difícil de imaginar. Atomic Explorer resuelve esto ofreciendo un entorno 3D interactivo donde puedes:
+The quantum world can be abstract and difficult to imagine. Atomic Explorer solves this by offering an interactive 3D environment where you can:
 
-1. **Visualizar Orbitales Atómicos en 3D:** Observa la forma real de los orbitales atómicos (s, p, d, f) en los que residen los electrones. Podrás ver densidades de probabilidad y superficies tridimensionales usando renderizado avanzado.
-2. **Explorar la Tabla Periódica Interactiva:** Navega por los 118 elementos, filtra por categorías (como metales alcalinos o gases nobles) y descubre sus propiedades periódicas, como la electronegatividad o el radio atómico.
-3. **Aprender Geometría Molecular (VSEPR):** Entiende cómo se unen los átomos para formar moléculas como el agua o el metano, visualizando cómo los pares de electrones se repelen para formar estructuras lineales, tetraédricas, etc.
-
----
-
-## Capturas de Pantalla
-
-### Visualizador de Orbitales Cuánticos
-![Orbitales](./screenshots/01_orbitals.png)
-*Exploración 3D de funciones de onda y orbitales atómicos.*
-
-### Tabla Periódica Completa
-![Tabla Periódica](./screenshots/02_table.png)
-*Acceso a toda la información de los elementos y sus configuraciones.*
-
-### Geometría y Moléculas
-![Moléculas](./screenshots/03_molecules.png)
-*Visualización de hibridación y modelos de repulsión de pares de electrones (VSEPR).*
+1. **Visualize Atomic Orbitals in 3D:** Observe the actual shape of atomic orbitals (s, p, d, f) where electrons reside. You can view probability densities and three-dimensional surfaces using advanced rendering.
+2. **Explore the Interactive Periodic Table:** Navigate through the 118 elements, filter by categories (such as alkali metals or noble gases), and discover their periodic properties, such as electronegativity or atomic radius.
+3. **Learn Molecular Geometry (VSEPR):** Understand how atoms bond to form molecules like water or methane, visualizing how electron pairs repel each other to form linear, tetrahedral structures, etc.
 
 ---
 
-## Requisitos de Hardware
+## Screenshots
 
-La aplicación realiza cálculos matemáticos complejos y renderizado 3D en tiempo real (WebGL), por lo que se recomienda el siguiente hardware para un rendimiento óptimo:
+### Quantum Orbital Visualizer
+![Orbitals](./screenshots/01_orbitals.png)
+*3D exploration of wave functions and atomic orbitals.*
 
-- **Sistema Operativo:** GNU/Linux (Ubuntu 22.04+, Debian 12+, Fedora, u otras distribuciones modernas). Soporte nativo para X11 y Wayland.
-- **Procesador (CPU):** Procesador moderno multi-núcleo (Intel Core i3 / AMD Ryzen 3 o superior).
-- **Memoria (RAM):** 4 GB de RAM (se recomiendan 8 GB para una experiencia fluida).
-- **Tarjeta Gráfica (GPU):** Acelerador gráfico con soporte para WebGL. Tarjetas integradas modernas (Intel HD, AMD Vega) o dedicadas (NVIDIA, AMD) son compatibles.
+### Complete Periodic Table
+![Periodic Table](./screenshots/02_table.png)
+*Access to all element information and configurations.*
+
+### Geometry and Molecules
+![Molecules](./screenshots/03_molecules.png)
+*Visualization of hybridization and valence shell electron pair repulsion (VSEPR) models.*
 
 ---
 
-## Cómo Instalar y Probar la Aplicación
+## Hardware Requirements
 
-Puedes descargar directamente los paquetes precompilados en la pestaña **Releases** de este repositorio de GitHub.
+The application performs complex mathematical calculations and real-time 3D rendering (WebGL), so the following hardware is recommended for optimal performance:
 
-### Opción 1: Usando AppImage (Recomendado, ejecutable universal)
-El formato AppImage funciona en casi cualquier distribución Linux sin instalar nada en el sistema.
+- **Operating System:** GNU/Linux (Ubuntu 22.04+, Debian 12+, Fedora, or other modern distributions). Native support for X11 and Wayland.
+- **Processor (CPU):** Modern multi-core processor (Intel Core i3 / AMD Ryzen 3 or higher).
+- **Memory (RAM):** 4 GB of RAM (8 GB recommended for a smooth experience).
+- **Graphics Card (GPU):** Graphics accelerator with WebGL support. Modern integrated cards (Intel HD, AMD Vega) or dedicated (NVIDIA, AMD) are supported.
 
-1. Entra en la sección de **Releases** de este repositorio y descarga el archivo `.AppImage` correspondiente a la versión más reciente (ejemplo: `atomic-explorer_0.1.0_amd64.AppImage`).
-2. Dale permisos de ejecución. Puedes hacerlo desde las propiedades del archivo en tu gestor de archivos (clic derecho -> *Propiedades* -> *Permisos* -> *Permitir ejecutar como programa*), o desde la terminal:
+---
+
+## How to Install and Test the Application
+
+You can directly download the pre-compiled packages in the **Releases** tab of this GitHub repository.
+
+### Option 1: Using AppImage (Recommended, universal executable)
+The AppImage format works on almost any Linux distribution without installing anything on the system.
+
+1. Go to the **Releases** section of this repository and download the `.AppImage` file corresponding to the latest version (example: `atomic-explorer_0.1.0_amd64.AppImage`).
+2. Give it execution permissions. You can do this from the file properties in your file manager (right click -> *Properties* -> *Permissions* -> *Allow executing file as program*), or from the terminal:
    ```bash
    chmod +x atomic-explorer_0.1.0_amd64.AppImage
    ```
-3. Haz doble clic en el archivo descargado para iniciar la aplicación.
+3. Double-click the downloaded file to launch the application.
 
-### Opción 2: Paquete Debian (.deb)
-Para distribuciones como Ubuntu, Debian, Linux Mint, Pop!_OS, Zorin OS, etc.
+### Option 2: Debian Package (.deb)
+For distributions like Ubuntu, Debian, Linux Mint, Pop!_OS, Zorin OS, etc.
 
-1. Descarga el paquete `.deb` desde la sección de **Releases** (ejemplo: `atomic-explorer_0.1.0_amd64.deb`).
-2. Haz doble clic en el archivo para instalarlo con el Centro de Software de tu sistema, o ejecuta en la terminal:
+1. Download the `.deb` package from the **Releases** section (example: `atomic-explorer_0.1.0_amd64.deb`).
+2. Double-click the file to install it with your system's Software Center, or run in the terminal:
    ```bash
    sudo apt install ./atomic-explorer_0.1.0_amd64.deb
    ```
-3. Abre "Atomic Explorer" desde el menú de aplicaciones del sistema.
+3. Open "Atomic Explorer" from the system application menu.
 
-### Opción 3: Paquete RPM (.rpm)
-Para distribuciones como Fedora, openSUSE, RHEL, Rocky Linux, CentOS, etc.
+### Option 3: RPM Package (.rpm)
+For distributions like Fedora, openSUSE, RHEL, Rocky Linux, CentOS, etc.
 
-1. Descarga el paquete `.rpm` desde la sección de **Releases** (ejemplo: `atomic-explorer-0.1.0-1.x86_64.rpm`).
-2. Instálalo desde la terminal ejecutando:
+1. Download the `.rpm` package from the **Releases** section (example: `atomic-explorer-0.1.0-1.x86_64.rpm`).
+2. Install it from the terminal by running:
    ```bash
    sudo dnf install ./atomic-explorer-0.1.0-1.x86_64.rpm
    ```
-3. Inicia la aplicación desde el menú del sistema.
+3. Launch the application from the system menu.
 
 ---
 
-## Publicación de Nuevas Versiones (Para Mantenedores)
+## Publishing New Versions (For Maintainers)
 
-Este repositorio cuenta con una **GitHub Action** automatizada para generar y subir los instaladores (`AppImage`, `.deb`, `.rpm`) a GitHub Releases automáticamente al crear una nueva versión.
+This repository has an automated **GitHub Action** to generate and upload the installers (`AppImage`, `.deb`, `.rpm`) to GitHub Releases automatically when creating a new version.
 
-Para publicar una nueva Release:
+To publish a new Release:
 
-1. Crea y sube una etiqueta (*tag*) con la versión (por ejemplo `v0.1.0`):
+1. Create and push a tag with the version (e.g. `v0.1.0`):
    ```bash
    git tag v0.1.0
    git push origin v0.1.0
    ```
-2. La acción `.github/workflows/release.yml` compilará automáticamente el motor matemático WASM, construirá los paquetes Tauri y publicará la release en GitHub con todos los instaladores adjuntos.
+2. The `.github/workflows/release.yml` action will automatically compile the WASM math engine, build the Tauri packages, and publish the release on GitHub with all attached installers.
+
