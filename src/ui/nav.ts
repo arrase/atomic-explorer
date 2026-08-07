@@ -1,5 +1,6 @@
 import { getStrings, getLanguage, setLanguage, onLanguageChange, Language } from '../i18n';
 import { GlossaryModal } from './glossary-modal';
+import { InfoModal, ConceptExplanation } from './info-modal';
 
 export type TabId = 'orbitals' | 'periodic-table' | 'molecules';
 
@@ -48,6 +49,10 @@ export class NavigationBar {
             <span class="tab-icon">📖</span>
             <span class="tab-label">${strings.btnGlossary}</span>
           </button>
+          <button class="nav-tab nav-intro-btn" id="nav-intro-btn" title="${strings.btnIntro}">
+            <span class="tab-icon">👋</span>
+            <span class="tab-label">${strings.btnIntro}</span>
+          </button>
         </div>
         <div class="nav-lang-switcher">
           <select id="lang-select" aria-label="${strings.language}">
@@ -76,6 +81,11 @@ export class NavigationBar {
     const glossaryBtn = this.container.querySelector('#nav-glossary-btn');
     glossaryBtn?.addEventListener('click', () => {
       this.glossaryModal.open();
+    });
+
+    const introBtn = this.container.querySelector('#nav-intro-btn');
+    introBtn?.addEventListener('click', () => {
+      InfoModal.show(getStrings().explainIntro as ConceptExplanation);
     });
 
     const langSelect = this.container.querySelector('#lang-select') as HTMLSelectElement;

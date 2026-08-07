@@ -127,8 +127,10 @@ export interface I18nStrings {
   glossarySearchPlaceholder: string;
   btnGlossary: string;
   btnLearnMore: string;
+  btnIntro: string;
 
   // Orbital Parameter Explanations
+  explainIntro: QuantumExplanation;
   explainN: QuantumExplanation;
   explainL: QuantumExplanation;
   explainM: QuantumExplanation;
@@ -169,6 +171,8 @@ export interface I18nStrings {
   explainVsepr: PropertyExplanation;
   explainHybridization: PropertyExplanation;
   explainBondAngle: PropertyExplanation;
+  explainBondingLobe: PropertyExplanation;
+  explainLonePairLobe: PropertyExplanation;
   vseprGuideTitle: string;
   vseprGuideText: string;
 

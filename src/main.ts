@@ -1,6 +1,7 @@
 import { sampleOrbitalPoints } from './core/wasm-bridge';
 import { OrbitalRenderer } from './render/orbital-renderer';
 import { MoleculeRenderer } from './render/molecule-renderer';
+import { getStrings } from './i18n';
 
 import { NavigationBar, TabId } from './ui/nav';
 import { ControlPanel, ExtendedOrbitalParams } from './ui/controls';
@@ -8,6 +9,7 @@ import { PeriodicTableView, ElementData } from './ui/periodic-table';
 import { MoleculeView } from './ui/molecule-view';
 import { FPSDisplay } from './ui/fps-display';
 import { ImageExporterModal } from './ui/image-exporter';
+import { InfoModal } from './ui/info-modal';
 
 async function init() {
   const canvas = document.getElementById('orbital-canvas') as HTMLCanvasElement;
@@ -163,6 +165,8 @@ async function init() {
   // 8. Initial Load
   await loadOrbital(controlPanel.getParams());
   orbitalRenderer.start();
+
+  InfoModal.show(getStrings().explainIntro as any);
 }
 
 window.addEventListener('DOMContentLoaded', init);

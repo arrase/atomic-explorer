@@ -45,6 +45,11 @@ export class MoleculeRenderer {
   private moleculeGroup: THREE.Group;
   private lobesGroup: THREE.Group;
 
+  private raycaster: THREE.Raycaster;
+  private mouse: THREE.Vector2;
+  public onLobeClick?: (type: 'bonding' | 'lone_pair') => void;
+  public onAtomClick?: (symbol: string) => void;
+
   private showLobes: boolean = true;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -70,6 +75,10 @@ export class MoleculeRenderer {
 
     this.moleculeGroup = new THREE.Group();
     this.lobesGroup = new THREE.Group();
+
+    this.raycaster = new THREE.Raycaster();
+    this.mouse = new THREE.Vector2();
+    this.renderer.domElement.addEventListener('click', this.onMouseClick);
 
     this.scene.add(this.moleculeGroup);
     this.scene.add(this.lobesGroup);
@@ -105,6 +114,7 @@ export class MoleculeRenderer {
       });
       const sphere = new THREE.Mesh(geometry, material);
       sphere.position.set(...atom.position);
+      sphere.userData = { isAtom: true, symbol: atom.symbol };
       this.moleculeGroup.add(sphere);
     });
 
@@ -114,18 +124,18 @@ export class MoleculeRenderer {
       const end = new THREE.Vector3(...data.atoms[bond.toIndex].position);
 
       if (bond.type === 'single') {
-        this.createCylinderBond(start, end, 0.12, 0x888888);
+        this.createCylinderBond(start, end, 0.12, 0x888888, this.moleculeGroup);
       } else if (bond.type === 'double') {
         const dir = new THREE.Vector3().subVectors(end, start).normalize();
         const perp = new THREE.Vector3(-dir.y, dir.x, 0).normalize().multiplyScalar(0.12);
-        this.createCylinderBond(start.clone().add(perp), end.clone().add(perp), 0.08, 0x888888);
-        this.createCylinderBond(start.clone().sub(perp), end.clone().sub(perp), 0.08, 0x888888);
+        this.createCylinderBond(start.clone().add(perp), end.clone().add(perp), 0.08, 0x888888, this.moleculeGroup);
+        this.createCylinderBond(start.clone().sub(perp), end.clone().sub(perp), 0.08, 0x888888, this.moleculeGroup);
       } else if (bond.type === 'triple') {
-        this.createCylinderBond(start, end, 0.08, 0x888888);
+        this.createCylinderBond(start, end, 0.08, 0x888888, this.moleculeGroup);
         const dir = new THREE.Vector3().subVectors(end, start).normalize();
         const perp = new THREE.Vector3(-dir.y, dir.x, 0).normalize().multiplyScalar(0.16);
-        this.createCylinderBond(start.clone().add(perp), end.clone().add(perp), 0.07, 0x888888);
-        this.createCylinderBond(start.clone().sub(perp), end.clone().sub(perp), 0.07, 0x888888);
+        this.createCylinderBond(start.clone().add(perp), end.clone().add(perp), 0.07, 0x888888, this.moleculeGroup);
+        this.createCylinderBond(start.clone().sub(perp), end.clone().sub(perp), 0.07, 0x888888, this.moleculeGroup);
       }
     });
 
@@ -142,14 +152,15 @@ export class MoleculeRenderer {
       const up = new THREE.Vector3(0, 1, 0);
       const quaternion = new THREE.Quaternion().setFromUnitVectors(up, dir);
       lobeMesh.quaternion.copy(quaternion);
+      lobeMesh.userData = { isLobe: true, lobeType: lobe.type };
 
       this.lobesGroup.add(lobeMesh);
     });
 
-    this.lobesGroup.visible = this.showLobes;
+    this.toggleLobes(this.showLobes);
   }
 
-  private createCylinderBond(start: THREE.Vector3, end: THREE.Vector3, radius: number, colorHex: number): void {
+  private createCylinderBond(start: THREE.Vector3, end: THREE.Vector3, radius: number, colorHex: number, group: THREE.Group): void {
     const distance = start.distanceTo(end);
     const geometry = new THREE.CylinderGeometry(radius, radius, distance, 16);
     const material = new THREE.MeshStandardMaterial({
@@ -166,7 +177,7 @@ export class MoleculeRenderer {
     const up = new THREE.Vector3(0, 1, 0);
     cylinder.quaternion.setFromUnitVectors(up, dir);
 
-    this.moleculeGroup.add(cylinder);
+    group.add(cylinder);
   }
 
   private createTeardropLobe(color: THREE.Color, opacity: number, scale: number): THREE.Mesh {
@@ -209,20 +220,17 @@ export class MoleculeRenderer {
   }
 
   public clear(): void {
-    while (this.moleculeGroup.children.length > 0) {
-      const obj = this.moleculeGroup.children.pop()!;
-      if (obj instanceof THREE.Mesh) {
-        obj.geometry.dispose();
-        (obj.material as THREE.Material).dispose();
+    const clearGroup = (group: THREE.Group) => {
+      while (group.children.length > 0) {
+        const obj = group.children.pop()!;
+        if (obj instanceof THREE.Mesh) {
+          obj.geometry.dispose();
+          (obj.material as THREE.Material).dispose();
+        }
       }
-    }
-    while (this.lobesGroup.children.length > 0) {
-      const obj = this.lobesGroup.children.pop()!;
-      if (obj instanceof THREE.Mesh) {
-        obj.geometry.dispose();
-        (obj.material as THREE.Material).dispose();
-      }
-    }
+    };
+    clearGroup(this.moleculeGroup);
+    clearGroup(this.lobesGroup);
   }
 
   private onWindowResize = (): void => {
@@ -303,9 +311,31 @@ export class MoleculeRenderer {
     this.renderer.render(this.scene, this.camera);
   };
 
+  private onMouseClick = (event: MouseEvent): void => {
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+    this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+    this.raycaster.setFromCamera(this.mouse, this.camera);
+
+    const objectsToCheck = [...this.moleculeGroup.children, ...this.lobesGroup.children];
+    const visibleObjects = objectsToCheck.filter(obj => obj.visible);
+
+    const intersects = this.raycaster.intersectObjects(visibleObjects, false);
+    if (intersects.length > 0) {
+      const object = intersects[0].object;
+      if (object.userData.isLobe && this.onLobeClick) {
+        this.onLobeClick(object.userData.lobeType);
+      } else if (object.userData.isAtom && this.onAtomClick) {
+        this.onAtomClick(object.userData.symbol);
+      }
+    }
+  };
+
   public dispose(): void {
     cancelAnimationFrame(this.animationId);
     window.removeEventListener('resize', this.onWindowResize);
+    this.renderer.domElement.removeEventListener('click', this.onMouseClick);
     this.clear();
     this.controls.dispose();
     this.renderer.dispose();

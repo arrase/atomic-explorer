@@ -1,4 +1,5 @@
 import moleculesData from '../../assets/data/molecules.json';
+import elementsData from '../../assets/data/elements.json';
 import { MoleculeRenderer, MoleculeData as BaseMoleculeData } from '../render/molecule-renderer';
 import { getStrings, getLanguage, onLanguageChange, I18nStrings } from '../i18n';
 import { InfoModal, ConceptExplanation } from './info-modal';
@@ -22,6 +23,23 @@ export class MoleculeView {
   constructor(container: HTMLElement, renderer: MoleculeRenderer) {
     this.container = container;
     this.renderer = renderer;
+    this.renderer.onLobeClick = (type) => {
+      const strings = getStrings();
+      const expl = type === 'bonding' ? strings.explainBondingLobe : strings.explainLonePairLobe;
+      InfoModal.show(expl as any);
+    };
+    this.renderer.onAtomClick = (symbol) => {
+      const element = (elementsData as any[]).find(e => e.symbol === symbol);
+      const lang = getLanguage();
+      const elementName = element ? (lang === 'es' ? element.name_es : element.name_en) : symbol;
+      const title = lang === 'es' ? `Átomo: ${elementName} (${symbol})` : `Atom: ${elementName} (${symbol})`;
+      const summary = lang === 'es' ? 'Elemento químico de la molécula.' : 'Chemical element of the molecule.';
+      const detail = lang === 'es' 
+        ? 'Las esferas representan el núcleo atómico. Aquí puedes ver cómo se distribuyen las nubes electrónicas a su alrededor formando enlaces.' 
+        : 'The spheres represent the atomic nucleus. Here you can see how the electron clouds are distributed around it forming bonds.';
+
+      InfoModal.showSimple(title, summary, detail);
+    };
     this.render();
     onLanguageChange(() => this.render());
   }
@@ -68,7 +86,7 @@ export class MoleculeView {
           </div>
 
           <button class="btn-secondary" id="btn-toggle-lobes">
-            ${this.showLobes ? '👁️ ' + strings.hideLobes : '👁️‍🗨️ ' + strings.showLobes}
+            ${this.showLobes ? '👁️ Ocultar Nubes Electrónicas' : '👁️🗨️ Mostrar Nubes Electrónicas'}
           </button>
         </div>
 
@@ -138,8 +156,7 @@ export class MoleculeView {
 
     btnToggle?.addEventListener('click', () => {
       this.showLobes = this.renderer.toggleLobes();
-      const strings = getStrings();
-      btnToggle.innerHTML = this.showLobes ? '👁️ ' + strings.hideLobes : '👁️‍🗨️ ' + strings.showLobes;
+      btnToggle.innerHTML = this.showLobes ? '👁️ Ocultar Nubes Electrónicas' : '👁️🗨️ Mostrar Nubes Electrónicas';
     });
 
     this.attachInfoButtonEvents(this.container);
