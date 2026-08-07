@@ -312,6 +312,7 @@ export class MoleculeRenderer {
   };
 
   private onMouseClick = (event: MouseEvent): void => {
+    if (!this.isAnimating) return;
     const rect = this.renderer.domElement.getBoundingClientRect();
     this.mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     this.mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;

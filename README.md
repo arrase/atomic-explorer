@@ -1,155 +1,76 @@
 # Atomic Explorer
 
-**Atomic Explorer** is a Linux desktop application for scientific outreach that allows users to visually explore atomic structure at different levels of complexity. It is the quantum world equivalent of a planetarium.
+![Atomic Explorer](./screenshots/00_what.png)
 
-## Tech Stack
+**Atomic Explorer** es una aplicación de escritorio para Linux diseñada para la divulgación científica. Permite a estudiantes, profesores y entusiastas de la ciencia explorar visualmente la estructura atómica en diferentes niveles de complejidad. ¡Es el equivalente a un planetario, pero para el mundo cuántico!
 
-| Component | Technology |
-|---|---|
-| Native Backend | Rust · Tauri 2.x |
-| Math Engine | Rust (`atomic-math` crate) → WASM |
-| Rendering | Three.js · WebGLRenderer · GLSL (Point clouds, Marching Cubes isosurfaces, 3D Raymarching) |
-| Frontend | Strict TypeScript · Vite |
-| Packaging | AppImage · .deb · .rpm |
+## ¿Qué hace la aplicación?
 
-## Prerequisites
+El mundo cuántico puede ser abstracto y difícil de imaginar. Atomic Explorer resuelve esto ofreciendo un entorno 3D interactivo donde puedes:
 
-### Operating System
-- Linux (Ubuntu 22.04+ / Debian 12+ recommended)
-- Support for X11 and Wayland
+1. **Visualizar Orbitales Atómicos en 3D:** Observa la forma real de los orbitales atómicos (s, p, d, f) en los que residen los electrones. Podrás ver densidades de probabilidad y superficies tridimensionales usando renderizado avanzado.
+2. **Explorar la Tabla Periódica Interactiva:** Navega por los 118 elementos, filtra por categorías (como metales alcalinos o gases nobles) y descubre sus propiedades periódicas, como la electronegatividad o el radio atómico.
+3. **Aprender Geometría Molecular (VSEPR):** Entiende cómo se unen los átomos para formar moléculas como el agua o el metano, visualizando cómo los pares de electrones se repelen para formar estructuras lineales, tetraédricas, etc.
 
-### System Dependencies
+---
 
-```bash
-# Ubuntu/Debian
-sudo apt-get install -y \
-  libwebkit2gtk-4.1-dev \
-  build-essential \
-  curl \
-  wget \
-  file \
-  libxdo-dev \
-  libssl-dev \
-  libayatana-appindicator3-dev \
-  librsvg2-dev \
-  libgtk-3-dev \
-  libsoup-3.0-dev \
-  libjavascriptcoregtk-4.1-dev
-```
+## Capturas de Pantalla
 
-### Development Tools
+### Visualizador de Orbitales Cuánticos
+![Orbitales](./screenshots/01_orbitals.png)
+*Exploración 3D de funciones de onda y orbitales atómicos.*
 
-```bash
-# Rust (rustup)
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source "$HOME/.cargo/env"
+### Tabla Periódica Completa
+![Tabla Periódica](./screenshots/02_table.png)
+*Acceso a toda la información de los elementos y sus configuraciones.*
 
-# WASM target
-rustup target add wasm32-unknown-unknown
+### Geometría y Moléculas
+![Moléculas](./screenshots/03_molecules.png)
+*Visualización de hibridación y modelos de repulsión de pares de electrones (VSEPR).*
 
-# wasm-pack
-cargo install wasm-pack
+---
 
-# Node.js (>= 18.x)
-```
+## Requisitos de Hardware
 
-## Build and Run
+La aplicación realiza cálculos matemáticos complejos y renderizado 3D en tiempo real (WebGL), por lo que se recomienda el siguiente hardware para un rendimiento óptimo:
 
-### 1. Install Node Dependencies
+- **Sistema Operativo:** GNU/Linux (Ubuntu 22.04+, Debian 12+, Fedora, u otras distribuciones modernas). Soporte nativo para X11 y Wayland.
+- **Procesador (CPU):** Procesador moderno multi-núcleo (Intel Core i3 / AMD Ryzen 3 o superior).
+- **Memoria (RAM):** 4 GB de RAM (se recomiendan 8 GB para una experiencia fluida).
+- **Tarjeta Gráfica (GPU):** Acelerador gráfico con soporte para WebGL. Tarjetas integradas modernas (Intel HD, AMD Vega) o dedicadas (NVIDIA, AMD) son compatibles.
 
-```bash
-npm install
-```
+---
 
-### 2. Compile the Math Engine to WASM
+## Cómo Instalar y Probar la Aplicación
 
-```bash
-npm run wasm:build
-```
+Atomic Explorer se distribuye en formatos empaquetados para que no tengas que compilar nada. Puedes encontrar los instaladores generados en los directorios de la aplicación o en las futuras "Releases" del proyecto.
 
-This compiles `crates/atomic-math` to WebAssembly and outputs the package into `crates/atomic-math/pkg/`.
+### Opción 1: Usando AppImage (Recomendado, no requiere instalación)
+El formato AppImage es universal y funciona en casi cualquier distribución Linux sin necesidad de instalar dependencias adicionales en el sistema.
 
-### 3. Run in Development Mode
+1. Descarga el archivo `.AppImage` (por ejemplo, `atomic-explorer_0.1.0_amd64.AppImage`).
+2. Dale permisos de ejecución. Puedes hacerlo desde las propiedades del archivo (clic derecho -> Propiedades -> Permisos -> Permitir ejecutar), o usando la terminal:
+   ```bash
+   chmod +x atomic-explorer_0.1.0_amd64.AppImage
+   ```
+3. ¡Haz doble clic en el archivo para abrir la aplicación!
 
-```bash
-npm run tauri dev
-```
+### Opción 2: Paquete Debian (.deb)
+Para distribuciones como Ubuntu, Debian, Linux Mint, Pop!_OS, etc.
 
-This starts both the Vite dev server (frontend) and the native Tauri application.
+1. Descarga el archivo `.deb` (por ejemplo, `atomic-explorer_0.1.0_amd64.deb`).
+2. Haz doble clic en él para abrirlo con el Centro de Software e instalarlo, o instálalo desde la terminal:
+   ```bash
+   sudo apt install ./atomic-explorer_0.1.0_amd64.deb
+   ```
+3. Una vez instalado, busca "Atomic Explorer" en tu menú de aplicaciones.
 
-### 4. Build for Production
+### Opción 3: Paquete RPM (.rpm)
+Para distribuciones como Fedora, openSUSE, RHEL, CentOS, etc.
 
-```bash
-npm run tauri build
-```
-
-The bundles are generated in `src-tauri/target/release/bundle/`:
-- **AppImage**: `atomic-explorer_0.1.0_amd64.AppImage`
-- **deb**: `atomic-explorer_0.1.0_amd64.deb`
-- **rpm**: `atomic-explorer-0.1.0-1.x86_64.rpm`
-
-## Key Features
-
-1. **3D Atomic Orbital Visualizer**:
-   - Full support for quantum numbers $n=1..4$, $l=0..3$ ($s, p, d, f$ orbitals), and $m=-l..l$.
-   - 3D rendering modes: Probability Point Cloud, Isosurface (Marching Cubes), and Volume Raymarching in GLSL shader.
-   - Toggle between pure eigenstates $|Y_{lm}|^2$ and real chemical orbitals ($p_x, p_y, p_z, d_{z^2}, f_{z^3}$, etc.).
-   - Shielding calculations using Slater's Rules for $Z_{\text{eff}}$ across all 118 elements.
-
-2. **Interactive Periodic Table (118 Elements)**:
-   - Full database aligned with NIST ASD.
-   - Interactive filtering by categories (Alkali Metals, Halogens, Noble Gases, Lanthanides, etc.).
-   - Visualization of periodic trends (Pauling Electronegativity, Atomic Radius in pm, Ionization Energy).
-   - Direct selector for 3D electron configuration inspection.
-
-3. **VSEPR Molecular Geometry and Hybridization**:
-   - Pair electron repulsion geometries: Linear, Bent, Trigonal Planar, Tetrahedral, Trigonal Pyramidal, Trigonal Bipyramidal, Octahedral.
-   - Hybrid lobe visualization ($sp, sp^2, sp^3, sp^3d, sp^3d^2$) and bond angle indicators.
-   - Interactive molecules: $\text{H}_2, \text{H}_2\text{O}, \text{CO}_2, \text{NH}_3, \text{CH}_4, \text{BeCl}_2, \text{BF}_3, \text{PCl}_5, \text{SF}_6$.
-
-## Project Structure
-
-```
-atomic-explorer/
-├── src-tauri/                  # Native Rust backend (Tauri 2.x)
-├── crates/
-│   └── atomic-math/            # Quantum math engine (Rust → WASM)
-│       ├── src/
-│       │   ├── lib.rs           # WASM exports and public API
-│       │   ├── wavefunctions.rs # Radial wavefunctions R_nl(r) (n=1..4)
-│       │   ├── spherical_harmonics.rs # Spherical harmonics & real hydrogen orbitals (s, p, d, f)
-│       │   ├── sampling.rs      # Rejection sampling
-│       │   ├── slater.rs        # Slater's shielding rules (Z=1..118)
-│       │   ├── grid.rs          # 3D density grid for isosurfaces/volume
-│       │   └── math_utils.rs    # Laguerre and Legendre polynomials
-│       └── tests/               # Analytical integration tests
-├── src/                         # TypeScript Frontend
-│   ├── core/                    # WASM Bridge
-│   ├── render/                  # Three.js Renderers (Orbitals, Molecules)
-│   ├── ui/                      # Views (Nav, Periodic Table, VSEPR)
-│   ├── i18n/                    # Text strings
-│   └── main.ts                  # View manager and bootstrap
-├── assets/
-│   └── data/                    # 118 element JSON & VSEPR molecules
-└── DESING.md                    # Project architectural specification
-```
-
-## Testing
-
-### Math Engine (Rust)
-
-```bash
-cargo test -p atomic-math
-```
-
-### Frontend (TypeScript)
-
-```bash
-npx tsc --noEmit  # Strict type check
-npm run build     # Vite production build
-```
-
-## License
-
-MIT
-
+1. Descarga el archivo `.rpm` (por ejemplo, `atomic-explorer-0.1.0-1.x86_64.rpm`).
+2. Instálalo usando tu gestor de paquetes gráfico, o mediante la terminal:
+   ```bash
+   sudo dnf install ./atomic-explorer-0.1.0-1.x86_64.rpm
+   ```
+3. Busca "Atomic Explorer" en tu menú de aplicaciones.
