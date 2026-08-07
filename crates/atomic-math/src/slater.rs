@@ -196,3 +196,52 @@ pub fn get_slater_z_eff_by_name(z: u32, orbital_name: &str) -> Result<f64, Strin
     calculate_slater_z_eff(z, n, l)
 }
 
+/// Calculate effective principal quantum number n* according to Slater's rules.
+pub fn slater_effective_n(n: u32) -> f64 {
+    match n {
+        1 => 1.0,
+        2 => 2.0,
+        3 => 3.0,
+        4 => 3.7,
+        5 => 4.0,
+        6 => 4.2,
+        _ => (n as f64) - 2.8,
+    }
+}
+
+/// Slater-Type Orbital (STO) radial wavefunction R_STO(r) = N * r^(n* - 1) * e^(-zeta * r)
+/// where zeta = Z_eff / n* and N = (2*zeta)^(n* + 0.5) / sqrt(Gamma(2*n* + 1)).
+pub fn sto_radial_wavefunction(n: u32, z_eff: f64, r: f64) -> Result<f64, String> {
+    if n == 0 {
+        return Err("Principal quantum number n must be greater than 0".into());
+    }
+    if z_eff <= 0.0 {
+        return Err(format!("Effective nuclear charge Z_eff ({}) must be positive", z_eff));
+    }
+    if r < 0.0 {
+        return Err(format!("Radius r ({}) cannot be negative", r));
+    }
+
+    let n_eff = slater_effective_n(n);
+    let zeta = z_eff / n_eff;
+
+    let gamma_arg = 2.0 * n_eff + 1.0;
+    let norm_denom = crate::math_utils::gamma(gamma_arg).sqrt();
+    let norm_num = (2.0 * zeta).powf(n_eff + 0.5);
+    let norm = norm_num / norm_denom;
+
+    let radial_factor = if r == 0.0 {
+        if (n_eff - 1.0).abs() < 1e-9 {
+            1.0
+        } else if n_eff > 1.0 {
+            0.0
+        } else {
+            0.0
+        }
+    } else {
+        r.powf(n_eff - 1.0)
+    };
+
+    Ok(norm * radial_factor * (-zeta * r).exp())
+}
+

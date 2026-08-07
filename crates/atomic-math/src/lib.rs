@@ -166,6 +166,22 @@ pub fn calculate_transition_wavelength(z_eff: f64, n1: u32, n2: u32) -> Result<f
 }
 
 #[wasm_bindgen]
+pub fn is_dipole_transition_allowed(l1: u32, m1: i32, l2: u32, m2: i32) -> bool {
+    transition::is_dipole_allowed(l1, m1, l2, m2)
+}
+
+#[wasm_bindgen]
+pub fn calculate_spontaneous_emission_rate(
+    z_eff: f64,
+    n1: u32,
+    l1: u32,
+    n2: u32,
+    l2: u32,
+) -> Result<f64, String> {
+    transition::spontaneous_emission_rate(z_eff, n1, l1, n2, l2)
+}
+
+#[wasm_bindgen]
 pub fn evaluate_density_grid(
     n: u32,
     l: u32,

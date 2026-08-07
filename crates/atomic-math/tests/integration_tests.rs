@@ -264,4 +264,55 @@ fn test_high_n_radial_wavefunction_normalization() {
     assert_relative_eq!(integral, 1.0, epsilon = 0.08);
 }
 
+#[test]
+fn test_gamma_function() {
+    use atomic_math::math_utils::gamma;
+    assert_relative_eq!(gamma(1.0), 1.0, epsilon = 1e-10);
+    assert_relative_eq!(gamma(2.0), 1.0, epsilon = 1e-10);
+    assert_relative_eq!(gamma(3.0), 2.0, epsilon = 1e-10);
+    assert_relative_eq!(gamma(4.0), 6.0, epsilon = 1e-10);
+    assert_relative_eq!(gamma(0.5), std::f64::consts::PI.sqrt(), epsilon = 1e-10);
+    assert_relative_eq!(gamma(1.5), 0.5 * std::f64::consts::PI.sqrt(), epsilon = 1e-10);
+}
+
+#[test]
+fn test_sto_radial_wavefunction() {
+    use atomic_math::slater::{slater_effective_n, sto_radial_wavefunction};
+    assert_eq!(slater_effective_n(1), 1.0);
+    assert_eq!(slater_effective_n(4), 3.7);
+
+    let sto_1s = sto_radial_wavefunction(1, 1.0, 1.0).unwrap();
+    let expected_1s = 2.0 * (-1.0_f64).exp();
+    assert_relative_eq!(sto_1s, expected_1s, epsilon = 1e-6);
+}
+
+#[test]
+fn test_dipole_selection_rules() {
+    use atomic_math::transition::is_dipole_allowed;
+    // Allowed: Δl = 1, Δm = 0, ±1
+    assert!(is_dipole_allowed(0, 0, 1, 0));  // 1s -> 2pz
+    assert!(is_dipole_allowed(0, 0, 1, 1));  // 1s -> 2px
+    assert!(is_dipole_allowed(1, 0, 2, 0));  // 2p -> 3d (l: 1 -> 2)
+
+    // Forbidden: Δl = 0 or Δl > 1
+    assert!(!is_dipole_allowed(0, 0, 0, 0)); // 1s -> 2s (forbidden)
+    assert!(!is_dipole_allowed(0, 0, 2, 0)); // 1s -> 3d (forbidden)
+}
+
+#[test]
+fn test_radial_dipole_integral_lyman_alpha() {
+    use atomic_math::transition::radial_dipole_integral;
+    let r_int = radial_dipole_integral(1, 0, 2, 1, 1.0).unwrap();
+    let expected_analytical = 128.0 * (6.0_f64).sqrt() / 243.0; // 1.29026986... a_0
+    assert_relative_eq!(r_int, expected_analytical, epsilon = 1e-4);
+}
+
+#[test]
+fn test_spontaneous_emission_lyman_alpha() {
+    use atomic_math::transition::spontaneous_emission_rate;
+    let a21 = spontaneous_emission_rate(1.0, 1, 0, 2, 1).unwrap();
+    // Experimental / Theoretical Lyman-alpha Einstein A coefficient is ~6.268e8 s^-1
+    assert_relative_eq!(a21, 6.268e8, epsilon = 0.05 * 6.268e8);
+}
+
 

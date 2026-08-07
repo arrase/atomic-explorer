@@ -9,7 +9,10 @@
     "radius_pm": 37,
     "electronegativity": 2.2,
     "ionization_energy": 1312,
-    "oxidation_states": [-1, 1],
+    "oxidation_states": [
+      -1,
+      1
+    ],
     "discovery_year": 1766,
     "name_en": "Hydrogen"
   },
@@ -37,7 +40,9 @@
     "radius_pm": 134,
     "electronegativity": 0.98,
     "ionization_energy": 520,
-    "oxidation_states": [1],
+    "oxidation_states": [
+      1
+    ],
     "discovery_year": 1817,
     "name_en": "Lithium"
   },
@@ -51,7 +56,9 @@
     "radius_pm": 90,
     "electronegativity": 1.57,
     "ionization_energy": 899,
-    "oxidation_states": [2],
+    "oxidation_states": [
+      2
+    ],
     "discovery_year": 1798,
     "name_en": "Beryllium"
   },
@@ -65,7 +72,9 @@
     "radius_pm": 82,
     "electronegativity": 2.04,
     "ionization_energy": 801,
-    "oxidation_states": [3],
+    "oxidation_states": [
+      3
+    ],
     "discovery_year": 1808,
     "name_en": "Boron"
   },
@@ -79,7 +88,12 @@
     "radius_pm": 77,
     "electronegativity": 2.55,
     "ionization_energy": 1086,
-    "oxidation_states": [-4, -2, 2, 4],
+    "oxidation_states": [
+      -4,
+      -2,
+      2,
+      4
+    ],
     "discovery_year": "Antigüedad",
     "name_en": "Carbon"
   },
@@ -93,7 +107,16 @@
     "radius_pm": 75,
     "electronegativity": 3.04,
     "ionization_energy": 1402,
-    "oxidation_states": [-3, -2, -1, 1, 2, 3, 4, 5],
+    "oxidation_states": [
+      -3,
+      -2,
+      -1,
+      1,
+      2,
+      3,
+      4,
+      5
+    ],
     "discovery_year": 1772,
     "name_en": "Nitrogen"
   },
@@ -107,7 +130,11 @@
     "radius_pm": 73,
     "electronegativity": 3.44,
     "ionization_energy": 1314,
-    "oxidation_states": [-2, -1, 2],
+    "oxidation_states": [
+      -2,
+      -1,
+      2
+    ],
     "discovery_year": 1774,
     "name_en": "Oxygen"
   },
@@ -121,7 +148,9 @@
     "radius_pm": 71,
     "electronegativity": 3.98,
     "ionization_energy": 1681,
-    "oxidation_states": [-1],
+    "oxidation_states": [
+      -1
+    ],
     "discovery_year": 1886,
     "name_en": "Fluorine"
   },
@@ -150,7 +179,10 @@
     "electronegativity": 0.93,
     "ionization_energy": 496,
     "discovery_year": 1807,
-    "name_en": "Sodium"
+    "name_en": "Sodium",
+    "oxidation_states": [
+      1
+    ]
   },
   {
     "Z": 12,
@@ -163,7 +195,10 @@
     "electronegativity": 1.31,
     "ionization_energy": 738,
     "discovery_year": 1755,
-    "name_en": "Magnesium"
+    "name_en": "Magnesium",
+    "oxidation_states": [
+      2
+    ]
   },
   {
     "Z": 13,
@@ -176,7 +211,10 @@
     "electronegativity": 1.61,
     "ionization_energy": 578,
     "discovery_year": 1825,
-    "name_en": "Aluminium"
+    "name_en": "Aluminium",
+    "oxidation_states": [
+      3
+    ]
   },
   {
     "Z": 14,
@@ -189,7 +227,12 @@
     "electronegativity": 1.9,
     "ionization_energy": 787,
     "discovery_year": 1824,
-    "name_en": "Silicon"
+    "name_en": "Silicon",
+    "oxidation_states": [
+      -4,
+      2,
+      4
+    ]
   },
   {
     "Z": 15,
@@ -202,7 +245,12 @@
     "electronegativity": 2.19,
     "ionization_energy": 1012,
     "discovery_year": 1669,
-    "name_en": "Phosphorus"
+    "name_en": "Phosphorus",
+    "oxidation_states": [
+      -3,
+      3,
+      5
+    ]
   },
   {
     "Z": 16,
@@ -215,7 +263,13 @@
     "electronegativity": 2.58,
     "ionization_energy": 1000,
     "discovery_year": "Antigüedad",
-    "name_en": "Sulfur"
+    "name_en": "Sulfur",
+    "oxidation_states": [
+      -2,
+      2,
+      4,
+      6
+    ]
   },
   {
     "Z": 17,
@@ -228,7 +282,14 @@
     "electronegativity": 3.16,
     "ionization_energy": 1251,
     "discovery_year": 1774,
-    "name_en": "Chlorine"
+    "name_en": "Chlorine",
+    "oxidation_states": [
+      -1,
+      1,
+      3,
+      5,
+      7
+    ]
   },
   {
     "Z": 18,
@@ -241,7 +302,8 @@
     "electronegativity": null,
     "ionization_energy": 1521,
     "discovery_year": 1894,
-    "name_en": "Argon"
+    "name_en": "Argon",
+    "oxidation_states": []
   },
   {
     "Z": 19,
@@ -254,7 +316,10 @@
     "electronegativity": 0.82,
     "ionization_energy": 419,
     "discovery_year": 1807,
-    "name_en": "Potassium"
+    "name_en": "Potassium",
+    "oxidation_states": [
+      1
+    ]
   },
   {
     "Z": 20,
@@ -267,7 +332,10 @@
     "electronegativity": 1.0,
     "ionization_energy": 590,
     "discovery_year": 1808,
-    "name_en": "Calcium"
+    "name_en": "Calcium",
+    "oxidation_states": [
+      2
+    ]
   },
   {
     "Z": 21,
@@ -280,7 +348,10 @@
     "electronegativity": 1.36,
     "ionization_energy": 633,
     "discovery_year": 1879,
-    "name_en": "Scandium"
+    "name_en": "Scandium",
+    "oxidation_states": [
+      3
+    ]
   },
   {
     "Z": 22,
@@ -293,7 +364,12 @@
     "electronegativity": 1.54,
     "ionization_energy": 658,
     "discovery_year": 1791,
-    "name_en": "Titanium"
+    "name_en": "Titanium",
+    "oxidation_states": [
+      2,
+      3,
+      4
+    ]
   },
   {
     "Z": 23,
@@ -306,7 +382,13 @@
     "electronegativity": 1.63,
     "ionization_energy": 651,
     "discovery_year": 1801,
-    "name_en": "Vanadium"
+    "name_en": "Vanadium",
+    "oxidation_states": [
+      2,
+      3,
+      4,
+      5
+    ]
   },
   {
     "Z": 24,
@@ -319,7 +401,12 @@
     "electronegativity": 1.66,
     "ionization_energy": 653,
     "discovery_year": 1797,
-    "name_en": "Chromium"
+    "name_en": "Chromium",
+    "oxidation_states": [
+      2,
+      3,
+      6
+    ]
   },
   {
     "Z": 25,
@@ -332,7 +419,14 @@
     "electronegativity": 1.55,
     "ionization_energy": 717,
     "discovery_year": 1774,
-    "name_en": "Manganese"
+    "name_en": "Manganese",
+    "oxidation_states": [
+      2,
+      3,
+      4,
+      6,
+      7
+    ]
   },
   {
     "Z": 26,
@@ -345,7 +439,12 @@
     "electronegativity": 1.83,
     "ionization_energy": 762,
     "discovery_year": "Antigüedad",
-    "name_en": "Iron"
+    "name_en": "Iron",
+    "oxidation_states": [
+      2,
+      3,
+      6
+    ]
   },
   {
     "Z": 27,
@@ -358,7 +457,11 @@
     "electronegativity": 1.88,
     "ionization_energy": 760,
     "discovery_year": 1735,
-    "name_en": "Cobalt"
+    "name_en": "Cobalt",
+    "oxidation_states": [
+      2,
+      3
+    ]
   },
   {
     "Z": 28,
@@ -371,7 +474,11 @@
     "electronegativity": 1.91,
     "ionization_energy": 737,
     "discovery_year": 1751,
-    "name_en": "Nickel"
+    "name_en": "Nickel",
+    "oxidation_states": [
+      2,
+      3
+    ]
   },
   {
     "Z": 29,
@@ -384,7 +491,11 @@
     "electronegativity": 1.9,
     "ionization_energy": 745,
     "discovery_year": "Antigüedad",
-    "name_en": "Copper"
+    "name_en": "Copper",
+    "oxidation_states": [
+      1,
+      2
+    ]
   },
   {
     "Z": 30,
@@ -397,7 +508,10 @@
     "electronegativity": 1.65,
     "ionization_energy": 906,
     "discovery_year": 1746,
-    "name_en": "Zinc"
+    "name_en": "Zinc",
+    "oxidation_states": [
+      2
+    ]
   },
   {
     "Z": 31,
@@ -410,7 +524,10 @@
     "electronegativity": 1.81,
     "ionization_energy": 579,
     "discovery_year": 1875,
-    "name_en": "Gallium"
+    "name_en": "Gallium",
+    "oxidation_states": [
+      3
+    ]
   },
   {
     "Z": 32,
@@ -423,7 +540,12 @@
     "electronegativity": 2.01,
     "ionization_energy": 762,
     "discovery_year": 1886,
-    "name_en": "Germanium"
+    "name_en": "Germanium",
+    "oxidation_states": [
+      -4,
+      2,
+      4
+    ]
   },
   {
     "Z": 33,
@@ -436,7 +558,12 @@
     "electronegativity": 2.18,
     "ionization_energy": 947,
     "discovery_year": 1250,
-    "name_en": "Arsenic"
+    "name_en": "Arsenic",
+    "oxidation_states": [
+      -3,
+      3,
+      5
+    ]
   },
   {
     "Z": 34,
@@ -449,7 +576,12 @@
     "electronegativity": 2.55,
     "ionization_energy": 941,
     "discovery_year": 1817,
-    "name_en": "Selenium"
+    "name_en": "Selenium",
+    "oxidation_states": [
+      -2,
+      4,
+      6
+    ]
   },
   {
     "Z": 35,
@@ -462,7 +594,14 @@
     "electronegativity": 2.96,
     "ionization_energy": 1140,
     "discovery_year": 1826,
-    "name_en": "Bromine"
+    "name_en": "Bromine",
+    "oxidation_states": [
+      -1,
+      1,
+      3,
+      5,
+      7
+    ]
   },
   {
     "Z": 36,
@@ -475,7 +614,10 @@
     "electronegativity": 3.0,
     "ionization_energy": 1351,
     "discovery_year": 1898,
-    "name_en": "Krypton"
+    "name_en": "Krypton",
+    "oxidation_states": [
+      2
+    ]
   },
   {
     "Z": 37,
@@ -488,7 +630,10 @@
     "electronegativity": 0.82,
     "ionization_energy": 403,
     "discovery_year": 1861,
-    "name_en": "Rubidium"
+    "name_en": "Rubidium",
+    "oxidation_states": [
+      1
+    ]
   },
   {
     "Z": 38,
@@ -501,7 +646,10 @@
     "electronegativity": 0.95,
     "ionization_energy": 549,
     "discovery_year": 1790,
-    "name_en": "Strontium"
+    "name_en": "Strontium",
+    "oxidation_states": [
+      2
+    ]
   },
   {
     "Z": 39,
@@ -514,7 +662,10 @@
     "electronegativity": 1.22,
     "ionization_energy": 600,
     "discovery_year": 1794,
-    "name_en": "Yttrium"
+    "name_en": "Yttrium",
+    "oxidation_states": [
+      3
+    ]
   },
   {
     "Z": 40,
@@ -527,7 +678,10 @@
     "electronegativity": 1.33,
     "ionization_energy": 640,
     "discovery_year": 1789,
-    "name_en": "Zirconium"
+    "name_en": "Zirconium",
+    "oxidation_states": [
+      4
+    ]
   },
   {
     "Z": 41,
@@ -540,7 +694,11 @@
     "electronegativity": 1.6,
     "ionization_energy": 652,
     "discovery_year": 1801,
-    "name_en": "Niobium"
+    "name_en": "Niobium",
+    "oxidation_states": [
+      3,
+      5
+    ]
   },
   {
     "Z": 42,
@@ -553,7 +711,14 @@
     "electronegativity": 2.16,
     "ionization_energy": 684,
     "discovery_year": 1778,
-    "name_en": "Molybdenum"
+    "name_en": "Molybdenum",
+    "oxidation_states": [
+      2,
+      3,
+      4,
+      5,
+      6
+    ]
   },
   {
     "Z": 43,
@@ -566,7 +731,11 @@
     "electronegativity": 1.9,
     "ionization_energy": 702,
     "discovery_year": 1937,
-    "name_en": "Technetium"
+    "name_en": "Technetium",
+    "oxidation_states": [
+      4,
+      7
+    ]
   },
   {
     "Z": 44,
@@ -579,7 +748,12 @@
     "electronegativity": 2.2,
     "ionization_energy": 710,
     "discovery_year": 1844,
-    "name_en": "Ruthenium"
+    "name_en": "Ruthenium",
+    "oxidation_states": [
+      3,
+      4,
+      8
+    ]
   },
   {
     "Z": 45,
@@ -592,7 +766,10 @@
     "electronegativity": 2.28,
     "ionization_energy": 720,
     "discovery_year": 1803,
-    "name_en": "Rhodium"
+    "name_en": "Rhodium",
+    "oxidation_states": [
+      3
+    ]
   },
   {
     "Z": 46,
@@ -605,7 +782,11 @@
     "electronegativity": 2.2,
     "ionization_energy": 804,
     "discovery_year": 1803,
-    "name_en": "Palladium"
+    "name_en": "Palladium",
+    "oxidation_states": [
+      2,
+      4
+    ]
   },
   {
     "Z": 47,
@@ -618,7 +799,10 @@
     "electronegativity": 1.93,
     "ionization_energy": 731,
     "discovery_year": "Antigüedad",
-    "name_en": "Silver"
+    "name_en": "Silver",
+    "oxidation_states": [
+      1
+    ]
   },
   {
     "Z": 48,
@@ -631,7 +815,10 @@
     "electronegativity": 1.69,
     "ionization_energy": 868,
     "discovery_year": 1817,
-    "name_en": "Cadmium"
+    "name_en": "Cadmium",
+    "oxidation_states": [
+      2
+    ]
   },
   {
     "Z": 49,
@@ -644,7 +831,10 @@
     "electronegativity": 1.78,
     "ionization_energy": 558,
     "discovery_year": 1863,
-    "name_en": "Indium"
+    "name_en": "Indium",
+    "oxidation_states": [
+      3
+    ]
   },
   {
     "Z": 50,
@@ -657,7 +847,11 @@
     "electronegativity": 1.96,
     "ionization_energy": 709,
     "discovery_year": "Antigüedad",
-    "name_en": "Tin"
+    "name_en": "Tin",
+    "oxidation_states": [
+      2,
+      4
+    ]
   },
   {
     "Z": 51,
@@ -670,7 +864,12 @@
     "electronegativity": 2.05,
     "ionization_energy": 834,
     "discovery_year": "Antigüedad",
-    "name_en": "Antimony"
+    "name_en": "Antimony",
+    "oxidation_states": [
+      -3,
+      3,
+      5
+    ]
   },
   {
     "Z": 52,
@@ -683,7 +882,12 @@
     "electronegativity": 2.1,
     "ionization_energy": 869,
     "discovery_year": 1782,
-    "name_en": "Tellurium"
+    "name_en": "Tellurium",
+    "oxidation_states": [
+      -2,
+      4,
+      6
+    ]
   },
   {
     "Z": 53,
@@ -696,7 +900,14 @@
     "electronegativity": 2.66,
     "ionization_energy": 1008,
     "discovery_year": 1811,
-    "name_en": "Iodine"
+    "name_en": "Iodine",
+    "oxidation_states": [
+      -1,
+      1,
+      3,
+      5,
+      7
+    ]
   },
   {
     "Z": 54,
@@ -709,7 +920,13 @@
     "electronegativity": 2.6,
     "ionization_energy": 1170,
     "discovery_year": 1898,
-    "name_en": "Xenon"
+    "name_en": "Xenon",
+    "oxidation_states": [
+      2,
+      4,
+      6,
+      8
+    ]
   },
   {
     "Z": 55,
@@ -722,7 +939,10 @@
     "electronegativity": 0.79,
     "ionization_energy": 376,
     "discovery_year": 1860,
-    "name_en": "Cesium"
+    "name_en": "Cesium",
+    "oxidation_states": [
+      1
+    ]
   },
   {
     "Z": 56,
@@ -735,7 +955,10 @@
     "electronegativity": 0.89,
     "ionization_energy": 503,
     "discovery_year": 1808,
-    "name_en": "Barium"
+    "name_en": "Barium",
+    "oxidation_states": [
+      2
+    ]
   },
   {
     "Z": 57,
@@ -748,7 +971,10 @@
     "electronegativity": 1.1,
     "ionization_energy": 538,
     "discovery_year": 1839,
-    "name_en": "Lanthanum"
+    "name_en": "Lanthanum",
+    "oxidation_states": [
+      3
+    ]
   },
   {
     "Z": 58,
@@ -761,7 +987,11 @@
     "electronegativity": 1.12,
     "ionization_energy": 534,
     "discovery_year": 1803,
-    "name_en": "Cerium"
+    "name_en": "Cerium",
+    "oxidation_states": [
+      3,
+      4
+    ]
   },
   {
     "Z": 59,
@@ -774,7 +1004,11 @@
     "electronegativity": 1.13,
     "ionization_energy": 527,
     "discovery_year": 1885,
-    "name_en": "Praseodymium"
+    "name_en": "Praseodymium",
+    "oxidation_states": [
+      3,
+      4
+    ]
   },
   {
     "Z": 60,
@@ -787,7 +1021,10 @@
     "electronegativity": 1.14,
     "ionization_energy": 533,
     "discovery_year": 1885,
-    "name_en": "Neodymium"
+    "name_en": "Neodymium",
+    "oxidation_states": [
+      3
+    ]
   },
   {
     "Z": 61,
@@ -800,7 +1037,10 @@
     "electronegativity": 1.13,
     "ionization_energy": 540,
     "discovery_year": 1945,
-    "name_en": "Promethium"
+    "name_en": "Promethium",
+    "oxidation_states": [
+      3
+    ]
   },
   {
     "Z": 62,
@@ -813,7 +1053,11 @@
     "electronegativity": 1.17,
     "ionization_energy": 545,
     "discovery_year": 1879,
-    "name_en": "Samarium"
+    "name_en": "Samarium",
+    "oxidation_states": [
+      2,
+      3
+    ]
   },
   {
     "Z": 63,
@@ -826,7 +1070,11 @@
     "electronegativity": 1.2,
     "ionization_energy": 547,
     "discovery_year": 1901,
-    "name_en": "Europium"
+    "name_en": "Europium",
+    "oxidation_states": [
+      2,
+      3
+    ]
   },
   {
     "Z": 64,
@@ -839,7 +1087,10 @@
     "electronegativity": 1.2,
     "ionization_energy": 593,
     "discovery_year": 1880,
-    "name_en": "Gadolinium"
+    "name_en": "Gadolinium",
+    "oxidation_states": [
+      3
+    ]
   },
   {
     "Z": 65,
@@ -852,7 +1103,11 @@
     "electronegativity": 1.2,
     "ionization_energy": 566,
     "discovery_year": 1843,
-    "name_en": "Terbium"
+    "name_en": "Terbium",
+    "oxidation_states": [
+      3,
+      4
+    ]
   },
   {
     "Z": 66,
@@ -865,7 +1120,10 @@
     "electronegativity": 1.22,
     "ionization_energy": 573,
     "discovery_year": 1886,
-    "name_en": "Dysprosium"
+    "name_en": "Dysprosium",
+    "oxidation_states": [
+      3
+    ]
   },
   {
     "Z": 67,
@@ -878,7 +1136,10 @@
     "electronegativity": 1.23,
     "ionization_energy": 581,
     "discovery_year": 1878,
-    "name_en": "Holmium"
+    "name_en": "Holmium",
+    "oxidation_states": [
+      3
+    ]
   },
   {
     "Z": 68,
@@ -891,7 +1152,10 @@
     "electronegativity": 1.24,
     "ionization_energy": 589,
     "discovery_year": 1842,
-    "name_en": "Erbium"
+    "name_en": "Erbium",
+    "oxidation_states": [
+      3
+    ]
   },
   {
     "Z": 69,
@@ -904,7 +1168,11 @@
     "electronegativity": 1.25,
     "ionization_energy": 597,
     "discovery_year": 1879,
-    "name_en": "Thulium"
+    "name_en": "Thulium",
+    "oxidation_states": [
+      2,
+      3
+    ]
   },
   {
     "Z": 70,
@@ -917,7 +1185,11 @@
     "electronegativity": 1.1,
     "ionization_energy": 603,
     "discovery_year": 1878,
-    "name_en": "Ytterbium"
+    "name_en": "Ytterbium",
+    "oxidation_states": [
+      2,
+      3
+    ]
   },
   {
     "Z": 71,
@@ -930,7 +1202,10 @@
     "electronegativity": 1.27,
     "ionization_energy": 524,
     "discovery_year": 1907,
-    "name_en": "Lutetium"
+    "name_en": "Lutetium",
+    "oxidation_states": [
+      3
+    ]
   },
   {
     "Z": 72,
@@ -943,7 +1218,10 @@
     "electronegativity": 1.3,
     "ionization_energy": 659,
     "discovery_year": 1923,
-    "name_en": "Hafnium"
+    "name_en": "Hafnium",
+    "oxidation_states": [
+      4
+    ]
   },
   {
     "Z": 73,
@@ -956,7 +1234,10 @@
     "electronegativity": 1.5,
     "ionization_energy": 761,
     "discovery_year": 1802,
-    "name_en": "Tantalum"
+    "name_en": "Tantalum",
+    "oxidation_states": [
+      5
+    ]
   },
   {
     "Z": 74,
@@ -969,7 +1250,14 @@
     "electronegativity": 2.36,
     "ionization_energy": 770,
     "discovery_year": 1783,
-    "name_en": "Tungsten"
+    "name_en": "Tungsten",
+    "oxidation_states": [
+      2,
+      3,
+      4,
+      5,
+      6
+    ]
   },
   {
     "Z": 75,
@@ -982,7 +1270,12 @@
     "electronegativity": 1.9,
     "ionization_energy": 760,
     "discovery_year": 1925,
-    "name_en": "Rhenium"
+    "name_en": "Rhenium",
+    "oxidation_states": [
+      4,
+      6,
+      7
+    ]
   },
   {
     "Z": 76,
@@ -995,7 +1288,11 @@
     "electronegativity": 2.2,
     "ionization_energy": 840,
     "discovery_year": 1803,
-    "name_en": "Osmium"
+    "name_en": "Osmium",
+    "oxidation_states": [
+      4,
+      8
+    ]
   },
   {
     "Z": 77,
@@ -1008,7 +1305,11 @@
     "electronegativity": 2.2,
     "ionization_energy": 880,
     "discovery_year": 1803,
-    "name_en": "Iridium"
+    "name_en": "Iridium",
+    "oxidation_states": [
+      3,
+      4
+    ]
   },
   {
     "Z": 78,
@@ -1021,7 +1322,11 @@
     "electronegativity": 2.28,
     "ionization_energy": 870,
     "discovery_year": 1735,
-    "name_en": "Platinum"
+    "name_en": "Platinum",
+    "oxidation_states": [
+      2,
+      4
+    ]
   },
   {
     "Z": 79,
@@ -1034,7 +1339,11 @@
     "electronegativity": 2.54,
     "ionization_energy": 890,
     "discovery_year": "Antigüedad",
-    "name_en": "Gold"
+    "name_en": "Gold",
+    "oxidation_states": [
+      1,
+      3
+    ]
   },
   {
     "Z": 80,
@@ -1047,7 +1356,11 @@
     "electronegativity": 2.0,
     "ionization_energy": 1007,
     "discovery_year": "Antigüedad",
-    "name_en": "Mercury"
+    "name_en": "Mercury",
+    "oxidation_states": [
+      1,
+      2
+    ]
   },
   {
     "Z": 81,
@@ -1060,7 +1373,11 @@
     "electronegativity": 1.62,
     "ionization_energy": 589,
     "discovery_year": 1861,
-    "name_en": "Thallium"
+    "name_en": "Thallium",
+    "oxidation_states": [
+      1,
+      3
+    ]
   },
   {
     "Z": 82,
@@ -1073,7 +1390,11 @@
     "electronegativity": 2.33,
     "ionization_energy": 716,
     "discovery_year": "Antigüedad",
-    "name_en": "Lead"
+    "name_en": "Lead",
+    "oxidation_states": [
+      2,
+      4
+    ]
   },
   {
     "Z": 83,
@@ -1086,7 +1407,10 @@
     "electronegativity": 2.02,
     "ionization_energy": 703,
     "discovery_year": 1753,
-    "name_en": "Bismuth"
+    "name_en": "Bismuth",
+    "oxidation_states": [
+      3
+    ]
   },
   {
     "Z": 84,
@@ -1099,7 +1423,13 @@
     "electronegativity": 2.0,
     "ionization_energy": 812,
     "discovery_year": 1898,
-    "name_en": "Polonium"
+    "name_en": "Polonium",
+    "oxidation_states": [
+      -2,
+      2,
+      4,
+      6
+    ]
   },
   {
     "Z": 85,
@@ -1112,7 +1442,13 @@
     "electronegativity": 2.2,
     "ionization_energy": 920,
     "discovery_year": 1940,
-    "name_en": "Astatine"
+    "name_en": "Astatine",
+    "oxidation_states": [
+      -1,
+      1,
+      3,
+      5
+    ]
   },
   {
     "Z": 86,
@@ -1125,7 +1461,10 @@
     "electronegativity": null,
     "ionization_energy": 1037,
     "discovery_year": 1899,
-    "name_en": "Radon"
+    "name_en": "Radon",
+    "oxidation_states": [
+      2
+    ]
   },
   {
     "Z": 87,
@@ -1138,7 +1477,10 @@
     "electronegativity": 0.7,
     "ionization_energy": 380,
     "discovery_year": 1939,
-    "name_en": "Francium"
+    "name_en": "Francium",
+    "oxidation_states": [
+      1
+    ]
   },
   {
     "Z": 88,
@@ -1151,7 +1493,10 @@
     "electronegativity": 0.9,
     "ionization_energy": 509,
     "discovery_year": 1898,
-    "name_en": "Radium"
+    "name_en": "Radium",
+    "oxidation_states": [
+      2
+    ]
   },
   {
     "Z": 89,
@@ -1164,7 +1509,10 @@
     "electronegativity": 1.1,
     "ionization_energy": 499,
     "discovery_year": 1899,
-    "name_en": "Actinium"
+    "name_en": "Actinium",
+    "oxidation_states": [
+      3
+    ]
   },
   {
     "Z": 90,
@@ -1177,7 +1525,10 @@
     "electronegativity": 1.3,
     "ionization_energy": 587,
     "discovery_year": 1829,
-    "name_en": "Thorium"
+    "name_en": "Thorium",
+    "oxidation_states": [
+      4
+    ]
   },
   {
     "Z": 91,
@@ -1190,7 +1541,10 @@
     "electronegativity": 1.5,
     "ionization_energy": 568,
     "discovery_year": 1913,
-    "name_en": "Protactinium"
+    "name_en": "Protactinium",
+    "oxidation_states": [
+      5
+    ]
   },
   {
     "Z": 92,
@@ -1203,7 +1557,13 @@
     "electronegativity": 1.38,
     "ionization_energy": 597,
     "discovery_year": 1789,
-    "name_en": "Uranium"
+    "name_en": "Uranium",
+    "oxidation_states": [
+      3,
+      4,
+      5,
+      6
+    ]
   },
   {
     "Z": 93,
@@ -1216,7 +1576,14 @@
     "electronegativity": 1.36,
     "ionization_energy": 604,
     "discovery_year": 1940,
-    "name_en": "Neptunium"
+    "name_en": "Neptunium",
+    "oxidation_states": [
+      3,
+      4,
+      5,
+      6,
+      7
+    ]
   },
   {
     "Z": 94,
@@ -1229,7 +1596,14 @@
     "electronegativity": 1.28,
     "ionization_energy": 585,
     "discovery_year": 1940,
-    "name_en": "Plutonium"
+    "name_en": "Plutonium",
+    "oxidation_states": [
+      3,
+      4,
+      5,
+      6,
+      7
+    ]
   },
   {
     "Z": 95,
@@ -1242,7 +1616,13 @@
     "electronegativity": 1.3,
     "ionization_energy": 578,
     "discovery_year": 1944,
-    "name_en": "Americium"
+    "name_en": "Americium",
+    "oxidation_states": [
+      3,
+      4,
+      5,
+      6
+    ]
   },
   {
     "Z": 96,
@@ -1255,7 +1635,11 @@
     "electronegativity": 1.3,
     "ionization_energy": 581,
     "discovery_year": 1944,
-    "name_en": "Curium"
+    "name_en": "Curium",
+    "oxidation_states": [
+      3,
+      4
+    ]
   },
   {
     "Z": 97,
@@ -1268,7 +1652,11 @@
     "electronegativity": 1.3,
     "ionization_energy": 601,
     "discovery_year": 1949,
-    "name_en": "Berkelium"
+    "name_en": "Berkelium",
+    "oxidation_states": [
+      3,
+      4
+    ]
   },
   {
     "Z": 98,
@@ -1281,7 +1669,10 @@
     "electronegativity": 1.3,
     "ionization_energy": 608,
     "discovery_year": 1950,
-    "name_en": "Californium"
+    "name_en": "Californium",
+    "oxidation_states": [
+      3
+    ]
   },
   {
     "Z": 99,
@@ -1294,7 +1685,10 @@
     "electronegativity": 1.3,
     "ionization_energy": 619,
     "discovery_year": 1952,
-    "name_en": "Einsteinium"
+    "name_en": "Einsteinium",
+    "oxidation_states": [
+      3
+    ]
   },
   {
     "Z": 100,
@@ -1307,7 +1701,10 @@
     "electronegativity": 1.3,
     "ionization_energy": 627,
     "discovery_year": 1952,
-    "name_en": "Fermium"
+    "name_en": "Fermium",
+    "oxidation_states": [
+      3
+    ]
   },
   {
     "Z": 101,
@@ -1320,7 +1717,11 @@
     "electronegativity": 1.3,
     "ionization_energy": 635,
     "discovery_year": 1955,
-    "name_en": "Mendelevium"
+    "name_en": "Mendelevium",
+    "oxidation_states": [
+      2,
+      3
+    ]
   },
   {
     "Z": 102,
@@ -1333,7 +1734,11 @@
     "electronegativity": 1.3,
     "ionization_energy": 642,
     "discovery_year": 1966,
-    "name_en": "Nobelium"
+    "name_en": "Nobelium",
+    "oxidation_states": [
+      2,
+      3
+    ]
   },
   {
     "Z": 103,
@@ -1346,7 +1751,10 @@
     "electronegativity": 1.3,
     "ionization_energy": 470,
     "discovery_year": 1961,
-    "name_en": "Lawrencium"
+    "name_en": "Lawrencium",
+    "oxidation_states": [
+      3
+    ]
   },
   {
     "Z": 104,
@@ -1359,7 +1767,10 @@
     "electronegativity": null,
     "ionization_energy": 580,
     "discovery_year": 1964,
-    "name_en": "Rutherfordium"
+    "name_en": "Rutherfordium",
+    "oxidation_states": [
+      4
+    ]
   },
   {
     "Z": 105,
@@ -1372,7 +1783,10 @@
     "electronegativity": null,
     "ionization_energy": 660,
     "discovery_year": 1967,
-    "name_en": "Dubnium"
+    "name_en": "Dubnium",
+    "oxidation_states": [
+      5
+    ]
   },
   {
     "Z": 106,
@@ -1385,7 +1799,10 @@
     "electronegativity": null,
     "ionization_energy": 750,
     "discovery_year": 1974,
-    "name_en": "Seaborgium"
+    "name_en": "Seaborgium",
+    "oxidation_states": [
+      6
+    ]
   },
   {
     "Z": 107,
@@ -1398,7 +1815,10 @@
     "electronegativity": null,
     "ionization_energy": 790,
     "discovery_year": 1981,
-    "name_en": "Bohrium"
+    "name_en": "Bohrium",
+    "oxidation_states": [
+      7
+    ]
   },
   {
     "Z": 108,
@@ -1411,7 +1831,10 @@
     "electronegativity": null,
     "ionization_energy": 820,
     "discovery_year": 1984,
-    "name_en": "Hassium"
+    "name_en": "Hassium",
+    "oxidation_states": [
+      8
+    ]
   },
   {
     "Z": 109,
@@ -1424,7 +1847,10 @@
     "electronegativity": null,
     "ionization_energy": 840,
     "discovery_year": 1982,
-    "name_en": "Meitnerium"
+    "name_en": "Meitnerium",
+    "oxidation_states": [
+      3
+    ]
   },
   {
     "Z": 110,
@@ -1437,7 +1863,10 @@
     "electronegativity": null,
     "ionization_energy": 960,
     "discovery_year": 1994,
-    "name_en": "Darmstadtium"
+    "name_en": "Darmstadtium",
+    "oxidation_states": [
+      4
+    ]
   },
   {
     "Z": 111,
@@ -1450,7 +1879,10 @@
     "electronegativity": null,
     "ionization_energy": 1020,
     "discovery_year": 1994,
-    "name_en": "Roentgenium"
+    "name_en": "Roentgenium",
+    "oxidation_states": [
+      3
+    ]
   },
   {
     "Z": 112,
@@ -1463,7 +1895,10 @@
     "electronegativity": null,
     "ionization_energy": 1150,
     "discovery_year": 1996,
-    "name_en": "Copernicium"
+    "name_en": "Copernicium",
+    "oxidation_states": [
+      2
+    ]
   },
   {
     "Z": 113,
@@ -1476,7 +1911,11 @@
     "electronegativity": null,
     "ionization_energy": 700,
     "discovery_year": 2004,
-    "name_en": "Nihonium"
+    "name_en": "Nihonium",
+    "oxidation_states": [
+      1,
+      3
+    ]
   },
   {
     "Z": 114,
@@ -1489,7 +1928,11 @@
     "electronegativity": null,
     "ionization_energy": 820,
     "discovery_year": 1998,
-    "name_en": "Flerovium"
+    "name_en": "Flerovium",
+    "oxidation_states": [
+      2,
+      4
+    ]
   },
   {
     "Z": 115,
@@ -1502,7 +1945,11 @@
     "electronegativity": null,
     "ionization_energy": 530,
     "discovery_year": 2003,
-    "name_en": "Moscovium"
+    "name_en": "Moscovium",
+    "oxidation_states": [
+      1,
+      3
+    ]
   },
   {
     "Z": 116,
@@ -1515,7 +1962,11 @@
     "electronegativity": null,
     "ionization_energy": 640,
     "discovery_year": 2000,
-    "name_en": "Livermorium"
+    "name_en": "Livermorium",
+    "oxidation_states": [
+      2,
+      4
+    ]
   },
   {
     "Z": 117,
@@ -1528,7 +1979,13 @@
     "electronegativity": null,
     "ionization_energy": 740,
     "discovery_year": 2010,
-    "name_en": "Tennessine"
+    "name_en": "Tennessine",
+    "oxidation_states": [
+      -1,
+      1,
+      3,
+      5
+    ]
   },
   {
     "Z": 118,
@@ -1541,6 +1998,9 @@
     "electronegativity": null,
     "ionization_energy": 860,
     "discovery_year": 2006,
-    "name_en": "Oganesson"
+    "name_en": "Oganesson",
+    "oxidation_states": [
+      0
+    ]
   }
 ]
