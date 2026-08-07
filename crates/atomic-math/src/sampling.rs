@@ -1,4 +1,4 @@
-use crate::{probability_density, OrbitalMode, QuantumNumbers};
+use crate::{wavefunction_value, OrbitalMode, QuantumNumbers};
 
 struct Lcg {
     state: u64,
@@ -24,7 +24,7 @@ pub fn sample_points_internal(
     z_eff: f64,
     n_points: usize,
     seed: u64,
-) -> Result<Vec<[f32; 3]>, String> {
+) -> Result<Vec<([f32; 3], f32)>, String> {
     if n_points == 0 {
         return Ok(Vec::new());
     }
@@ -55,9 +55,9 @@ pub fn sample_points_internal(
     for &r in &grid_radii {
         for &theta in &grid_thetas {
             for &phi in &grid_phis {
-                let p = probability_density(qn, mode, z_eff, r, theta, phi)?;
+                let psi = wavefunction_value(qn, mode, z_eff, r, theta, phi)?;
                 let weight = r * r * theta.sin();
-                let density = p * weight;
+                let density = psi * psi * weight;
                 if density > p_max {
                     p_max = density;
                 }
@@ -71,9 +71,9 @@ pub fn sample_points_internal(
         let theta = rng.next_f64() * std::f64::consts::PI;
         let phi = rng.next_f64() * 2.0 * std::f64::consts::PI;
 
-        let p = probability_density(qn, mode, z_eff, r, theta, phi)?;
+        let psi = wavefunction_value(qn, mode, z_eff, r, theta, phi)?;
         let weight = r * r * theta.sin();
-        let density = p * weight;
+        let density = psi * psi * weight;
         if density > p_max {
             p_max = density;
         }
@@ -97,9 +97,9 @@ pub fn sample_points_internal(
         let theta = rng.next_f64() * std::f64::consts::PI;
         let phi = rng.next_f64() * 2.0 * std::f64::consts::PI;
 
-        let p = probability_density(qn, mode, z_eff, r, theta, phi)?;
+        let psi = wavefunction_value(qn, mode, z_eff, r, theta, phi)?;
         let weight = r * r * theta.sin();
-        let density = p * weight;
+        let density = psi * psi * weight;
         if density > p_max {
             p_max = density * 1.2;
         }
@@ -109,7 +109,8 @@ pub fn sample_points_internal(
             let x = r * theta.sin() * phi.cos();
             let y = r * theta.sin() * phi.sin();
             let z = r * theta.cos();
-            points.push([x as f32, y as f32, z as f32]);
+            let sign = if psi >= 0.0 { 1.0f32 } else { -1.0f32 };
+            points.push(([x as f32, y as f32, z as f32], sign));
         }
     }
 

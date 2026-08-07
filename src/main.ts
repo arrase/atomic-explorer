@@ -106,23 +106,34 @@ async function init() {
     return orbitalRenderer.captureSnapshot(options);
   });
 
+  let currentLoadRequestId = 0;
+
   const loadOrbital = async (params: ExtendedOrbitalParams) => {
+    const requestId = ++currentLoadRequestId;
     try {
       document.body.classList.add('loading');
       orbitalRenderer.updateParams(params);
 
       if (params.mode === 'points') {
         const points = await sampleOrbitalPoints(params);
-        orbitalRenderer.setPointCloud(points);
+        if (requestId === currentLoadRequestId) {
+          orbitalRenderer.setPointCloud(points);
+        }
       } else if (params.mode === 'isosurface') {
-        orbitalRenderer.updateIsosurface(params);
+        if (requestId === currentLoadRequestId) {
+          orbitalRenderer.updateIsosurface(params);
+        }
       } else if (params.mode === 'raymarching') {
-        orbitalRenderer.updateRaymarching(params);
+        if (requestId === currentLoadRequestId) {
+          orbitalRenderer.updateRaymarching(params);
+        }
       }
     } catch (err) {
       console.error('Failed to load orbital:', err);
     } finally {
-      document.body.classList.remove('loading');
+      if (requestId === currentLoadRequestId) {
+        document.body.classList.remove('loading');
+      }
     }
   };
 
