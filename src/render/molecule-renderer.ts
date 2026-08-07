@@ -203,6 +203,11 @@ export class MoleculeRenderer {
         y *= ELONGATION_FACTOR;
         x *= (1.0 - y * TAPER_RATE);
         z *= (1.0 - y * TAPER_RATE);
+      } else {
+        const MINOR_SCALE = 0.25;
+        y *= MINOR_SCALE;
+        x *= MINOR_SCALE;
+        z *= MINOR_SCALE;
       }
       pos.setXYZ(i, x, y, z);
     }

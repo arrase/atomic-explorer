@@ -235,7 +235,7 @@ const raymarchFragmentShader = `
       if (psi > 0.0) return mix(vec3(0.6, 0.1, 1.0), vec3(0.1, 0.8, 1.0), t);
       return mix(vec3(1.0, 0.1, 0.5), vec3(1.0, 0.6, 0.1), t);
     }
-    // Default Cyan & Magenta
+    // Default Cyan & Orange/Red
     if (psi > 0.0) return mix(vec3(0.1, 0.6, 1.0), vec3(0.0, 0.9, 1.0), t);
     return mix(vec3(1.0, 0.4, 0.1), vec3(1.0, 0.8, 0.2), t);
   }
@@ -299,7 +299,7 @@ export class OrbitalRenderer {
 
 
   private pointsMesh: THREE.Points | null = null;
-  private marchingCubesMesh: MarchingCubes | null = null;
+  private marchingCubesGroup: THREE.Group | null = null;
   private raymarchingMesh: THREE.Mesh | null = null;
   private raymarchingMaterial: THREE.ShaderMaterial | null = null;
 
@@ -422,10 +422,21 @@ export class OrbitalRenderer {
         ? 128
         : 64;
 
-    const baseColor = this.paletteToIsoColor(params.colorPalette);
+    const baseColorPos = this.paletteToIsoColorPos(params.colorPalette);
+    const baseColorNeg = this.paletteToIsoColorNeg(params.colorPalette);
 
-    const material = new THREE.MeshPhysicalMaterial({
-      color: baseColor,
+    const materialPos = new THREE.MeshPhysicalMaterial({
+      color: baseColorPos,
+      roughness: 0.15,
+      metalness: 0.2,
+      transmission: 0.65,
+      opacity: 0.85,
+      transparent: true,
+      side: THREE.DoubleSide,
+    });
+    
+    const materialNeg = new THREE.MeshPhysicalMaterial({
+      color: baseColorNeg,
       roughness: 0.15,
       metalness: 0.2,
       transmission: 0.65,
@@ -434,26 +445,34 @@ export class OrbitalRenderer {
       side: THREE.DoubleSide,
     });
 
-    const mc = new MarchingCubes(gridRes, material, false, false, 200000);
+    const mcPos = new MarchingCubes(gridRes, materialPos, false, false, 200000);
+    const mcNeg = new MarchingCubes(gridRes, materialNeg, false, false, 200000);
     const boxExtent = (4.0 * (params.n * params.n)) / Math.max(params.zEff, 0.5);
-    mc.scale.set(boxExtent, boxExtent, boxExtent);
+    mcPos.scale.set(boxExtent, boxExtent, boxExtent);
+    mcNeg.scale.set(boxExtent, boxExtent, boxExtent);
 
     // Compute grid values
-    this.fillMarchingCubesGrid(mc, gridRes, params);
-    mc.update();
+    this.fillMarchingCubesGrids(mcPos, mcNeg, gridRes, params);
+    mcPos.update();
+    mcNeg.update();
 
-    this.marchingCubesMesh = mc;
-    this.scene.add(mc);
+    this.marchingCubesGroup = new THREE.Group();
+    this.marchingCubesGroup.add(mcPos);
+    this.marchingCubesGroup.add(mcNeg);
+    this.scene.add(this.marchingCubesGroup);
   }
 
-  private fillMarchingCubesGrid(mc: MarchingCubes, resolution: number, params: OrbitalRenderParams): void {
+  private fillMarchingCubesGrids(mcPos: MarchingCubes, mcNeg: MarchingCubes, resolution: number, params: OrbitalRenderParams): void {
     const { n, l, m, useRealOrbital, zEff } = params;
     
     // We adjust the isolevel to work with our mathematically normalized density
     const isolevel = params.isolevel ?? 0.02;
 
-    mc.reset();
-    mc.isolation = isolevel;
+    mcPos.reset();
+    mcPos.isolation = isolevel;
+    
+    mcNeg.reset();
+    mcNeg.isolation = isolevel;
 
     const rMax = (4.0 * (n * n)) / Math.max(zEff, 0.5);
     
@@ -468,7 +487,7 @@ export class OrbitalRenderer {
           const pz = (z / (resolution - 1) - 0.5) * 2.0 * rMax;
 
           const r = Math.hypot(px, py, pz);
-          let normalizedDensity = 0;
+          let signedDensity = 0;
           if (r > 1e-4) {
             const theta = Math.acos(Math.max(-1, Math.min(1, pz / r)));
             const phi = Math.atan2(py, px);
@@ -479,10 +498,12 @@ export class OrbitalRenderer {
             const rawDensity = psi * psi;
             
             // Normalize density to preserve nodes while boosting overall volume (Gamma 0.60)
-            normalizedDensity = Math.pow(rawDensity * scaleFactor, 0.60);
+            const normalizedDensity = Math.pow(rawDensity * scaleFactor, 0.60);
+            signedDensity = psi >= 0 ? normalizedDensity : -normalizedDensity;
           }
 
-          mc.setCell(x, y, z, normalizedDensity);
+          mcPos.setCell(x, y, z, signedDensity);
+          mcNeg.setCell(x, y, z, -signedDensity);
         }
       }
     }
@@ -538,12 +559,21 @@ export class OrbitalRenderer {
     }
   }
 
-  private paletteToIsoColor(palette?: ColorPalette): number {
+  private paletteToIsoColorPos(palette?: ColorPalette): number {
     switch (palette) {
-      case 'fire': return 0xff6600;
-      case 'emerald': return 0x00cc88;
-      case 'spectrum': return 0xaa22ff;
-      default: return 0x2080ff;
+      case 'fire': return 0xffcc33;
+      case 'emerald': return 0x66ffb2;
+      case 'spectrum': return 0x22ccff;
+      default: return 0x00ccff; // Cyan
+    }
+  }
+
+  private paletteToIsoColorNeg(palette?: ColorPalette): number {
+    switch (palette) {
+      case 'fire': return 0x6600cc;
+      case 'emerald': return 0xcc9900;
+      case 'spectrum': return 0xff2255;
+      default: return 0xff6611; // Orange/Red
     }
   }
 
@@ -636,11 +666,14 @@ export class OrbitalRenderer {
       (this.pointsMesh.material as THREE.Material).dispose();
       this.pointsMesh = null;
     }
-    if (this.marchingCubesMesh) {
-      this.scene.remove(this.marchingCubesMesh);
-      this.marchingCubesMesh.geometry.dispose();
-      (this.marchingCubesMesh.material as THREE.Material).dispose();
-      this.marchingCubesMesh = null;
+    if (this.marchingCubesGroup) {
+      this.scene.remove(this.marchingCubesGroup);
+      this.marchingCubesGroup.children.forEach(child => {
+        const mc = child as MarchingCubes;
+        mc.geometry.dispose();
+        (mc.material as THREE.Material).dispose();
+      });
+      this.marchingCubesGroup = null;
     }
     if (this.raymarchingMesh) {
       this.scene.remove(this.raymarchingMesh);
@@ -758,8 +791,8 @@ export class OrbitalRenderer {
 
     if (this.pointsMesh) {
       this.pointsMesh.rotation.y += 0.001;
-    } else if (this.marchingCubesMesh) {
-      this.marchingCubesMesh.rotation.y += 0.001;
+    } else if (this.marchingCubesGroup) {
+      this.marchingCubesGroup.rotation.y += 0.001;
     } else if (this.raymarchingMesh) {
       this.raymarchingMesh.rotation.y += 0.001;
     }
