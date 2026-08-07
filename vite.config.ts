@@ -5,6 +5,7 @@ import topLevelAwait from "vite-plugin-top-level-await";
 const host = process.env.TAURI_DEV_HOST;
 
 export default defineConfig({
+  base: "./",
   plugins: [wasm(), topLevelAwait()],
   build: {
     target: "esnext",
