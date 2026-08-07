@@ -12,18 +12,18 @@ Atomic Explorer is built on a modern, high-performance tech stack leveraging web
 
 ```mermaid
 graph TD
-    subgraph Frontend "Web Frontend (TypeScript + Vite + Three.js)"
-        UI[Vue Components / UI]
-        Render[Three.js WebGL Renderer]
+    subgraph Frontend ["Web Frontend (TypeScript + Vite + Three.js)"]
+        UI["Vue Components / UI"]
+        Render["Three.js WebGL Renderer"]
     end
 
-    subgraph Core "Core Processing"
-        WASM[Rust WASM Math Engine\n'crates/atomic-math']
+    subgraph Core ["Core Processing"]
+        WASM["Rust WASM Math Engine<br>'crates/atomic-math'"]
     end
 
-    subgraph Desktop "System Layer"
-        Tauri[Tauri Desktop Shell]
-        OS[Linux OS]
+    subgraph Desktop ["System Layer"]
+        Tauri["Tauri Desktop Shell"]
+        OS["Linux OS"]
     end
 
     UI -->|Requests calculations| WASM
