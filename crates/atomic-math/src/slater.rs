@@ -50,18 +50,18 @@ pub fn get_electron_configuration(z: u32) -> Vec<(u32, u32, u32)> {
         45 => set_subshell_count(&mut config, &[(5, 0, 1), (4, 2, 8)]), // Rh: 5s1 4d8
         46 => set_subshell_count(&mut config, &[(5, 0, 0), (4, 2, 10)]), // Pd: 5s0 4d10
         47 => set_subshell_count(&mut config, &[(5, 0, 1), (4, 2, 10)]), // Ag: 5s1 4d10
-        57 => set_subshell_count(&mut config, &[(6, 0, 2), (5, 2, 1)]), // La: 6s2 5d1
-        58 => set_subshell_count(&mut config, &[(6, 0, 2), (4, 3, 1), (5, 2, 1)]), // Ce
-        64 => set_subshell_count(&mut config, &[(6, 0, 2), (4, 3, 7), (5, 2, 1)]), // Gd
+        57 => set_subshell_count(&mut config, &[(4, 3, 0), (5, 2, 1)]), // La: 6s2 5d1
+        58 => set_subshell_count(&mut config, &[(4, 3, 1), (5, 2, 1)]), // Ce
+        64 => set_subshell_count(&mut config, &[(4, 3, 7), (5, 2, 1)]), // Gd
         78 => set_subshell_count(&mut config, &[(6, 0, 1), (5, 2, 9)]), // Pt: 6s1 5d9
         79 => set_subshell_count(&mut config, &[(6, 0, 1), (5, 2, 10)]), // Au: 6s1 5d10
-        89 => set_subshell_count(&mut config, &[(7, 0, 2), (6, 2, 1)]), // Ac
-        90 => set_subshell_count(&mut config, &[(7, 0, 2), (6, 2, 2)]), // Th
-        91 => set_subshell_count(&mut config, &[(7, 0, 2), (5, 3, 2), (6, 2, 1)]), // Pa
-        92 => set_subshell_count(&mut config, &[(7, 0, 2), (5, 3, 3), (6, 2, 1)]), // U
-        93 => set_subshell_count(&mut config, &[(7, 0, 2), (5, 3, 4), (6, 2, 1)]), // Np
-        96 => set_subshell_count(&mut config, &[(7, 0, 2), (5, 3, 7), (6, 2, 1)]), // Cm
-        103 => set_subshell_count(&mut config, &[(7, 0, 2), (5, 3, 14), (7, 1, 1)]), // Lr
+        89 => set_subshell_count(&mut config, &[(5, 3, 0), (6, 2, 1)]), // Ac
+        90 => set_subshell_count(&mut config, &[(5, 3, 0), (6, 2, 2)]), // Th
+        91 => set_subshell_count(&mut config, &[(5, 3, 2), (6, 2, 1)]), // Pa
+        92 => set_subshell_count(&mut config, &[(5, 3, 3), (6, 2, 1)]), // U
+        93 => set_subshell_count(&mut config, &[(5, 3, 4), (6, 2, 1)]), // Np
+        96 => set_subshell_count(&mut config, &[(5, 3, 7), (6, 2, 1)]), // Cm
+        103 => set_subshell_count(&mut config, &[(6, 2, 0), (7, 1, 1)]), // Lr
         _ => {}
     }
 
@@ -162,7 +162,7 @@ pub fn calculate_slater_z_eff(z: u32, n: u32, l: u32) -> Result<f64, String> {
     }
 
     let z_eff = (z as f64) - shielding;
-    Ok(z_eff.max(0.1))
+    Ok(z_eff)
 }
 
 /// Parse string like "1s", "2p", "3d", "4f" into (n, l).
