@@ -6,6 +6,9 @@ const host = process.env.TAURI_DEV_HOST;
 
 export default defineConfig({
   plugins: [wasm(), topLevelAwait()],
+  build: {
+    target: "esnext",
+  },
   clearScreen: false,
   server: {
     port: 1420,
