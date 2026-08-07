@@ -1,0 +1,71 @@
+name: 'Release Application'
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  publish-tauri:
+    permissions:
+      contents: write
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: cargo install wasm-pack
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libgtk-3-dev \
+            libsoup-3.0-dev \
+            libjavascriptcoregtk-4.1-dev \
+            rpm
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Build WASM module
+        run: npm run wasm:build
+
+      - name: Build Tauri app and upload to Release
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'Atomic Explorer ${{ github.ref_name }}'
+          releaseBody: |
+            ## Atomic Explorer ${{ github.ref_name }}
+
+            Paquetes precompilados disponibles para Linux:
+            - **.AppImage**: Ejecutable universal (recomendado)
+            - **.deb**: Ubuntu, Debian, Linux Mint y derivados
+            - **.rpm**: Fedora, openSUSE, RHEL y derivados
+          releaseDraft: false
+          prerelease: false

@@ -43,34 +43,49 @@ La aplicación realiza cálculos matemáticos complejos y renderizado 3D en tiem
 
 ## Cómo Instalar y Probar la Aplicación
 
-Atomic Explorer se distribuye en formatos empaquetados para que no tengas que compilar nada. Puedes encontrar los instaladores generados en los directorios de la aplicación o en las futuras "Releases" del proyecto.
+Puedes descargar directamente los paquetes precompilados en la pestaña **Releases** de este repositorio de GitHub.
 
-### Opción 1: Usando AppImage (Recomendado, no requiere instalación)
-El formato AppImage es universal y funciona en casi cualquier distribución Linux sin necesidad de instalar dependencias adicionales en el sistema.
+### Opción 1: Usando AppImage (Recomendado, ejecutable universal)
+El formato AppImage funciona en casi cualquier distribución Linux sin instalar nada en el sistema.
 
-1. Descarga el archivo `.AppImage` (por ejemplo, `atomic-explorer_0.1.0_amd64.AppImage`).
-2. Dale permisos de ejecución. Puedes hacerlo desde las propiedades del archivo (clic derecho -> Propiedades -> Permisos -> Permitir ejecutar), o usando la terminal:
+1. Entra en la sección de **Releases** de este repositorio y descarga el archivo `.AppImage` correspondiente a la versión más reciente (ejemplo: `atomic-explorer_0.1.0_amd64.AppImage`).
+2. Dale permisos de ejecución. Puedes hacerlo desde las propiedades del archivo en tu gestor de archivos (clic derecho -> *Propiedades* -> *Permisos* -> *Permitir ejecutar como programa*), o desde la terminal:
    ```bash
    chmod +x atomic-explorer_0.1.0_amd64.AppImage
    ```
-3. ¡Haz doble clic en el archivo para abrir la aplicación!
+3. Haz doble clic en el archivo descargado para iniciar la aplicación.
 
 ### Opción 2: Paquete Debian (.deb)
-Para distribuciones como Ubuntu, Debian, Linux Mint, Pop!_OS, etc.
+Para distribuciones como Ubuntu, Debian, Linux Mint, Pop!_OS, Zorin OS, etc.
 
-1. Descarga el archivo `.deb` (por ejemplo, `atomic-explorer_0.1.0_amd64.deb`).
-2. Haz doble clic en él para abrirlo con el Centro de Software e instalarlo, o instálalo desde la terminal:
+1. Descarga el paquete `.deb` desde la sección de **Releases** (ejemplo: `atomic-explorer_0.1.0_amd64.deb`).
+2. Haz doble clic en el archivo para instalarlo con el Centro de Software de tu sistema, o ejecuta en la terminal:
    ```bash
    sudo apt install ./atomic-explorer_0.1.0_amd64.deb
    ```
-3. Una vez instalado, busca "Atomic Explorer" en tu menú de aplicaciones.
+3. Abre "Atomic Explorer" desde el menú de aplicaciones del sistema.
 
 ### Opción 3: Paquete RPM (.rpm)
-Para distribuciones como Fedora, openSUSE, RHEL, CentOS, etc.
+Para distribuciones como Fedora, openSUSE, RHEL, Rocky Linux, CentOS, etc.
 
-1. Descarga el archivo `.rpm` (por ejemplo, `atomic-explorer-0.1.0-1.x86_64.rpm`).
-2. Instálalo usando tu gestor de paquetes gráfico, o mediante la terminal:
+1. Descarga el paquete `.rpm` desde la sección de **Releases** (ejemplo: `atomic-explorer-0.1.0-1.x86_64.rpm`).
+2. Instálalo desde la terminal ejecutando:
    ```bash
    sudo dnf install ./atomic-explorer-0.1.0-1.x86_64.rpm
    ```
-3. Busca "Atomic Explorer" en tu menú de aplicaciones.
+3. Inicia la aplicación desde el menú del sistema.
+
+---
+
+## Publicación de Nuevas Versiones (Para Mantenedores)
+
+Este repositorio cuenta con una **GitHub Action** automatizada para generar y subir los instaladores (`AppImage`, `.deb`, `.rpm`) a GitHub Releases automáticamente al crear una nueva versión.
+
+Para publicar una nueva Release:
+
+1. Crea y sube una etiqueta (*tag*) con la versión (por ejemplo `v0.1.0`):
+   ```bash
+   git tag v0.1.0
+   git push origin v0.1.0
+   ```
+2. La acción `.github/workflows/release.yml` compilará automáticamente el motor matemático WASM, construirá los paquetes Tauri y publicará la release en GitHub con todos los instaladores adjuntos.
