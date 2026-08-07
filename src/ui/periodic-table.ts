@@ -301,6 +301,9 @@ export class PeriodicTableView {
         if (inspector) {
           inspector.innerHTML = this.renderInspectorContent();
           this.attachInfoButtonEvents(inspector);
+          if (window.innerWidth <= 1024) {
+            inspector.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
         }
       });
     });
