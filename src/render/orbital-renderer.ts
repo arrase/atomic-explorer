@@ -95,7 +95,36 @@ const raymarchFragmentShader = `
 
   #define PI 3.14159265359
 
-  // Radial hydrogen wavefunction approximation in GLSL
+  // Factorial for small n (sufficient for quantum numbers up to n=7)
+  float factorialF(int n) {
+    float f = 1.0;
+    for (int i = 2; i <= 20; i++) {
+      if (i > n) break;
+      f *= float(i);
+    }
+    return f;
+  }
+
+  // Associated Laguerre polynomial L_p^q(x) via recurrence relation
+  float assocLaguerre(int p, int q, float x) {
+    if (p == 0) return 1.0;
+    float qf = float(q);
+    float l0 = 1.0;
+    float l1 = (qf + 1.0) - x;
+    if (p == 1) return l1;
+    float lp = l1;
+    for (int k = 1; k < 20; k++) {
+      if (k >= p) break;
+      float kf = float(k);
+      float next = ((2.0 * kf + 1.0 + qf - x) * l1 - (kf + qf) * l0) / (kf + 1.0);
+      l0 = l1;
+      l1 = next;
+      lp = next;
+    }
+    return lp;
+  }
+
+  // Radial hydrogen wavefunction R_nl(r) — analytic for n<=4, generic Laguerre for n>4
   float evalR(int n, int l, float zeff, float r) {
     float zr = zeff * r;
     if (n == 1 && l == 0) {
@@ -119,7 +148,16 @@ const raymarchFragmentShader = `
     } else if (n == 4 && l == 3) {
       return (1.0 / (768.0 * sqrt(35.0))) * pow(zeff, 1.5) * (zr*zr*zr) * exp(-zr / 4.0);
     }
-    return exp(-zr / float(n));
+    // Generic formula using associated Laguerre polynomials for n > 4
+    float nf = float(n);
+    float rho = 2.0 * zr / nf;
+    int p = n - l - 1;
+    int q = 2 * l + 1;
+    float lag = assocLaguerre(p, q, rho);
+    float num = pow(2.0 * zeff / nf, 3.0) * factorialF(n - l - 1);
+    float den = 2.0 * nf * factorialF(n + l);
+    float prefactor = sqrt(num / den);
+    return prefactor * exp(-zr / nf) * pow(rho, float(l)) * lag;
   }
 
   float evalY(int l, int m, bool useReal, float theta, float phi) {
@@ -455,6 +493,28 @@ export class OrbitalRenderer {
     }
   }
 
+  private factorial(n: number): number {
+    let f = 1.0;
+    for (let i = 2; i <= n; i++) f *= i;
+    return f;
+  }
+
+  private associatedLaguerre(p: number, q: number, x: number): number {
+    if (p === 0) return 1.0;
+    const qf = q;
+    let l0 = 1.0;
+    let l1 = (qf + 1.0) - x;
+    if (p === 1) return l1;
+    let lp = l1;
+    for (let k = 1; k < p; k++) {
+      const next = ((2.0 * k + 1.0 + qf - x) * l1 - (k + qf) * l0) / (k + 1.0);
+      l0 = l1;
+      l1 = next;
+      lp = next;
+    }
+    return lp;
+  }
+
   private evalRadial(n: number, l: number, zeff: number, r: number): number {
     const zr = zeff * r;
     if (n === 1 && l === 0) return 2.0 * Math.pow(zeff, 1.5) * Math.exp(-zr);
@@ -467,7 +527,15 @@ export class OrbitalRenderer {
     if (n === 4 && l === 1) return (1.0 / (256.0 * Math.sqrt(15))) * Math.pow(zeff, 1.5) * (80.0 * zr - 20.0 * zr * zr + zr * zr * zr) * Math.exp(-zr / 4.0);
     if (n === 4 && l === 2) return (1.0 / (768.0 * Math.sqrt(5))) * Math.pow(zeff, 1.5) * (12.0 * zr * zr - zr * zr * zr) * Math.exp(-zr / 4.0);
     if (n === 4 && l === 3) return (1.0 / (768.0 * Math.sqrt(35))) * Math.pow(zeff, 1.5) * (zr * zr * zr) * Math.exp(-zr / 4.0);
-    return Math.exp(-zr / n);
+    // Generic formula using associated Laguerre polynomials for n > 4
+    const rho = 2.0 * zr / n;
+    const p = n - l - 1;
+    const q = 2 * l + 1;
+    const lag = this.associatedLaguerre(p, q, rho);
+    const num = Math.pow(2.0 * zeff / n, 3) * this.factorial(n - l - 1);
+    const den = 2.0 * n * this.factorial(n + l);
+    const prefactor = Math.sqrt(num / den);
+    return prefactor * Math.exp(-zr / n) * Math.pow(rho, l) * lag;
   }
 
   private evalAngular(l: number, m: number, useReal: boolean, theta: number, phi: number): number {
@@ -489,6 +557,15 @@ export class OrbitalRenderer {
       if (m === 2) return 0.25 * Math.sqrt(15.0 / Math.PI) * st * st * (useReal ? Math.cos(2 * phi) : 1.0);
       if (m === -2) return 0.25 * Math.sqrt(15.0 / Math.PI) * st * st * (useReal ? Math.sin(2 * phi) : 1.0);
     }
+    if (l === 3) {
+      if (m === 0) return 0.25 * Math.sqrt(7.0 / Math.PI) * (5.0 * ct * ct * ct - 3.0 * ct);
+      if (m === 1) return 0.25 * Math.sqrt(10.5 / Math.PI) * st * (5.0 * ct * ct - 1.0) * cp;
+      if (m === -1) return 0.25 * Math.sqrt(10.5 / Math.PI) * st * (5.0 * ct * ct - 1.0) * sp;
+      if (m === 2) return 0.25 * Math.sqrt(105.0 / Math.PI) * st * st * ct * (useReal ? Math.cos(2 * phi) : 1.0);
+      if (m === -2) return 0.25 * Math.sqrt(105.0 / Math.PI) * st * st * ct * (useReal ? Math.sin(2 * phi) : 1.0);
+      if (m === 3) return 0.25 * Math.sqrt(17.5 / Math.PI) * st * st * st * (useReal ? Math.cos(3 * phi) : 1.0);
+      if (m === -3) return 0.25 * Math.sqrt(17.5 / Math.PI) * st * st * st * (useReal ? Math.sin(3 * phi) : 1.0);
+    }
     return 0.5 * Math.sqrt(1.0 / Math.PI);
   }
 
@@ -501,6 +578,7 @@ export class OrbitalRenderer {
     }
     if (this.marchingCubesMesh) {
       this.scene.remove(this.marchingCubesMesh);
+      this.marchingCubesMesh.geometry.dispose();
       (this.marchingCubesMesh.material as THREE.Material).dispose();
       this.marchingCubesMesh = null;
     }
@@ -541,7 +619,7 @@ export class OrbitalRenderer {
 
   private onWindowResize = (): void => {
     const resScale = this.currentParams.resolutionScale ?? 1.0;
-    const pixelRatio = Math.min(window.devicePixelRatio * resScale, 4.0);
+    const pixelRatio = Math.min(window.devicePixelRatio * resScale, 2.0);
 
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();

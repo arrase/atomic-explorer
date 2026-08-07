@@ -1,4 +1,4 @@
-import { sampleOrbitalPoints } from './core/wasm-bridge';
+import { sampleOrbitalPoints, getSlaterZEff } from './core/wasm-bridge';
 import { OrbitalRenderer } from './render/orbital-renderer';
 import { MoleculeRenderer } from './render/molecule-renderer';
 import { getStrings } from './i18n';
@@ -11,38 +11,58 @@ import { FPSDisplay } from './ui/fps-display';
 import { ImageExporterModal } from './ui/image-exporter';
 import { ExplanationModal } from './ui/info-modal';
 
-function calculateValenceQuantumNumbers(Z: number) {
+async function calculateValenceQuantumNumbers(Z: number) {
   let n = 1;
-  if (Z >= 3 && Z <= 10) n = 2;
-  else if (Z >= 11 && Z <= 18) n = 3;
-  else if (Z >= 19) n = 4; // Clamped to max n=4 supported by math engine
-
   let l = 0;
-  if (Z === 1 || Z === 2) {
-    l = 0;
-  } else if (
-    (Z >= 5 && Z <= 10) ||
-    (Z >= 13 && Z <= 18) ||
-    (Z >= 31 && Z <= 36) ||
-    (Z >= 49 && Z <= 54) ||
-    (Z >= 81 && Z <= 86)
-  ) {
-    l = 1;
-  } else if (
-    (Z >= 21 && Z <= 30) ||
-    (Z >= 39 && Z <= 48) ||
-    (Z >= 71 && Z <= 80) ||
-    (Z >= 103 && Z <= 112)
-  ) {
-    l = Math.min(n - 1, 2);
-  } else if ((Z >= 57 && Z <= 70) || (Z >= 89 && Z <= 102)) {
-    l = Math.min(n - 1, 3);
+
+  if (Z <= 2) {
+    n = 1; l = 0; // 1s
+  } else if (Z <= 4) {
+    n = 2; l = 0; // 2s
+  } else if (Z <= 10) {
+    n = 2; l = 1; // 2p
+  } else if (Z <= 12) {
+    n = 3; l = 0; // 3s
+  } else if (Z <= 18) {
+    n = 3; l = 1; // 3p
+  } else if (Z <= 20) {
+    n = 4; l = 0; // 4s
+  } else if (Z <= 30) {
+    n = 3; l = 2; // 3d
+  } else if (Z <= 36) {
+    n = 4; l = 1; // 4p
+  } else if (Z <= 38) {
+    n = 5; l = 0; // 5s
+  } else if (Z <= 48) {
+    n = 4; l = 2; // 4d
+  } else if (Z <= 54) {
+    n = 5; l = 1; // 5p
+  } else if (Z <= 56) {
+    n = 6; l = 0; // 6s
+  } else if (Z <= 70) {
+    n = 4; l = 3; // 4f (Lanthanides)
+  } else if (Z <= 80) {
+    n = 5; l = 2; // 5d
+  } else if (Z <= 86) {
+    n = 6; l = 1; // 6p
+  } else if (Z <= 88) {
+    n = 7; l = 0; // 7s
+  } else if (Z <= 102) {
+    n = 5; l = 3; // 5f (Actinides: e.g. Americium Z=95)
+  } else if (Z <= 112) {
+    n = 6; l = 2; // 6d
   } else {
-    l = 0;
+    n = 7; l = 1; // 7p
   }
 
   const m = 0;
-  const zEff = Math.min(30.0, Math.max(1.0, 1.0 + (Z - 1) * 0.35));
+
+  let zEff: number;
+  try {
+    zEff = await getSlaterZEff(Z, n, l);
+  } catch {
+    zEff = Math.min(30.0, Math.max(1.0, 1.0 + (Z - 1) * 0.35));
+  }
 
   return { n, l, m, zEff: parseFloat(zEff.toFixed(2)) };
 }
@@ -112,8 +132,8 @@ async function init() {
     () => imageExporterModal.open()
   );
 
-  new PeriodicTableView(viewLayers['periodic-table'], (element: ElementData) => {
-    const { n, l, m, zEff } = calculateValenceQuantumNumbers(element.Z);
+  new PeriodicTableView(viewLayers['periodic-table'], async (element: ElementData) => {
+    const { n, l, m, zEff } = await calculateValenceQuantumNumbers(element.Z);
     controlPanel.setParams({ n, l, m, zEff, elementZ: element.Z });
     switchTab('orbitals');
   });

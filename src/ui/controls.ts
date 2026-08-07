@@ -68,7 +68,7 @@ export class ControlPanel {
               <span>${strings.principalQuantum}: <span id="n-val">${this.currentParams.n}</span></span>
               <button class="btn-info-icon" data-explain="explainN" aria-label="Info">ℹ️</button>
             </label>
-            <input type="range" id="n-select" min="1" max="4" value="${this.currentParams.n}" step="1" />
+            <input type="range" id="n-select" min="1" max="7" value="${this.currentParams.n}" step="1" />
           </div>
 
           <!-- Quantum Number l -->
@@ -162,7 +162,7 @@ export class ControlPanel {
               <span>${strings.zEffCharge}: <span id="zeff-val">${this.currentParams.zEff.toFixed(2)}</span></span>
               <button class="btn-info-icon" data-explain="explainZeff" aria-label="Info">ℹ️</button>
             </label>
-            <input type="range" id="zeff-input" min="1" max="36" value="${this.currentParams.zEff}" step="0.1" />
+            <input type="range" id="zeff-input" min="0.1" max="118" value="${this.currentParams.zEff}" step="0.1" />
           </div>
 
           <!-- Custom Fine-Tuning Controls (Visible when quality=custom) -->
@@ -358,7 +358,7 @@ export class ControlPanel {
     this.currentParams = { ...this.currentParams, ...params };
     
     if (this.currentParams.n !== undefined) {
-      this.currentParams.n = Math.max(1, Math.min(4, Math.floor(this.currentParams.n)));
+      this.currentParams.n = Math.max(1, Math.min(7, Math.floor(this.currentParams.n)));
     }
     const maxL = this.currentParams.n - 1;
     if (this.currentParams.l > maxL) {

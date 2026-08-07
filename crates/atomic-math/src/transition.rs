@@ -10,6 +10,7 @@ pub struct TransitionResult {
 }
 
 pub const RYDBERG_EV: f64 = 13.605693122994;
+/// Reciprocal Rydberg constant in nm: hc/R∞ = 1239.842 eV·nm / 13.6057 eV ≈ 91.127 nm.
 pub const RYDBERG_NM_FACTOR: f64 = 91.126705;
 
 /// Calculate hydrogenic energy level E_n in eV given Z_eff and n.

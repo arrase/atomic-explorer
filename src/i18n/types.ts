@@ -109,6 +109,18 @@ export interface I18nStrings {
   selectMolecule: string;
   showLobes: string;
   hideLobes: string;
+  toggleLobesShow: string;
+  toggleLobesHide: string;
+  exportGenerating: string;
+  formatPng: string;
+  formatJpeg: string;
+  formatWebp: string;
+  ssNative: string;
+  ssCrisp: string;
+  ssUltra: string;
+  atomClickTitle: string;
+  atomClickSummary: string;
+  atomClickDetail: string;
   vseprGeometry: string;
   hybridization: string;
   bondAngle: string;

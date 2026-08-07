@@ -186,11 +186,15 @@ export class MoleculeRenderer {
       let x = pos.getX(i);
       let z = pos.getZ(i);
 
-      // Teardrop stretch along +y
+      // Teardrop stretch along +y: elongate the lobe in +y direction
+      // and taper the cross-section proportionally to simulate the
+      // asymmetric pear shape of hybrid sp/sp2/sp3 orbital lobes.
       if (y > 0) {
-        y *= 1.4;
-        x *= (1.0 - y * 0.15);
-        z *= (1.0 - y * 0.15);
+        const ELONGATION_FACTOR = 1.4;
+        const TAPER_RATE = 0.15;
+        y *= ELONGATION_FACTOR;
+        x *= (1.0 - y * TAPER_RATE);
+        z *= (1.0 - y * TAPER_RATE);
       }
       pos.setXYZ(i, x, y, z);
     }

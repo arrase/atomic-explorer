@@ -32,7 +32,7 @@ impl QuantumNumbers {
                 self.l, self.n
             ));
         }
-        if self.m.abs() > self.l as i32 {
+        if self.m.unsigned_abs() > self.l {
             return Err(format!(
                 "Magnetic quantum number m ({}) magnitude cannot exceed l ({})",
                 self.m, self.l

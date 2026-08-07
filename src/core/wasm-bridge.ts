@@ -1,4 +1,4 @@
-import init, { sample_orbital_points } from '../../crates/atomic-math/pkg/atomic_math';
+import init, { sample_orbital_points, get_slater_z_eff } from '../../crates/atomic-math/pkg/atomic_math';
 
 export interface OrbitalParams {
   n: number;
@@ -16,6 +16,11 @@ async function ensureWasmLoaded(): Promise<void> {
     wasmInitPromise = init().then(() => undefined);
   }
   return wasmInitPromise;
+}
+
+export async function getSlaterZEff(z: number, n: number, l: number): Promise<number> {
+  await ensureWasmLoaded();
+  return get_slater_z_eff(z, n, l);
 }
 
 export async function sampleOrbitalPoints(params: OrbitalParams): Promise<Float32Array> {

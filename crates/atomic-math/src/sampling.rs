@@ -36,7 +36,7 @@ pub fn sample_points_internal(
     let mut rng = Lcg::new(seed);
     let mut points = Vec::with_capacity(n_points);
 
-    let r_max = 4.0 * (qn.n * qn.n) as f64 / z_eff;
+    let r_max = 5.0 * (qn.n * qn.n) as f64 / z_eff;
 
     let mut p_max = 0.0;
     for _ in 0..1000 {
@@ -73,6 +73,9 @@ pub fn sample_points_internal(
         let p = probability_density(qn, mode, z_eff, r, theta, phi)?;
         let weight = r * r * theta.sin();
         let density = p * weight;
+        if density > p_max {
+            p_max = density * 1.2;
+        }
 
         let threshold = rng.next_f64() * p_max;
         if density > threshold {

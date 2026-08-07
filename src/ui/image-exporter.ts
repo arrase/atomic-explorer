@@ -56,9 +56,9 @@ export class ImageExporterModal {
           <div class="control-group">
             <label for="export-ss-select">${strings.superSampling}</label>
             <select id="export-ss-select">
-              <option value="1">1x (Nativo)</option>
-              <option value="2" selected>2x (SuperSampling 2K/4K Crisp)</option>
-              <option value="4">4x (Ultra SuperSampling 8K/RTX)</option>
+              <option value="1">${strings.ssNative}</option>
+              <option value="2" selected>${strings.ssCrisp}</option>
+              <option value="4">${strings.ssUltra}</option>
             </select>
           </div>
 
@@ -77,9 +77,9 @@ export class ImageExporterModal {
           <div class="control-group">
             <label for="export-fmt-select">${strings.exportFormat}</label>
             <select id="export-fmt-select">
-              <option value="image/png" selected>PNG (Sin pérdida / Transparente)</option>
-              <option value="image/jpeg">JPEG (Alta Calidad 95%)</option>
-              <option value="image/webp">WebP (Comprimido HD)</option>
+              <option value="image/png" selected>${strings.formatPng}</option>
+              <option value="image/jpeg">${strings.formatJpeg}</option>
+              <option value="image/webp">${strings.formatWebp}</option>
             </select>
           </div>
         </div>
@@ -136,7 +136,7 @@ export class ImageExporterModal {
 
       exportBtn.disabled = true;
       const origText = exportBtn.textContent;
-      exportBtn.textContent = '⏳ Generando Render HD...';
+      exportBtn.textContent = getStrings().exportGenerating;
 
       try {
         const dataUrl = await this.onExport({ width, height, superSampling, background, format });
