@@ -11,6 +11,7 @@ export interface ExtendedOrbitalParams extends OrbitalParams {
   raymarchingSteps: number;
   resolutionScale: number;
   colorPalette: ColorPalette;
+  contrast: number;
   elementZ?: number;
 }
 
@@ -33,6 +34,7 @@ export class ControlPanel {
     raymarchingSteps: 96,
     resolutionScale: 1.0,
     colorPalette: 'default',
+    contrast: 25.0,
     elementZ: 1,
   };
 
@@ -182,6 +184,15 @@ export class ControlPanel {
             <input type="range" id="zeff-input" min="0.1" max="118" value="${this.currentParams.zEff}" step="0.1" />
           </div>
 
+          <!-- Diffuse Cloud Contrast -->
+          <div class="control-group">
+            <label for="contrast-input">
+              <span>${strings.contrastControl}: <span id="contrast-val">${this.currentParams.contrast}</span></span>
+              <button class="btn-info-icon" data-explain="explainContrast" aria-label="Info">ℹ️</button>
+            </label>
+            <input type="range" id="contrast-input" min="1" max="100" value="${this.currentParams.contrast}" step="1" />
+          </div>
+
           <!-- Custom Fine-Tuning Controls (Visible when quality=custom) -->
           <div class="custom-tuning-panel ${isCustom ? '' : 'hidden'}" id="custom-tuning">
             <div class="control-group">
@@ -267,6 +278,7 @@ export class ControlPanel {
     const qualitySelect = this.container.querySelector('#quality-select') as HTMLSelectElement;
     const paletteSelect = this.container.querySelector('#palette-select') as HTMLSelectElement;
     const zeffInput = this.container.querySelector('#zeff-input') as HTMLInputElement;
+    const contrastInput = this.container.querySelector('#contrast-input') as HTMLInputElement;
 
     const exportBtn = this.container.querySelector('#btn-open-export');
 
@@ -279,6 +291,7 @@ export class ControlPanel {
     const lVal = this.container.querySelector('#l-val') as HTMLElement;
     const mVal = this.container.querySelector('#m-val') as HTMLElement;
     const zeffVal = this.container.querySelector('#zeff-val') as HTMLElement;
+    const contrastVal = this.container.querySelector('#contrast-val') as HTMLElement;
     const ptsVal = this.container.querySelector('#pts-val') as HTMLElement;
     const stepsVal = this.container.querySelector('#steps-val') as HTMLElement;
 
@@ -326,6 +339,8 @@ export class ControlPanel {
       const colorPalette = paletteSelect.value as ColorPalette;
       const zEff = parseFloat(zeffInput.value);
       zeffVal.textContent = zEff.toFixed(2);
+      const contrast = parseFloat(contrastInput.value);
+      if (contrastVal) contrastVal.textContent = String(Math.round(contrast));
 
       const qualitySettings = this.resolveQualityPreset(
         quality,
@@ -355,6 +370,7 @@ export class ControlPanel {
         raymarchingSteps: qualitySettings.raymarchingSteps,
         resolutionScale: qualitySettings.resolutionScale,
         colorPalette,
+        contrast,
       };
 
       this.physicsPanel?.updateParams(this.currentParams);
@@ -370,6 +386,7 @@ export class ControlPanel {
     qualitySelect.addEventListener('change', updateControls);
     paletteSelect.addEventListener('change', updateControls);
     zeffInput.addEventListener('input', updateControls);
+    contrastInput.addEventListener('input', updateControls);
 
     if (ptsInput) ptsInput.addEventListener('input', updateControls);
     if (stepsInput) stepsInput.addEventListener('input', updateControls);

@@ -186,6 +186,13 @@ export const strings: I18nStrings = {
     detail: 'Una calidad más alta hace que las nubes se vean más suaves y realistas, pero requiere una computadora más rápida para dibujarlas.',
     analogy: 'Como cambiar un video de definición estándar borrosa a una resolución 4K ultra nítida.',
   },
+  contrastControl: 'Contraste Difuso',
+  explainContrast: {
+    title: 'Contraste de Nubes Difusas',
+    summary: 'Resalta la visibilidad de orbitales extendidos o de gran tamaño.',
+    detail: 'Aplica una compresión de rango dinámico no lineal a la densidad de probabilidad. Esto permite ver con nitidez las colas exteriores difusas en átomos pesados o estados con n elevado, sin alterar la precisión matemática exacta de los nodos (que permanecen estrictamente en cero).',
+    analogy: 'Como ajustar la exposición en la fotografía nocturna: permite ver los detalles tenues en la sombra sin quemar las zonas brillantes.',
+  },
 
   // Physics Panel Labels & Node Explanations
   physicsPanelTitle: 'Análisis Físico y Nodos Cuánticos',
