@@ -2,7 +2,9 @@
 
 ![Atomic Explorer](./assets/screenshots/00_what.png)
 
-**Atomic Explorer** is a desktop application for Linux designed for science popularization. It allows students, teachers, and science enthusiasts to visually explore the atomic structure at different levels of complexity. It's the equivalent of a planetarium, but for the quantum world!
+**Atomic Explorer** is an interactive science popularization application available on the web and as a desktop application for Linux. It allows students, teachers, and science enthusiasts to visually explore the atomic structure at different levels of complexity. It's the equivalent of a planetarium, but for the quantum world!
+
+> 🌐 **Try it Live in your Browser:** [https://arrase.github.io/atomic-explorer/](https://arrase.github.io/atomic-explorer/)
 
 ## What does the application do?
 
@@ -43,9 +45,13 @@ The application performs complex mathematical calculations and real-time 3D rend
 
 ## How to Install and Test the Application
 
-You can directly download the pre-compiled packages in the **Releases** tab of this GitHub repository.
+### Option 1: Web Version (Instant access, no installation required)
+You can try the application directly in your browser without installing anything:
+👉 **[https://arrase.github.io/atomic-explorer/](https://arrase.github.io/atomic-explorer/)**
 
-### Option 1: Using AppImage (Recommended, universal executable)
+For desktop installation on Linux, you can download the pre-compiled packages in the **Releases** tab of this GitHub repository:
+
+### Option 2: Using AppImage (Recommended Linux executable)
 The AppImage format works on almost any Linux distribution without installing anything on the system.
 
 1. Go to the **Releases** section of this repository and download the `.AppImage` file corresponding to the latest version (example: `atomic-explorer_0.1.0_amd64.AppImage`).
