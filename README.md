@@ -1,7 +1,5 @@
 # Atomic Explorer
 
-![Atomic Explorer](./assets/screenshots/00_what.png)
-
 **Atomic Explorer** is an interactive science popularization application available on the web and as a desktop application for Linux. It allows students, teachers, and science enthusiasts to visually explore the atomic structure at different levels of complexity. It's the equivalent of a planetarium, but for the quantum world!
 
 > 🌐 **Try it Live in your Browser:** [https://arrase.github.io/atomic-explorer/](https://arrase.github.io/atomic-explorer/)
