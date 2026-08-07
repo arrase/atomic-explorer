@@ -293,14 +293,14 @@ export class OrbitalRenderer {
   private raymarchingMesh: THREE.Mesh | null = null;
   private raymarchingMaterial: THREE.ShaderMaterial | null = null;
 
-  private currentMode: RenderMode = 'points';
+  private currentMode: RenderMode = 'raymarching';
   private currentParams: OrbitalRenderParams = {
     n: 1,
     l: 0,
     m: 0,
     useRealOrbital: true,
     zEff: 1.0,
-    mode: 'points',
+    mode: 'raymarching',
     quality: 'medium',
     raymarchingSteps: 128,
     colorPalette: 'default',

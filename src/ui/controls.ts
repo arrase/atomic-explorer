@@ -28,7 +28,7 @@ export class ControlPanel {
     useRealOrbital: true,
     zEff: 1.0,
     pointCount: 50000,
-    mode: 'points',
+    mode: 'raymarching',
     quality: 'medium',
     raymarchingSteps: 96,
     resolutionScale: 1.0,
