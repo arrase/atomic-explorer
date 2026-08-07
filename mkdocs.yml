@@ -9,7 +9,6 @@ repo_url: https://github.com/arrase/atomic-explorer
 nav:
   - Overview: index.md
   - Architecture: architecture.md
-  - Features: features.md
   - Installation: installation.md
   - Releasing: releasing.md
 

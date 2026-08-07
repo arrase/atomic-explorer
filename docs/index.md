@@ -1,42 +1,33 @@
-# Atomic Explorer
+# Overview
 
-![Tauri](https://img.shields.io/badge/Tauri-24C6DC?style=for-the-badge&logo=tauri&logoColor=white)
-![Rust](https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white)
-![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
-![Vite](https://img.shields.io/badge/Vite-B73BFE?style=for-the-badge&logo=vite&logoColor=FFD62E)
-![Vue.js](https://img.shields.io/badge/Vue.js-35495E?style=for-the-badge&logo=vuedotjs&logoColor=4FC08D)
-![Linux](https://img.shields.io/badge/Linux-FCC624?style=for-the-badge&logo=linux&logoColor=black)
-![License MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
+Atomic Explorer offers three primary modules designed for science popularization, providing interactive and visually engaging ways to explore chemistry and quantum physics.
 
-> A desktop application for Linux designed for science popularization.
+## Quantum Orbital Visualizer
 
-![Atomic Explorer - What is it?](screenshots/00_what.png)
+The Quantum Orbital Visualizer allows for full 3D exploration of electron wave functions.
 
-## Key Features
+- **Orbitals**: Explore s, p, d, and f orbitals.
+- **Visuals**: View probability densities and surface rendering.
+- **Interactivity**: Rotate, zoom, and slice through orbitals to understand electron probability distributions.
 
-<div style="font-size: 1.2em; line-height: 1.8;">
-  <div><i class="fa-solid fa-atom"></i> <strong>Quantum Orbital Visualizer</strong></div>
-  <div><i class="fa-solid fa-table"></i> <strong>Interactive Periodic Table</strong></div>
-  <div><i class="fa-solid fa-cubes"></i> <strong>Molecular Geometry (VSEPR)</strong></div>
-</div>
+![Quantum Orbitals](screenshots/01_orbitals.png)
 
-## Documentation
+## Interactive Periodic Table
 
-<div class="projects-grid">
-  <a href="architecture.md" class="feature-card">
-    <h3>Architecture</h3>
-    <p>Discover the core components: Tauri, Rust WASM Math Engine, and Vite + Three.js rendering.</p>
-  </a>
-  <a href="features.md" class="feature-card">
-    <h3>Features</h3>
-    <p>Dive deep into Quantum Orbitals, Periodic Table, and Molecular Modeling.</p>
-  </a>
-  <a href="installation.md" class="feature-card">
-    <h3>Installation</h3>
-    <p>Learn how to install Atomic Explorer on your Linux system.</p>
-  </a>
-  <a href="releasing.md" class="feature-card">
-    <h3>Releasing</h3>
-    <p>Instructions for building and releasing new versions.</p>
-  </a>
-</div>
+A comprehensive and interactive periodic table of elements.
+
+- **Filtering**: Instantly filter elements by categories (e.g., noble gases, transition metals, alkali metals).
+- **Properties**: Explore periodic trends such as electronegativity, atomic radius, and ionization energy with color-coded maps.
+- **Element Detail**: Click on any element to view detailed physical and chemical properties.
+
+![Periodic Table](screenshots/02_table.png)
+
+## Geometry and Molecules
+
+Explore molecular structures and chemical bonding.
+
+- **Hybridization**: Visualize sp, sp2, and sp3 hybridized orbitals.
+- **VSEPR Models**: Understand molecular geometry using Valence Shell Electron Pair Repulsion theory.
+- **Examples**: Interactive 3D structures of common molecules like water (H₂O) and methane (CH₄).
+
+![Geometry and Molecules](screenshots/03_molecules.png)
