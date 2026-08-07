@@ -157,6 +157,8 @@ export interface I18nStrings {
   explainOrbitalType: QuantumExplanation;
   explainPalette: QuantumExplanation;
   explainQuality: QuantumExplanation;
+  explainContrast: QuantumExplanation;
+  contrastControl: string;
 
   // Physics Panel Labels & Node Explanations
   physicsPanelTitle: string;

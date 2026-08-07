@@ -46,3 +46,6 @@ pnpm-debug.log*
 Thumbs.db
 ehthumbs.db
 
+# Temporary scratch directory
+scratch/
+

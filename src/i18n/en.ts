@@ -186,6 +186,13 @@ export const strings: I18nStrings = {
     detail: 'Higher quality makes the clouds look smoother and more realistic, but it requires a faster computer to draw them.',
     analogy: 'Like switching a video from blurry standard definition to ultra-crisp 4K resolution.',
   },
+  contrastControl: 'Diffuse Contrast',
+  explainContrast: {
+    title: 'Diffuse Cloud Contrast',
+    summary: 'Enhances visibility of extended or large-shell orbitals.',
+    detail: 'Applies a non-linear dynamic range compression to probability density. This reveals outer diffuse tails sharply in heavy elements or high-n states while maintaining strict mathematical accuracy for nodal surfaces (which remain zero).',
+    analogy: 'Like adjusting exposure in night photography: brings out faint shadow details without blowing out highlights.',
+  },
 
   // Physics Panel Labels & Node Explanations
   physicsPanelTitle: 'Physics Analysis & Quantum Nodes',

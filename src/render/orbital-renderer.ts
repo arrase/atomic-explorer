@@ -19,22 +19,24 @@ export interface OrbitalRenderParams {
   pointCount?: number;
   resolutionScale?: number;
   colorPalette?: ColorPalette;
+  contrast?: number;
 }
 
-// Shader for Point Cloud rendering
 // Shader for Point Cloud rendering with Wavefunction Phase Sign (+/-)
 const pointVertexShader = `
   attribute float a_sign;
   varying float vDistance;
   varying float vSign;
   uniform float u_pointSizeScale;
+  uniform float u_spatialScale;
 
   void main() {
     vSign = a_sign;
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
     gl_Position = projectionMatrix * mvPosition;
     vDistance = length(position);
-    gl_PointSize = clamp(u_pointSizeScale * (10.0 / -mvPosition.z), 2.0, 64.0);
+    float dynamicSize = u_pointSizeScale * clamp(u_spatialScale * 0.35, 1.0, 4.0) * (10.0 / -mvPosition.z);
+    gl_PointSize = clamp(dynamicSize, 2.0, 96.0);
   }
 `;
 
@@ -65,9 +67,9 @@ const pointFragmentShader = `
     float dist = length(coord);
     if (dist > 0.5) discard;
 
-    float alpha = pow(1.0 - (dist * 2.0), 1.5);
+    float alpha = pow(1.0 - (dist * 2.0), 1.2);
     vec3 finalColor = getPointPaletteColor(vDistance, vSign, u_palette);
-    gl_FragColor = vec4(finalColor, alpha * 0.85);
+    gl_FragColor = vec4(finalColor, alpha * 0.92);
   }
 `;
 
@@ -100,6 +102,8 @@ const raymarchFragmentShader = `
   uniform vec3 u_boxMax;
   uniform int u_steps;
   uniform int u_palette;
+  uniform float u_peakDensity;
+  uniform float u_contrast;
 
   #define PI 3.14159265359
 
@@ -222,9 +226,8 @@ const raymarchFragmentShader = `
     return vec2(tNear, tFar);
   }
 
-  vec3 getPaletteColor(float psi, float normalizedDensity, int paletteId) {
-    // We use the normalized density which keeps nodes (zeros) mathematically pure
-    float t = clamp(pow(normalizedDensity, 0.60) * 1.5, 0.0, 1.0);
+  vec3 getPaletteColor(float psi, float enhancedDensity, int paletteId) {
+    float t = clamp(enhancedDensity * 1.1, 0.0, 1.0);
     if (paletteId == 1) { // Atomic Fire
       if (psi > 0.0) return mix(vec3(1.0, 0.4, 0.0), vec3(1.0, 0.9, 0.2), t);
       return mix(vec3(0.8, 0.0, 0.2), vec3(0.4, 0.0, 0.6), t);
@@ -264,20 +267,17 @@ const raymarchFragmentShader = `
       if (i >= maxSteps) break;
       vec3 currentPos = entryPoint + rayDir * (startOffset + float(i) * stepSize);
       float psi = evalPsi(currentPos);
-      float density = psi * psi;
+      float rawDensity = psi * psi;
 
-      // Compensate for the physical volume expansion of higher orbitals:
-      // Since volume scales as (n/Z)^3, density drops as (Z/n)^3.
-      // Multiplying by (n/Z)^3 normalizes the peak density mathematically.
-      float scaleFactor = pow(float(u_n) / max(u_zEff, 0.1), 3.0);
-      float normalizedDensity = density * scaleFactor * 50.0; // Base multiplier for visibility
+      float normDensity = clamp(rawDensity / max(u_peakDensity, 1e-12), 0.0, 1.0);
 
-      if (normalizedDensity > 1e-6) {
-        vec3 color = getPaletteColor(psi, normalizedDensity, u_palette);
+      // Non-linear contrast enhancement for diffuse tails (preserves 0 nodes exactly)
+      float enhancedDensity = log(1.0 + u_contrast * normDensity) / log(1.0 + u_contrast);
+
+      if (enhancedDensity > 1e-6) {
+        vec3 color = getPaletteColor(psi, enhancedDensity, u_palette);
         
-        // Gamma 0.60: increases opacity of valence tails while strictly preserving 
-        // nodes (since 0^0.60 = 0). Maintains mathematical topology.
-        float alphaSample = 1.0 - exp(-pow(normalizedDensity, 0.60) * stepSize * 2.0);
+        float alphaSample = 1.0 - exp(-enhancedDensity * stepSize * 3.5);
 
         accumColor.rgb += (1.0 - accumColor.a) * color * alphaSample;
         accumColor.a += (1.0 - accumColor.a) * alphaSample;
@@ -315,6 +315,7 @@ export class OrbitalRenderer {
     raymarchingSteps: 128,
     colorPalette: 'default',
     resolutionScale: 1.0,
+    contrast: 25.0,
   };
 
   constructor(canvas: HTMLCanvasElement) {
@@ -357,6 +358,33 @@ export class OrbitalRenderer {
     this.scene.add(dirLight2);
   }
 
+  public calculatePeakDensity(n: number, l: number, m: number, zEff: number, useReal: boolean): number {
+    const rMax = (4.0 * (n * n)) / Math.max(zEff, 0.5);
+    let maxRSq = 0;
+    const rSteps = 200;
+    for (let i = 1; i <= rSteps; i++) {
+      const r = (i / rSteps) * rMax;
+      const R = this.evalRadial(n, l, zEff, r);
+      const RSq = R * R;
+      if (RSq > maxRSq) maxRSq = RSq;
+    }
+
+    let maxYPx = 0;
+    const thetaSteps = 50;
+    const phiSteps = 50;
+    for (let j = 0; j <= thetaSteps; j++) {
+      const theta = (j / thetaSteps) * Math.PI;
+      for (let k = 0; k <= phiSteps; k++) {
+        const phi = (k / phiSteps) * 2.0 * Math.PI;
+        const Y = this.evalAngular(l, m, useReal, theta, phi);
+        const YSq = Y * Y;
+        if (YSq > maxYPx) maxYPx = YSq;
+      }
+    }
+
+    return Math.max(maxRSq * maxYPx, 1e-12);
+  }
+
   public setPointCloud(buffer: Float32Array): void {
     this.clearCurrentMesh();
     this.currentMode = 'points';
@@ -379,12 +407,14 @@ export class OrbitalRenderer {
     geometry.setAttribute('a_sign', new THREE.BufferAttribute(signs, 1));
 
     const paletteId = this.paletteToId(this.currentParams.colorPalette);
+    const spatialScale = Math.sqrt((this.currentParams.n * this.currentParams.n) / Math.max(this.currentParams.zEff, 0.5));
 
     const material = new THREE.ShaderMaterial({
       vertexShader: pointVertexShader,
       fragmentShader: pointFragmentShader,
       uniforms: {
         u_pointSizeScale: { value: 18.0 },
+        u_spatialScale: { value: spatialScale },
         u_palette: { value: paletteId },
       },
       transparent: true,
@@ -457,8 +487,9 @@ export class OrbitalRenderer {
   private fillMarchingCubesGrids(mcPos: MarchingCubes, mcNeg: MarchingCubes, resolution: number, params: OrbitalRenderParams): void {
     const { n, l, m, useRealOrbital, zEff } = params;
     
-    // We adjust the isolevel to work with our mathematically normalized density
-    const isolevel = params.isolevel ?? 0.02;
+    const isolevel = params.isolevel ?? 0.05;
+    const contrast = params.contrast ?? 25.0;
+    const peakDensity = this.calculatePeakDensity(n, l, m, zEff, useRealOrbital);
 
     mcPos.reset();
     mcPos.isolation = isolevel;
@@ -467,9 +498,6 @@ export class OrbitalRenderer {
     mcNeg.isolation = isolevel;
 
     const rMax = (4.0 * (n * n)) / Math.max(zEff, 0.5);
-    
-    // Volume compensation factor
-    const scaleFactor = Math.pow(n / Math.max(zEff, 0.1), 3.0) * 50.0;
 
     for (let x = 0; x < resolution; x++) {
       for (let y = 0; y < resolution; y++) {
@@ -489,9 +517,9 @@ export class OrbitalRenderer {
             const psi = R * Y;
             const rawDensity = psi * psi;
             
-            // Normalize density to preserve nodes while boosting overall volume (Gamma 0.60)
-            const normalizedDensity = Math.pow(rawDensity * scaleFactor, 0.60);
-            signedDensity = psi >= 0 ? normalizedDensity : -normalizedDensity;
+            const normDensity = Math.min(1.0, rawDensity / Math.max(peakDensity, 1e-12));
+            const enhancedDensity = Math.log(1.0 + contrast * normDensity) / Math.log(1.0 + contrast);
+            signedDensity = psi >= 0 ? enhancedDensity : -enhancedDensity;
           }
 
           mcPos.setCell(x, y, z, signedDensity);
@@ -518,6 +546,8 @@ export class OrbitalRenderer {
     );
 
     const paletteId = this.paletteToId(params.colorPalette);
+    const peakDensity = this.calculatePeakDensity(params.n, params.l, params.m, params.zEff, params.useRealOrbital);
+    const contrast = params.contrast ?? 25.0;
 
     this.raymarchingMaterial = new THREE.ShaderMaterial({
       vertexShader: raymarchVertexShader,
@@ -532,6 +562,8 @@ export class OrbitalRenderer {
         u_boxMax: { value: new THREE.Vector3(boxExtent, boxExtent, boxExtent) },
         u_steps: { value: steps },
         u_palette: { value: paletteId },
+        u_peakDensity: { value: peakDensity },
+        u_contrast: { value: contrast },
       },
       transparent: true,
       side: THREE.BackSide,
