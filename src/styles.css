@@ -314,6 +314,12 @@ select:focus {
   gap: 10px;
 }
 
+.search-group {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+
 .search-group input {
   background: rgba(0, 0, 0, 0.4);
   border: 1px solid var(--panel-border);
@@ -323,6 +329,10 @@ select:focus {
   font-size: 0.88rem;
   width: 280px;
   outline: none;
+}
+
+.search-group button {
+  width: 280px;
 }
 
 .periodic-grid-container {

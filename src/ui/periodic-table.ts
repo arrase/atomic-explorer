@@ -27,6 +27,7 @@ export class PeriodicTableView {
   constructor(container: HTMLElement, onSelectElementOrbital: (element: ElementData) => void) {
     this.container = container;
     this.onSelectElementOrbital = onSelectElementOrbital;
+    this.selectedElement = this.elements.find((e) => e.Z === 1) || this.elements[0] || null;
     this.render();
     onLanguageChange(() => this.render());
   }
@@ -47,6 +48,9 @@ export class PeriodicTableView {
           </div>
           <div class="toolbar-group search-group">
             <input type="text" id="element-search" placeholder="${strings.searchPlaceholder}" />
+            <button class="btn-primary" id="btn-view-orbital">
+              ${strings.btnView3DOrbital}
+            </button>
           </div>
         </div>
 
@@ -236,10 +240,6 @@ export class PeriodicTableView {
             <strong>${discoveryStr}</strong>
           </div>
         </div>
-
-        <button class="btn-primary" id="btn-view-orbital">
-          ${strings.btnView3DOrbital}
-        </button>
       </div>
     `;
   }
@@ -248,6 +248,7 @@ export class PeriodicTableView {
     const colorSelect = this.container.querySelector('#color-scheme-select') as HTMLSelectElement;
     const searchInput = this.container.querySelector('#element-search') as HTMLInputElement;
     const grid = this.container.querySelector('#periodic-grid') as HTMLElement;
+    const btnView = this.container.querySelector('#btn-view-orbital') as HTMLButtonElement;
 
     colorSelect?.addEventListener('change', () => {
       this.currentColorScheme = colorSelect.value as 'category' | 'electronegativity' | 'radius';
@@ -258,6 +259,12 @@ export class PeriodicTableView {
     searchInput?.addEventListener('input', () => {
       grid.innerHTML = this.renderGridCells(searchInput.value);
       this.attachCellClickEvents();
+    });
+
+    btnView?.addEventListener('click', () => {
+      if (this.selectedElement) {
+        this.onSelectElementOrbital(this.selectedElement);
+      }
     });
 
     this.attachCellClickEvents();
@@ -294,12 +301,6 @@ export class PeriodicTableView {
         if (inspector) {
           inspector.innerHTML = this.renderInspectorContent();
           this.attachInfoButtonEvents(inspector);
-          const btnView = inspector.querySelector('#btn-view-orbital');
-          btnView?.addEventListener('click', () => {
-            if (this.selectedElement) {
-              this.onSelectElementOrbital(this.selectedElement);
-            }
-          });
         }
       });
     });
