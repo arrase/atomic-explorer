@@ -68,6 +68,7 @@ export const strings: I18nStrings = {
   atomicRadius: 'Atomic Radius',
   electronegativity: 'Electronegativity',
   ionizationEnergy: 'Ionization Energy',
+  oxidationStates: 'Oxidation States',
   discovery: 'Discovery',
   ancient: 'Ancient',
 
@@ -198,6 +199,13 @@ export const strings: I18nStrings = {
   wavefunctionFormula: 'Hydrogen-like Wavefunction',
   wavefunctionFormulaDesc: 'Ψ_{n,l,m}(r, θ, ϕ) = R_{n,l}(r) · Y_l^m(θ, ϕ)',
   wavefunctionFormulaDetail: 'The spatial wavefunction Ψ_{n,l,m}(r, θ, ϕ) is factorized into a radial component R_{n,l}(r) and angular spherical harmonics Y_l^m(θ, ϕ). R_{n,l}(r) determines how probability density scales with radius r and contracts as Z_eff increases. Y_l^m(θ, ϕ) determines the 3D angular geometry, orientation, and nodal planes of the electron cloud.',
+  expectationRadius: 'Expectation Radius ⟨r⟩',
+  expectationRadiusDesc: 'Average radial distance of probability density distribution: ⟨r⟩ = (a_0 / 2 Z_eff) [3n² - l(l+1)].',
+  expectationRadiusDetail: 'In quantum mechanics, electrons do not reside at a fixed radius. The expectation value ⟨r⟩ represents the weighted average radial position of the electron probability density in atomic units (Bohr radii a_0) and picometers (pm).',
+  hydrogenicEnergy: 'Binding Energy E_n',
+  hydrogenicEnergyDesc: 'Electronic energy level in eV: E_n = -13.6057 eV · (Z_eff² / n²).',
+  hydrogenicEnergyDetail: 'Calculates the bound-state potential energy level of the electron under effective nuclear charge Z_eff. Negative energy indicates a bound state relative to a free electron at infinity.',
+  spectralSeries: 'Spectral Transition Series',
 
   // Periodic Table Property Explanations
   explainAtomicNumber: {
@@ -396,6 +404,27 @@ export const strings: I18nStrings = {
       category: 'Molecular Geometry',
       definition: 'A pair of valence electrons that is not shared with another atom in a covalent bond.',
       details: 'Bound to a single nucleus, lone pairs occupy larger spatial volumes than bonding pairs, exerting greater repulsive forces and compressing ideal bond angles.',
+    },
+    {
+      id: 'aufbau-principle',
+      term: 'Aufbau Principle',
+      category: 'Atomic Physics',
+      definition: 'Principle stating that electrons occupy lower-energy atomic orbitals before occupying higher-energy ones.',
+      details: 'Subshells are filled in order of increasing n + l energy rank (1s < 2s < 2p < 3s < 3p < 4s < 3d...), with ground-state electron configuration exceptions for half-filled and fully-filled d-subshells (e.g. Cr, Cu).',
+    },
+    {
+      id: 'hunds-rule',
+      term: "Hund's Rule of Maximum Multiplicity",
+      category: 'Atomic Physics',
+      definition: 'Rule stating that every orbital in a subshell is singly occupied with parallel electron spins before any orbital is doubly occupied.',
+      details: 'Minimizes electron-electron Coulomb repulsion by maximizing total spin (S), lowering the total electrostatic potential energy of the atom.',
+    },
+    {
+      id: 'rydberg-formula',
+      term: 'Rydberg Formula',
+      category: 'Atomic Physics',
+      definition: 'Empirical formula calculating the exact spectral emission/absorption wavelengths of hydrogen-like single-electron transitions.',
+      details: 'Formulated as 1/λ = R_∞ Z_eff² (1/n_1² - 1/n_2²), where R_∞ ≈ 1.0973731568 x 10^7 m^-1 is the Rydberg constant.',
     },
   ],
 };

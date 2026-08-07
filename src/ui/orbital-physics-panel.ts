@@ -62,6 +62,23 @@ export class OrbitalPhysicsPanel {
     const totalNodes = n - 1;
     const notation = this.getOrbitalNotation(n, l, m, useRealOrbital);
 
+    // Expectation value <r> = (a_0 / 2 Z_eff) * (3n^2 - l(l+1))
+    const rExpBohr = (0.5 / Math.max(zEff, 0.1)) * (3 * n * n - l * (l + 1));
+    const rExpPm = rExpBohr * 52.917721;
+
+    // Energy level E_n = -13.605693 * Z_eff^2 / n^2 eV
+    const energyEv = -13.605693 * (zEff * zEff) / (n * n);
+
+    const seriesMap: Record<number, string> = {
+      1: 'Lyman (UV)',
+      2: 'Balmer (Visible/UV)',
+      3: 'Paschen (Near-IR)',
+      4: 'Brackett (IR)',
+      5: 'Pfund (Far-IR)',
+      6: 'Humphreys (Far-IR)',
+    };
+    const seriesName = seriesMap[n] || `Shell n=${n}`;
+
     if (this.panelElement && this.panelElement.parentNode) {
       this.panelElement.parentNode.removeChild(this.panelElement);
     }
@@ -105,6 +122,25 @@ export class OrbitalPhysicsPanel {
         </div>
       </div>
 
+      <div class="physics-section expectation-section">
+        <div class="expectation-grid">
+          <div class="expectation-item">
+            <div class="node-header">
+              <span class="node-label">${strings.expectationRadius}</span>
+              <button class="btn-info-icon" data-phys="radius" aria-label="Info">ℹ️</button>
+            </div>
+            <span class="node-value">${rExpBohr.toFixed(2)} a₀ <small>(${rExpPm.toFixed(1)} pm)</small></span>
+          </div>
+          <div class="expectation-item">
+            <div class="node-header">
+              <span class="node-label">${strings.hydrogenicEnergy}</span>
+              <button class="btn-info-icon" data-phys="energy" aria-label="Info">ℹ️</button>
+            </div>
+            <span class="node-value">${energyEv.toFixed(2)} eV</span>
+          </div>
+        </div>
+      </div>
+
       <div class="physics-section formula-section">
         <div class="formula-header">
           <h4>${strings.wavefunctionFormula}</h4>
@@ -112,6 +148,9 @@ export class OrbitalPhysicsPanel {
         </div>
         <div class="formula-display">
           <code>&psi;_{n,l,m}(r,&theta;,&phi;) = R_{n,l}(r) &middot; Y_l^m(&theta;,&phi;)</code>
+        </div>
+        <div class="series-badge">
+          <span>${strings.spectralSeries}: <strong>${seriesName}</strong></span>
         </div>
       </div>
 
@@ -170,6 +209,28 @@ export class OrbitalPhysicsPanel {
         strings.totalNodes,
         `${strings.totalNodes}: ${totalNodes}`,
         strings.totalNodesDesc
+      );
+    });
+
+    const radiusBtn = this.panelElement.querySelector('[data-phys="radius"]');
+    radiusBtn?.addEventListener('click', (e: Event) => {
+      e.preventDefault();
+      e.stopPropagation();
+      ExplanationModal.showSimple(
+        strings.expectationRadius,
+        strings.expectationRadiusDesc,
+        strings.expectationRadiusDetail
+      );
+    });
+
+    const energyBtn = this.panelElement.querySelector('[data-phys="energy"]');
+    energyBtn?.addEventListener('click', (e: Event) => {
+      e.preventDefault();
+      e.stopPropagation();
+      ExplanationModal.showSimple(
+        strings.hydrogenicEnergy,
+        strings.hydrogenicEnergyDesc,
+        strings.hydrogenicEnergyDetail
       );
     });
 

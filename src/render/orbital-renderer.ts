@@ -22,12 +22,15 @@ export interface OrbitalRenderParams {
 }
 
 // Shader for Point Cloud rendering
+// Shader for Point Cloud rendering with Wavefunction Phase Sign (+/-)
 const pointVertexShader = `
+  attribute float a_sign;
   varying float vDistance;
-  varying float vIntensity;
+  varying float vSign;
   uniform float u_pointSizeScale;
 
   void main() {
+    vSign = a_sign;
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
     gl_Position = projectionMatrix * mvPosition;
     vDistance = length(position);
@@ -37,19 +40,24 @@ const pointVertexShader = `
 
 const pointFragmentShader = `
   varying float vDistance;
+  varying float vSign;
   uniform int u_palette;
 
-  vec3 getPointPaletteColor(float dist, int paletteId) {
+  vec3 getPointPaletteColor(float dist, float signVal, int paletteId) {
     float t = clamp(dist / 15.0, 0.0, 1.0);
     if (paletteId == 1) { // Fire
-      return mix(vec3(1.0, 0.7, 0.1), vec3(0.9, 0.1, 0.1), t);
+      if (signVal > 0.0) return mix(vec3(1.0, 0.7, 0.1), vec3(1.0, 0.9, 0.3), t);
+      return mix(vec3(0.9, 0.1, 0.1), vec3(0.5, 0.0, 0.5), t);
     } else if (paletteId == 2) { // Emerald
-      return mix(vec3(0.2, 1.0, 0.6), vec3(0.0, 0.5, 0.4), t);
+      if (signVal > 0.0) return mix(vec3(0.2, 1.0, 0.6), vec3(0.5, 1.0, 0.8), t);
+      return mix(vec3(0.9, 0.6, 0.1), vec3(0.8, 0.3, 0.0), t);
     } else if (paletteId == 3) { // Spectrum
-      return mix(vec3(0.8, 0.2, 1.0), vec3(0.1, 0.9, 0.9), t);
+      if (signVal > 0.0) return mix(vec3(0.8, 0.2, 1.0), vec3(0.4, 0.6, 1.0), t);
+      return mix(vec3(1.0, 0.2, 0.4), vec3(1.0, 0.6, 0.1), t);
     }
-    // Default Cyan & Magenta
-    return mix(vec3(0.2, 0.85, 1.0), vec3(0.7, 0.25, 0.9), t);
+    // Default Cyan (+ phase) & Orange/Red (- phase)
+    if (signVal > 0.0) return mix(vec3(0.2, 0.85, 1.0), vec3(0.0, 0.95, 1.0), t);
+    return mix(vec3(1.0, 0.4, 0.1), vec3(1.0, 0.7, 0.2), t);
   }
 
   void main() {
@@ -58,7 +66,7 @@ const pointFragmentShader = `
     if (dist > 0.5) discard;
 
     float alpha = pow(1.0 - (dist * 2.0), 1.5);
-    vec3 finalColor = getPointPaletteColor(vDistance, u_palette);
+    vec3 finalColor = getPointPaletteColor(vDistance, vSign, u_palette);
     gl_FragColor = vec4(finalColor, alpha * 0.85);
   }
 `;
@@ -338,8 +346,29 @@ export class OrbitalRenderer {
     this.clearCurrentMesh();
     this.currentMode = 'points';
 
+    const count = positions.length / 3;
+    const signs = new Float32Array(count);
+    const { n, l, m, useRealOrbital, zEff } = this.currentParams;
+
+    for (let i = 0; i < count; i++) {
+      const px = positions[i * 3];
+      const py = positions[i * 3 + 1];
+      const pz = positions[i * 3 + 2];
+      const r = Math.hypot(px, py, pz);
+      if (r < 1e-4) {
+        signs[i] = 1.0;
+        continue;
+      }
+      const theta = Math.acos(Math.max(-1, Math.min(1, pz / r)));
+      const phi = Math.atan2(py, px);
+      const R = this.evalRadial(n, l, zEff, r);
+      const Y = this.evalAngular(l, m, useRealOrbital, theta, phi);
+      signs[i] = (R * Y >= 0) ? 1.0 : -1.0;
+    }
+
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    geometry.setAttribute('a_sign', new THREE.BufferAttribute(signs, 1));
 
     const paletteId = this.paletteToId(this.currentParams.colorPalette);
 

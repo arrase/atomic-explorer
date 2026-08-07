@@ -68,6 +68,7 @@ export const strings: I18nStrings = {
   atomicRadius: 'Radio Atómico',
   electronegativity: 'Electronegatividad',
   ionizationEnergy: 'Energía de Ionización',
+  oxidationStates: 'Estados de Oxidación',
   discovery: 'Descubrimiento',
   ancient: 'Antigüedad',
 
@@ -198,6 +199,13 @@ export const strings: I18nStrings = {
   wavefunctionFormula: 'Función de Onda Hidrogenoide',
   wavefunctionFormulaDesc: 'Ψ_{n,l,m}(r, θ, ϕ) = R_{n,l}(r) · Y_l^m(θ, ϕ)',
   wavefunctionFormulaDetail: 'La función de onda espacial Ψ_{n,l,m}(r, θ, ϕ) se factoriza en una componente radial R_{n,l}(r) y armónicos esféricos angulares Y_l^m(θ, ϕ). R_{n,l}(r) determina cómo escala la densidad de probabilidad con el radio r y cómo se contrae conforme aumenta Z_eff. Y_l^m(θ, ϕ) determina la geometría 3D, la orientación espacial y los planos nodales de la nube electrónica.',
+  expectationRadius: 'Radio de Expectativa ⟨r⟩',
+  expectationRadiusDesc: 'Distancia radial promedio de la densidad de probabilidad: ⟨r⟩ = (a_0 / 2 Z_eff) [3n² - l(l+1)].',
+  expectationRadiusDetail: 'En mecánica cuántica, los electrones no se ubican a un radio fijo. El valor esperado ⟨r⟩ representa la posición radial promediada ponderada por la probabilidad electrónica en unidades atómicas (radios de Bohr a_0) y picómetros (pm).',
+  hydrogenicEnergy: 'Energía de Ligadura E_n',
+  hydrogenicEnergyDesc: 'Nivel de energía electrónica en eV: E_n = -13.6057 eV · (Z_eff² / n²).',
+  hydrogenicEnergyDetail: 'Calcula el nivel de energía potencial del estado ligado del electrón bajo la carga nuclear efectiva Z_eff. Una energía negativa indica un estado ligado en comparación con un electrón libre en el infinito.',
+  spectralSeries: 'Serie de Transición Espectral',
 
   // Periodic Table Property Explanations
   explainAtomicNumber: {
@@ -396,6 +404,27 @@ export const strings: I18nStrings = {
       category: 'Geometría Molecular',
       definition: 'Par de electrones de valencia que no está compartido con ningún otro átomo mediante un enlace covalente.',
       details: 'Los pares solitarios están localizados sobre un único núcleo, por lo que ejercen una mayor repulsión espacial que los pares enlazantes y distorsionan los ángulos de enlace ideales.',
+    },
+    {
+      id: 'aufbau-principle',
+      term: 'Principio de Aufbau',
+      category: 'Física Atómica',
+      definition: 'Principio que establece que los electrones ocupan los orbitales atómicos de menor energía antes de llenar las subcapas superiores.',
+      details: 'Las subcapas se llenan en orden de rango n + l ascendente (1s < 2s < 2p < 3s < 3p < 4s < 3d...), contemplando las excepciones de estado fundamental para subcapas d semi-llenas y llenas (ej. Cr, Cu).',
+    },
+    {
+      id: 'hunds-rule',
+      term: 'Regla de Máxima Multiplicidad de Hund',
+      category: 'Física Atómica',
+      definition: 'Regla que establece que en orbitales degenerados en energía, los electrones se distribuyen desapareados con spins paralelos antes de aparearse.',
+      details: 'Minimiza la repulsión coulómbica electrón-electrón maximizando el spin total (S), disminuyendo la energía potencial electrostática total del átomo.',
+    },
+    {
+      id: 'rydberg-formula',
+      term: 'Fórmula de Rydberg',
+      category: 'Física Atómica',
+      definition: 'Fórmula empírica que calcula las longitudes de onda espectrales de emisión/absorción en transiciones electrónicas hidrogenoides.',
+      details: 'Expresada como 1/λ = R_∞ Z_eff² (1/n_1² - 1/n_2²), donde R_∞ ≈ 1.0973731568 x 10^7 m^-1 es la constante de Rydberg.',
     },
   ],
 };

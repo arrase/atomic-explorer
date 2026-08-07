@@ -9,9 +9,11 @@ pub struct TransitionResult {
     pub series_name: String,
 }
 
-pub const RYDBERG_EV: f64 = 13.605693122994;
-/// Reciprocal Rydberg constant in nm: hc/R∞ = 1239.842 eV·nm / 13.6057 eV ≈ 91.127 nm.
-pub const RYDBERG_NM_FACTOR: f64 = 91.126705;
+use crate::math_utils::constants::{RYDBERG_CONST_M1, RYDBERG_ENERGY_EV};
+
+pub const RYDBERG_EV: f64 = RYDBERG_ENERGY_EV;
+/// Reciprocal Rydberg constant in nm: 1 / (R_∞ * 1e-9) = 91.12670505824 nm
+pub const RYDBERG_NM_FACTOR: f64 = 1.0e9 / RYDBERG_CONST_M1;
 
 /// Calculate hydrogenic energy level E_n in eV given Z_eff and n.
 pub fn calculate_energy_ev(z_eff: f64, n: u32) -> Result<f64, String> {

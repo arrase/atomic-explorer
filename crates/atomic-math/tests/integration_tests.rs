@@ -236,3 +236,32 @@ fn test_invalid_quantum_numbers() {
     assert!(QuantumNumbers::new(2, 1, 2).is_err());
 }
 
+#[test]
+fn test_codata_constants() {
+    use atomic_math::math_utils::constants::*;
+    assert_relative_eq!(BOHR_RADIUS_NM, 0.05291772109, epsilon = 1e-8);
+    assert_relative_eq!(RYDBERG_ENERGY_EV, 13.605693123, epsilon = 1e-6);
+    assert_relative_eq!(SPEED_OF_LIGHT, 299792458.0, epsilon = 1e-1);
+    assert_relative_eq!(ELEMENTARY_CHARGE, 1.602176634e-19, epsilon = 1e-25);
+}
+
+#[test]
+fn test_slater_z_eff_heavy_elements() {
+    // Uranium Z = 92, 7s orbital (n=7, l=0)
+    let z_eff_u_7s = calculate_slater_z_eff(92, 7, 0).unwrap();
+    assert!(z_eff_u_7s > 1.0 && z_eff_u_7s < 92.0);
+
+    // Gold Z = 79, 6s orbital (n=6, l=0)
+    let z_eff_au_6s = calculate_slater_z_eff(79, 6, 0).unwrap();
+    assert!(z_eff_au_6s > 1.0 && z_eff_au_6s < 79.0);
+}
+
+#[test]
+fn test_high_n_radial_wavefunction_normalization() {
+    let qn = QuantumNumbers { n: 5, l: 4, m: 0 };
+    let mode = OrbitalMode::PureEigenstate;
+    let integral = integrate_spherical_density(&qn, &mode, 1.0, 0.01, 55.0, 0.15, 0.08, 0.1);
+    assert_relative_eq!(integral, 1.0, epsilon = 0.08);
+}
+
+

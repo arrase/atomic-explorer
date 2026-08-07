@@ -89,6 +89,7 @@ export interface I18nStrings {
   atomicRadius: string;
   electronegativity: string;
   ionizationEnergy: string;
+  oxidationStates: string;
   discovery: string;
   ancient: string;
 
@@ -169,6 +170,13 @@ export interface I18nStrings {
   wavefunctionFormula: string;
   wavefunctionFormulaDesc: string;
   wavefunctionFormulaDetail: string;
+  expectationRadius: string;
+  expectationRadiusDesc: string;
+  expectationRadiusDetail: string;
+  hydrogenicEnergy: string;
+  hydrogenicEnergyDesc: string;
+  hydrogenicEnergyDetail: string;
+  spectralSeries: string;
 
   // Periodic Table Property Explanations
   explainAtomicNumber: PropertyExplanation;

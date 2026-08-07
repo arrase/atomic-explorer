@@ -1,3 +1,28 @@
+pub mod constants {
+    /// Bohr radius a_0 in meters (CODATA 2018)
+    pub const BOHR_RADIUS_M: f64 = 5.29177210903e-11;
+    /// Bohr radius a_0 in nanometers
+    pub const BOHR_RADIUS_NM: f64 = 0.0529177210903;
+    /// Planck constant h in J·s
+    pub const PLANCK_H: f64 = 6.62607015e-34;
+    /// Reduced Planck constant ħ in J·s
+    pub const HBAR: f64 = 1.054571817e-34;
+    /// Speed of light in vacuum c in m/s
+    pub const SPEED_OF_LIGHT: f64 = 299792458.0;
+    /// Elementary charge e in Coulombs
+    pub const ELEMENTARY_CHARGE: f64 = 1.602176634e-19;
+    /// Electron rest mass m_e in kg
+    pub const ELECTRON_MASS_KG: f64 = 9.1093837015e-31;
+    /// Rydberg constant R_∞ in m^-1
+    pub const RYDBERG_CONST_M1: f64 = 10973731.568160;
+    /// Rydberg energy R_∞ * h * c in eV
+    pub const RYDBERG_ENERGY_EV: f64 = 13.605693122994;
+    /// Vacuum electric permittivity ε_0 in F/m
+    pub const VACUUM_PERMITTIVITY: f64 = 8.8541878128e-12;
+    /// Coulomb constant 1 / (4 * π * ε_0) in N·m^2/C^2
+    pub const COULOMB_CONST: f64 = 8.9875517923e9;
+}
+
 pub fn factorial(n: u32) -> Result<f64, String> {
     if n > 170 {
         return Err("Factorial overflow for n > 170".into());

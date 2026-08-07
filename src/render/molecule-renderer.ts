@@ -125,13 +125,13 @@ export class MoleculeRenderer {
         this.createCylinderBond(start, end, 0.12, 0x888888, this.moleculeGroup);
       } else if (bond.type === 'double') {
         const dir = new THREE.Vector3().subVectors(end, start).normalize();
-        const perp = new THREE.Vector3(-dir.y, dir.x, 0).normalize().multiplyScalar(0.12);
+        const perp = this.getPerpendicularVector(dir).multiplyScalar(0.12);
         this.createCylinderBond(start.clone().add(perp), end.clone().add(perp), 0.08, 0x888888, this.moleculeGroup);
         this.createCylinderBond(start.clone().sub(perp), end.clone().sub(perp), 0.08, 0x888888, this.moleculeGroup);
       } else if (bond.type === 'triple') {
         this.createCylinderBond(start, end, 0.08, 0x888888, this.moleculeGroup);
         const dir = new THREE.Vector3().subVectors(end, start).normalize();
-        const perp = new THREE.Vector3(-dir.y, dir.x, 0).normalize().multiplyScalar(0.16);
+        const perp = this.getPerpendicularVector(dir).multiplyScalar(0.16);
         this.createCylinderBond(start.clone().add(perp), end.clone().add(perp), 0.07, 0x888888, this.moleculeGroup);
         this.createCylinderBond(start.clone().sub(perp), end.clone().sub(perp), 0.07, 0x888888, this.moleculeGroup);
       }
@@ -155,6 +155,14 @@ export class MoleculeRenderer {
     });
 
     this.toggleLobes(this.showLobes);
+  }
+
+  private getPerpendicularVector(dir: THREE.Vector3): THREE.Vector3 {
+    let perp = new THREE.Vector3(1, 0, 0).cross(dir);
+    if (perp.lengthSq() < 0.001) {
+      perp = new THREE.Vector3(0, 1, 0).cross(dir);
+    }
+    return perp.normalize();
   }
 
   private createCylinderBond(start: THREE.Vector3, end: THREE.Vector3, radius: number, colorHex: number, group: THREE.Group): void {

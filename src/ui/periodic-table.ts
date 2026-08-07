@@ -13,6 +13,7 @@ export interface ElementData {
   radius_pm: number;
   electronegativity: number | null;
   ionization_energy: number | null;
+  oxidation_states?: number[] | string;
   discovery_year: number | string;
 }
 
@@ -225,6 +226,10 @@ export class PeriodicTableView {
           <div class="detail-row">
             <span>${strings.ionizationEnergy} <button class="btn-info-icon" data-explain="explainIonizationEnergy" aria-label="Info">ℹ️</button>:</span>
             <strong>${el.ionization_energy ? `${el.ionization_energy} kJ/mol` : 'N/A'}</strong>
+          </div>
+          <div class="detail-row">
+            <span>${strings.oxidationStates}:</span>
+            <strong>${el.oxidation_states ? (Array.isArray(el.oxidation_states) ? el.oxidation_states.map(s => s > 0 ? `+${s}` : `${s}`).join(', ') : el.oxidation_states) : 'N/A'}</strong>
           </div>
           <div class="detail-row">
             <span>${strings.discovery}:</span>

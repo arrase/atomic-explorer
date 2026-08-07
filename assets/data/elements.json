@@ -9,6 +9,7 @@
     "radius_pm": 37,
     "electronegativity": 2.2,
     "ionization_energy": 1312,
+    "oxidation_states": [-1, 1],
     "discovery_year": 1766,
     "name_en": "Hydrogen"
   },
@@ -22,6 +23,7 @@
     "radius_pm": 32,
     "electronegativity": null,
     "ionization_energy": 2372,
+    "oxidation_states": [],
     "discovery_year": 1868,
     "name_en": "Helium"
   },
@@ -35,6 +37,7 @@
     "radius_pm": 134,
     "electronegativity": 0.98,
     "ionization_energy": 520,
+    "oxidation_states": [1],
     "discovery_year": 1817,
     "name_en": "Lithium"
   },
@@ -48,6 +51,7 @@
     "radius_pm": 90,
     "electronegativity": 1.57,
     "ionization_energy": 899,
+    "oxidation_states": [2],
     "discovery_year": 1798,
     "name_en": "Beryllium"
   },
@@ -61,6 +65,7 @@
     "radius_pm": 82,
     "electronegativity": 2.04,
     "ionization_energy": 801,
+    "oxidation_states": [3],
     "discovery_year": 1808,
     "name_en": "Boron"
   },
@@ -74,6 +79,7 @@
     "radius_pm": 77,
     "electronegativity": 2.55,
     "ionization_energy": 1086,
+    "oxidation_states": [-4, -2, 2, 4],
     "discovery_year": "Antigüedad",
     "name_en": "Carbon"
   },
@@ -87,6 +93,7 @@
     "radius_pm": 75,
     "electronegativity": 3.04,
     "ionization_energy": 1402,
+    "oxidation_states": [-3, -2, -1, 1, 2, 3, 4, 5],
     "discovery_year": 1772,
     "name_en": "Nitrogen"
   },
@@ -100,6 +107,7 @@
     "radius_pm": 73,
     "electronegativity": 3.44,
     "ionization_energy": 1314,
+    "oxidation_states": [-2, -1, 2],
     "discovery_year": 1774,
     "name_en": "Oxygen"
   },
@@ -113,6 +121,7 @@
     "radius_pm": 71,
     "electronegativity": 3.98,
     "ionization_energy": 1681,
+    "oxidation_states": [-1],
     "discovery_year": 1886,
     "name_en": "Fluorine"
   },
@@ -126,6 +135,7 @@
     "radius_pm": 69,
     "electronegativity": null,
     "ionization_energy": 2081,
+    "oxidation_states": [],
     "discovery_year": 1898,
     "name_en": "Neon"
   },

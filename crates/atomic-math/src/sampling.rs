@@ -14,7 +14,7 @@ impl Lcg {
             .wrapping_mul(6364136223846793005)
             .wrapping_add(1442695040888963407);
         let val = (self.state >> 32) as u32;
-        (val as f64) / (u32::MAX as f64)
+        (val as f64) / ((u32::MAX as f64) + 1.0)
     }
 }
 
@@ -39,6 +39,33 @@ pub fn sample_points_internal(
     let r_max = 5.0 * (qn.n * qn.n) as f64 / z_eff;
 
     let mut p_max = 0.0;
+
+    // 1. Deterministic peak scan around expected radial maximum r ≈ n^2 / Z_eff
+    let r_peak_approx = (qn.n * qn.n) as f64 / z_eff;
+    let grid_radii = [
+        0.1 * r_peak_approx,
+        0.5 * r_peak_approx,
+        1.0 * r_peak_approx,
+        1.5 * r_peak_approx,
+        2.0 * r_peak_approx,
+    ];
+    let grid_thetas = [0.0, 0.25 * std::f64::consts::PI, 0.5 * std::f64::consts::PI, 0.75 * std::f64::consts::PI, std::f64::consts::PI];
+    let grid_phis = [0.0, 0.25 * std::f64::consts::PI, 0.5 * std::f64::consts::PI, 0.75 * std::f64::consts::PI];
+
+    for &r in &grid_radii {
+        for &theta in &grid_thetas {
+            for &phi in &grid_phis {
+                let p = probability_density(qn, mode, z_eff, r, theta, phi)?;
+                let weight = r * r * theta.sin();
+                let density = p * weight;
+                if density > p_max {
+                    p_max = density;
+                }
+            }
+        }
+    }
+
+    // 2. Uniform random stochastic scan
     for _ in 0..1000 {
         let r = rng.next_f64() * r_max;
         let theta = rng.next_f64() * std::f64::consts::PI;
@@ -52,7 +79,7 @@ pub fn sample_points_internal(
         }
     }
 
-    p_max *= 1.2;
+    p_max *= 1.25;
     if p_max <= 1e-12 {
         return Err("Sample domain density maximum is zero or negligible".into());
     }
