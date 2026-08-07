@@ -54,6 +54,33 @@ pub fn associated_laguerre(p: u32, q: u32, x: f64) -> f64 {
     lp
 }
 
+pub fn gamma(z: f64) -> f64 {
+    if z <= 0.0 && z.fract() == 0.0 {
+        return f64::NAN;
+    }
+    if z < 0.5 {
+        return std::f64::consts::PI / ((std::f64::consts::PI * z).sin() * gamma(1.0 - z));
+    }
+    let p = [
+        0.99999999999980993,
+        676.5203681218851,
+        -1259.139216722289,
+        771.32342877765313,
+        -176.61502916214059,
+        12.507343278686905,
+        -0.13857109526572012,
+        9.9843695780195716e-6,
+        1.5056327351493116e-7,
+    ];
+    let zm1 = z - 1.0;
+    let mut x = p[0];
+    for i in 1..p.len() {
+        x += p[i] / (zm1 + i as f64);
+    }
+    let t = zm1 + (p.len() as f64) - 1.5;
+    (2.0 * std::f64::consts::PI).sqrt() * t.powf(zm1 + 0.5) * (-t).exp() * x
+}
+
 pub fn associated_legendre(l: u32, m: i32, x: f64) -> Result<f64, String> {
     let m_abs = m.unsigned_abs();
     if m_abs > l {
@@ -62,13 +89,14 @@ pub fn associated_legendre(l: u32, m: i32, x: f64) -> Result<f64, String> {
             m_abs, l
         ));
     }
-    if !(-1.0..=1.0).contains(&x) {
+    if !(-1.000001..=1.000001).contains(&x) {
         return Err(format!("Domain error: x ({}) must be in [-1.0, 1.0]", x));
     }
+    let x_clamped = x.clamp(-1.0, 1.0);
 
     let mut p_mm = 1.0;
     if m_abs > 0 {
-        let somx2 = ((1.0 - x) * (1.0 + x)).max(0.0).sqrt();
+        let somx2 = ((1.0 - x_clamped) * (1.0 + x_clamped)).max(0.0).sqrt();
         let mut fact = 1.0;
         for _ in 1..=m_abs {
             p_mm *= -fact * somx2;
@@ -80,7 +108,7 @@ pub fn associated_legendre(l: u32, m: i32, x: f64) -> Result<f64, String> {
         return Ok(p_mm);
     }
 
-    let mut p_mmp1 = x * (2 * m_abs + 1) as f64 * p_mm;
+    let mut p_mmp1 = x_clamped * (2 * m_abs + 1) as f64 * p_mm;
     if l == m_abs + 1 {
         return Ok(p_mmp1);
     }
@@ -89,7 +117,7 @@ pub fn associated_legendre(l: u32, m: i32, x: f64) -> Result<f64, String> {
     for k in (m_abs + 2)..=l {
         let k_f = k as f64;
         let m_f = m_abs as f64;
-        p_l = ((2.0 * k_f - 1.0) * x * p_mmp1 - (k_f + m_f - 1.0) * p_mm) / (k_f - m_f);
+        p_l = ((2.0 * k_f - 1.0) * x_clamped * p_mmp1 - (k_f + m_f - 1.0) * p_mm) / (k_f - m_f);
         p_mm = p_mmp1;
         p_mmp1 = p_l;
     }
