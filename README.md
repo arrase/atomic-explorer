@@ -1,6 +1,6 @@
 # Atomic Explorer
 
-![Atomic Explorer](./screenshots/00_what.png)
+![Atomic Explorer](./docs/screenshots/00_what.png)
 
 **Atomic Explorer** is a desktop application for Linux designed for science popularization. It allows students, teachers, and science enthusiasts to visually explore the atomic structure at different levels of complexity. It's the equivalent of a planetarium, but for the quantum world!
 
@@ -17,15 +17,15 @@ The quantum world can be abstract and difficult to imagine. Atomic Explorer solv
 ## Screenshots
 
 ### Quantum Orbital Visualizer
-![Orbitals](./screenshots/01_orbitals.png)
+![Orbitals](./docs/screenshots/01_orbitals.png)
 *3D exploration of wave functions and atomic orbitals.*
 
 ### Complete Periodic Table
-![Periodic Table](./screenshots/02_table.png)
+![Periodic Table](./docs/screenshots/02_table.png)
 *Access to all element information and configurations.*
 
 ### Geometry and Molecules
-![Molecules](./screenshots/03_molecules.png)
+![Molecules](./docs/screenshots/03_molecules.png)
 *Visualization of hybridization and valence shell electron pair repulsion (VSEPR) models.*
 
 ---
