@@ -53,6 +53,8 @@ export class ControlPanel {
     const isCustom = this.currentParams.quality === 'custom';
 
     this.container.innerHTML = `
+      <div class="mobile-drawer-backdrop" id="controls-drawer-backdrop"></div>
+
       <div class="mobile-floating-actions">
         <button class="mobile-float-btn" id="btn-show-controls" title="${strings.orbitalControls}">
           <span class="btn-icon">🎛️</span>
@@ -65,6 +67,7 @@ export class ControlPanel {
       </div>
 
       <div class="control-panel">
+        <div class="mobile-drawer-handle"></div>
         <div class="panel-header">
           <h3>${strings.orbitalControls}</h3>
           <div class="panel-header-actions">
@@ -218,24 +221,42 @@ export class ControlPanel {
 
     const controlPanel = this.container.querySelector('.control-panel') as HTMLElement;
     const physicsContainer = this.container.querySelector('.physics-panel-container') as HTMLElement;
+    const backdrop = this.container.querySelector('#controls-drawer-backdrop') as HTMLElement;
 
-    const btnShowControls = this.container.querySelector('#btn-show-controls');
-    const btnShowPhysics = this.container.querySelector('#btn-show-physics');
+    const btnShowControls = this.container.querySelector('#btn-show-controls') as HTMLElement;
+    const btnShowPhysics = this.container.querySelector('#btn-show-physics') as HTMLElement;
     const btnCloseControls = this.container.querySelector('#btn-close-controls');
 
-    btnShowControls?.addEventListener('click', () => {
-      controlPanel?.classList.add('mobile-open');
+    const closeAllDrawers = () => {
+      controlPanel?.classList.remove('mobile-open');
       physicsContainer?.classList.remove('mobile-open');
+      backdrop?.classList.remove('active');
+      btnShowControls?.classList.remove('active');
+      btnShowPhysics?.classList.remove('active');
+    };
+
+    btnShowControls?.addEventListener('click', () => {
+      const isOpen = controlPanel?.classList.contains('mobile-open');
+      closeAllDrawers();
+      if (!isOpen) {
+        controlPanel?.classList.add('mobile-open');
+        backdrop?.classList.add('active');
+        btnShowControls.classList.add('active');
+      }
     });
 
     btnShowPhysics?.addEventListener('click', () => {
-      physicsContainer?.classList.add('mobile-open');
-      controlPanel?.classList.remove('mobile-open');
+      const isOpen = physicsContainer?.classList.contains('mobile-open');
+      closeAllDrawers();
+      if (!isOpen) {
+        physicsContainer?.classList.add('mobile-open');
+        backdrop?.classList.add('active');
+        btnShowPhysics.classList.add('active');
+      }
     });
 
-    btnCloseControls?.addEventListener('click', () => {
-      controlPanel?.classList.remove('mobile-open');
-    });
+    btnCloseControls?.addEventListener('click', closeAllDrawers);
+    backdrop?.addEventListener('click', closeAllDrawers);
 
     const nInput = this.container.querySelector('#n-select') as HTMLInputElement;
     const lInput = this.container.querySelector('#l-select') as HTMLInputElement;

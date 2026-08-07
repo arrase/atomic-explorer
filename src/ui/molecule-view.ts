@@ -61,6 +61,8 @@ export class MoleculeView {
     this.renderer.loadMolecule(this.currentMolecule);
 
     this.container.innerHTML = `
+      <div class="mobile-drawer-backdrop" id="molecule-drawer-backdrop"></div>
+
       <div class="mobile-floating-actions">
         <button class="mobile-float-btn" id="btn-show-molecule" title="${strings.moleculesVseprTitle}">
           <span class="btn-icon">🧬</span>
@@ -69,6 +71,7 @@ export class MoleculeView {
       </div>
 
       <div class="molecule-overlay-panel">
+        <div class="mobile-drawer-handle"></div>
         <div class="panel-header">
           <h3>${strings.moleculesVseprTitle}</h3>
           <button class="panel-close-btn" id="btn-close-molecule" aria-label="Close">✕</button>
@@ -144,16 +147,32 @@ export class MoleculeView {
 
   private attachEventListeners(): void {
     const molPanel = this.container.querySelector('.molecule-overlay-panel') as HTMLElement;
-    const btnShowMol = this.container.querySelector('#btn-show-molecule');
+    const backdrop = this.container.querySelector('#molecule-drawer-backdrop') as HTMLElement;
+    const btnShowMol = this.container.querySelector('#btn-show-molecule') as HTMLElement;
     const btnCloseMol = this.container.querySelector('#btn-close-molecule');
 
-    btnShowMol?.addEventListener('click', () => {
-      molPanel?.classList.add('mobile-open');
-    });
+    const toggleMolDrawer = () => {
+      const isOpen = molPanel?.classList.contains('mobile-open');
+      if (isOpen) {
+        molPanel?.classList.remove('mobile-open');
+        backdrop?.classList.remove('active');
+        btnShowMol?.classList.remove('active');
+      } else {
+        molPanel?.classList.add('mobile-open');
+        backdrop?.classList.add('active');
+        btnShowMol?.classList.add('active');
+      }
+    };
 
-    btnCloseMol?.addEventListener('click', () => {
+    const closeMolDrawer = () => {
       molPanel?.classList.remove('mobile-open');
-    });
+      backdrop?.classList.remove('active');
+      btnShowMol?.classList.remove('active');
+    };
+
+    btnShowMol?.addEventListener('click', toggleMolDrawer);
+    btnCloseMol?.addEventListener('click', closeMolDrawer);
+    backdrop?.addEventListener('click', closeMolDrawer);
 
     const molSelect = this.container.querySelector('#molecule-select') as HTMLSelectElement;
     const btnToggle = this.container.querySelector('#btn-toggle-lobes') as HTMLButtonElement;

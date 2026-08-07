@@ -144,6 +144,12 @@ async function init() {
     activeTab = newTab;
     navBar.setActiveTab(newTab);
 
+    // Close any open mobile drawers, backdrops, or floating buttons when switching tabs
+    document.querySelectorAll('.mobile-open').forEach((el) => el.classList.remove('mobile-open'));
+    document.querySelectorAll('.mobile-drawer-backdrop.active').forEach((el) => el.classList.remove('active'));
+    document.querySelectorAll('.mobile-float-btn.active').forEach((el) => el.classList.remove('active'));
+    document.querySelectorAll('.nav-tabs.mobile-open').forEach((el) => el.classList.remove('mobile-open'));
+
     Object.entries(viewLayers).forEach(([id, layer]) => {
       if (id === newTab) {
         layer.classList.add('active');
