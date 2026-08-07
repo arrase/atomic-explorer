@@ -104,7 +104,7 @@ export const strings: I18nStrings = {
   glossaryTitle: 'Quantum Physics Scientific Glossary',
   glossarySubtitle: 'Explore key terms in atomic physics, orbital wavefunctions, and chemical theory.',
   glossarySearchPlaceholder: 'Search glossary terms (e.g. Schrödinger, nodal, sp³)...',
-  btnGlossary: '📖 Scientific Glossary',
+  btnGlossary: 'Scientific Glossary',
   btnLearnMore: 'Learn More',
   btnIntro: 'What is this?',
 

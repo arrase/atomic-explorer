@@ -104,7 +104,7 @@ export const strings: I18nStrings = {
   glossaryTitle: 'Glosario Científico de Física Cuántica',
   glossarySubtitle: 'Explora los términos fundamentales de la física atómica, orbitales y teoría química.',
   glossarySearchPlaceholder: 'Buscar términos en el glosario (ej. Schrödinger, nodales, sp³)...',
-  btnGlossary: '📖 Glosario Científico',
+  btnGlossary: 'Glosario Científico',
   btnLearnMore: 'Aprender más',
   btnIntro: '¿Qué es esto?',
 
