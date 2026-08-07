@@ -37,6 +37,15 @@ export class PeriodicTableView {
 
     this.container.innerHTML = `
       <div class="periodic-table-wrapper">
+        <div class="mobile-drawer-backdrop" id="periodic-drawer-backdrop"></div>
+
+        <div class="mobile-floating-actions">
+          <button class="mobile-float-btn" id="btn-show-inspector" title="${strings.elementDetails || 'Detalles'}">
+            <span class="btn-icon">🔍</span>
+            <span class="btn-label">${strings.elementDetails || 'Detalles'}</span>
+          </button>
+        </div>
+
         <div class="table-toolbar">
           <div class="toolbar-group">
             <label for="color-scheme-select">${strings.colorCoding}:</label>
@@ -68,6 +77,10 @@ export class PeriodicTableView {
         </div>
 
         <div class="element-inspector-panel" id="element-inspector">
+          <div class="mobile-drawer-handle"></div>
+          <div class="panel-header-actions mobile-only-header">
+            <button class="panel-close-btn" id="btn-close-inspector" aria-label="Close">✕</button>
+          </div>
           ${this.renderInspectorContent()}
         </div>
       </div>
@@ -250,6 +263,34 @@ export class PeriodicTableView {
     const grid = this.container.querySelector('#periodic-grid') as HTMLElement;
     const btnView = this.container.querySelector('#btn-view-orbital') as HTMLButtonElement;
 
+    const inspector = this.container.querySelector('#element-inspector') as HTMLElement;
+    const backdrop = this.container.querySelector('#periodic-drawer-backdrop') as HTMLElement;
+    const btnShowInspector = this.container.querySelector('#btn-show-inspector') as HTMLElement;
+    const btnCloseInspector = this.container.querySelector('#btn-close-inspector');
+
+    const toggleInspectorDrawer = () => {
+      const isOpen = inspector?.classList.contains('mobile-open');
+      if (isOpen) {
+        inspector?.classList.remove('mobile-open');
+        backdrop?.classList.remove('active');
+        btnShowInspector?.classList.remove('active');
+      } else {
+        inspector?.classList.add('mobile-open');
+        backdrop?.classList.add('active');
+        btnShowInspector?.classList.add('active');
+      }
+    };
+
+    const closeInspectorDrawer = () => {
+      inspector?.classList.remove('mobile-open');
+      backdrop?.classList.remove('active');
+      btnShowInspector?.classList.remove('active');
+    };
+
+    btnShowInspector?.addEventListener('click', toggleInspectorDrawer);
+    btnCloseInspector?.addEventListener('click', closeInspectorDrawer);
+    backdrop?.addEventListener('click', closeInspectorDrawer);
+
     colorSelect?.addEventListener('change', () => {
       this.currentColorScheme = colorSelect.value as 'category' | 'electronegativity' | 'radius';
       grid.innerHTML = this.renderGridCells(searchInput?.value || '');
@@ -263,6 +304,7 @@ export class PeriodicTableView {
 
     btnView?.addEventListener('click', () => {
       if (this.selectedElement) {
+        closeInspectorDrawer();
         this.onSelectElementOrbital(this.selectedElement);
       }
     });
@@ -289,6 +331,10 @@ export class PeriodicTableView {
 
   private attachCellClickEvents(): void {
     const cells = this.container.querySelectorAll('.element-cell');
+    const inspector = this.container.querySelector('#element-inspector') as HTMLElement;
+    const backdrop = this.container.querySelector('#periodic-drawer-backdrop') as HTMLElement;
+    const btnShowInspector = this.container.querySelector('#btn-show-inspector') as HTMLElement;
+
     cells.forEach((cell) => {
       cell.addEventListener('click', () => {
         const z = parseInt(cell.getAttribute('data-z') || '1', 10);
@@ -297,12 +343,27 @@ export class PeriodicTableView {
         cells.forEach((c) => c.classList.remove('selected'));
         cell.classList.add('selected');
 
-        const inspector = this.container.querySelector('#element-inspector') as HTMLElement;
         if (inspector) {
-          inspector.innerHTML = this.renderInspectorContent();
+          inspector.innerHTML = `
+            <div class="mobile-drawer-handle"></div>
+            <div class="panel-header-actions mobile-only-header">
+              <button class="panel-close-btn" id="btn-close-inspector" aria-label="Close">✕</button>
+            </div>
+            ${this.renderInspectorContent()}
+          `;
           this.attachInfoButtonEvents(inspector);
+
+          const closeBtn = inspector.querySelector('#btn-close-inspector');
+          closeBtn?.addEventListener('click', () => {
+            inspector.classList.remove('mobile-open');
+            backdrop?.classList.remove('active');
+            btnShowInspector?.classList.remove('active');
+          });
+
           if (window.innerWidth <= 1024) {
-            inspector.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            inspector.classList.add('mobile-open');
+            backdrop?.classList.add('active');
+            btnShowInspector?.classList.add('active');
           }
         }
       });

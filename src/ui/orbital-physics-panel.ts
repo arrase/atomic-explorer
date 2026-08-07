@@ -87,6 +87,7 @@ export class OrbitalPhysicsPanel {
     panel.className = 'orbital-physics-panel glass-panel';
 
     panel.innerHTML = `
+      <div class="mobile-drawer-handle"></div>
       <div class="physics-header">
         <div class="physics-header-top">
           <h3>${strings.physicsPanelTitle}</h3>
@@ -179,6 +180,10 @@ export class OrbitalPhysicsPanel {
     const closePhysicsBtn = this.panelElement.querySelector('#btn-close-physics');
     closePhysicsBtn?.addEventListener('click', () => {
       this.container.classList.remove('mobile-open');
+      const backdrop = document.querySelector('#controls-drawer-backdrop');
+      backdrop?.classList.remove('active');
+      const btnShowPhysics = document.querySelector('#btn-show-physics');
+      btnShowPhysics?.classList.remove('active');
     });
 
     const strings = getStrings();

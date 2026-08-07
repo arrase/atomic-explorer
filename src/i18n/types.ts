@@ -84,6 +84,7 @@ export interface I18nStrings {
   searchPlaceholder: string;
   selectElementPrompt: string;
   btnView3DOrbital: string;
+  elementDetails: string;
   atomicMass: string;
   electronConfig: string;
   atomicRadius: string;
