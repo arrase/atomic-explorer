@@ -1,7 +1,7 @@
 import { OrbitalParams } from '../core/wasm-bridge';
 import { RenderMode, QualityPreset, ColorPalette } from '../render/orbital-renderer';
-import { getStrings, onLanguageChange, I18nStrings } from '../i18n';
-import { InfoModal, ConceptExplanation } from './info-modal';
+import { getStrings, onLanguageChange, I18nStrings, ConceptExplanation } from '../i18n';
+import { ExplanationModal } from './info-modal';
 import { OrbitalPhysicsPanel } from './orbital-physics-panel';
 
 export interface ExtendedOrbitalParams extends OrbitalParams {
@@ -238,7 +238,7 @@ export class ControlPanel {
         const explainKey = (btn as HTMLElement).dataset.explain as keyof I18nStrings;
         if (explainKey && strings[explainKey]) {
           const explanation = strings[explainKey] as ConceptExplanation;
-          InfoModal.show(explanation);
+          ExplanationModal.show(explanation);
         }
       });
     });
@@ -271,47 +271,19 @@ export class ControlPanel {
       const zEff = parseFloat(zeffInput.value);
       zeffVal.textContent = zEff.toFixed(2);
 
-      let pointCount = 50000;
-      let raymarchingSteps = 96;
-      let resolutionScale = 1.0;
+      const qualitySettings = this.resolveQualityPreset(
+        quality,
+        customPanel,
+        ptsInput,
+        stepsInput,
+        scaleSelect,
+        ptsVal,
+        stepsVal
+      );
 
-      if (quality === 'low') {
-        pointCount = 20000;
-        raymarchingSteps = 64;
-        resolutionScale = 1.0;
-        customPanel.classList.add('hidden');
-      } else if (quality === 'medium') {
-        pointCount = 50000;
-        raymarchingSteps = 96;
-        resolutionScale = 1.0;
-        customPanel.classList.add('hidden');
-      } else if (quality === 'high') {
-        pointCount = 150000;
-        raymarchingSteps = 128;
-        resolutionScale = 1.0;
-        customPanel.classList.add('hidden');
-      } else if (quality === 'ultra') {
-        pointCount = 500000;
-        raymarchingSteps = 256;
-        resolutionScale = 1.5;
-        customPanel.classList.add('hidden');
-      } else if (quality === 'extreme') {
-        pointCount = 1500000;
-        raymarchingSteps = 512;
-        resolutionScale = 2.0;
-        customPanel.classList.add('hidden');
-      } else if (quality === 'custom') {
-        customPanel.classList.remove('hidden');
-        pointCount = parseInt(ptsInput.value, 10);
-        raymarchingSteps = parseInt(stepsInput.value, 10);
-        resolutionScale = parseFloat(scaleSelect.value);
-        if (ptsVal) ptsVal.textContent = pointCount.toLocaleString();
-        if (stepsVal) stepsVal.textContent = String(raymarchingSteps);
-      }
-
-      if (ptsInput) ptsInput.value = String(pointCount);
-      if (stepsInput) stepsInput.value = String(raymarchingSteps);
-      if (scaleSelect) scaleSelect.value = String(resolutionScale);
+      if (ptsInput) ptsInput.value = String(qualitySettings.pointCount);
+      if (stepsInput) stepsInput.value = String(qualitySettings.raymarchingSteps);
+      if (scaleSelect) scaleSelect.value = String(qualitySettings.resolutionScale);
 
       this.currentParams = {
         ...this.currentParams,
@@ -321,11 +293,11 @@ export class ControlPanel {
         s,
         useRealOrbital,
         zEff,
-        pointCount,
+        pointCount: qualitySettings.pointCount,
         mode,
         quality,
-        raymarchingSteps,
-        resolutionScale,
+        raymarchingSteps: qualitySettings.raymarchingSteps,
+        resolutionScale: qualitySettings.resolutionScale,
         colorPalette,
       };
 
@@ -346,6 +318,40 @@ export class ControlPanel {
     if (ptsInput) ptsInput.addEventListener('input', updateControls);
     if (stepsInput) stepsInput.addEventListener('input', updateControls);
     if (scaleSelect) scaleSelect.addEventListener('change', updateControls);
+  }
+
+  private resolveQualityPreset(
+    quality: QualityPreset,
+    customPanel: HTMLElement,
+    ptsInput: HTMLInputElement | null,
+    stepsInput: HTMLInputElement | null,
+    scaleSelect: HTMLSelectElement | null,
+    ptsVal: HTMLElement | null,
+    stepsVal: HTMLElement | null
+  ): { pointCount: number; raymarchingSteps: number; resolutionScale: number } {
+    if (quality === 'custom') {
+      customPanel.classList.remove('hidden');
+      const pointCount = ptsInput ? parseInt(ptsInput.value, 10) : 50000;
+      const raymarchingSteps = stepsInput ? parseInt(stepsInput.value, 10) : 96;
+      const resolutionScale = scaleSelect ? parseFloat(scaleSelect.value) : 1.0;
+
+      if (ptsVal) ptsVal.textContent = pointCount.toLocaleString();
+      if (stepsVal) stepsVal.textContent = String(raymarchingSteps);
+
+      return { pointCount, raymarchingSteps, resolutionScale };
+    }
+
+    customPanel.classList.add('hidden');
+
+    const presets: Record<Exclude<QualityPreset, 'custom'>, { pointCount: number; raymarchingSteps: number; resolutionScale: number }> = {
+      low: { pointCount: 20000, raymarchingSteps: 64, resolutionScale: 1.0 },
+      medium: { pointCount: 50000, raymarchingSteps: 96, resolutionScale: 1.0 },
+      high: { pointCount: 150000, raymarchingSteps: 128, resolutionScale: 1.0 },
+      ultra: { pointCount: 500000, raymarchingSteps: 256, resolutionScale: 1.5 },
+      extreme: { pointCount: 1500000, raymarchingSteps: 512, resolutionScale: 2.0 },
+    };
+
+    return presets[quality] || presets.medium;
   }
 
   public setParams(params: Partial<ExtendedOrbitalParams>): void {

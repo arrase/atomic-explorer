@@ -1,17 +1,17 @@
 export type Language = 'es' | 'en';
 
-export interface QuantumExplanation {
+export interface ConceptExplanation {
   title: string;
   summary: string;
   detail: string;
+  analogy?: string;
+}
+
+export interface QuantumExplanation extends ConceptExplanation {
   analogy: string;
 }
 
-export interface PropertyExplanation {
-  title: string;
-  summary: string;
-  detail: string;
-}
+export interface PropertyExplanation extends ConceptExplanation {}
 
 export interface GlossaryItem {
   id: string;

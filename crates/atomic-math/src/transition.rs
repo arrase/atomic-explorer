@@ -13,12 +13,15 @@ pub const RYDBERG_EV: f64 = 13.605693122994;
 pub const RYDBERG_NM_FACTOR: f64 = 91.126705;
 
 /// Calculate hydrogenic energy level E_n in eV given Z_eff and n.
-pub fn calculate_energy_ev(z_eff: f64, n: u32) -> f64 {
+pub fn calculate_energy_ev(z_eff: f64, n: u32) -> Result<f64, String> {
     if n == 0 {
-        return 0.0;
+        return Err("Principal quantum number n must be greater than 0".into());
+    }
+    if z_eff <= 0.0 {
+        return Err(format!("Effective nuclear charge Z_eff ({}) must be positive", z_eff));
     }
     let n_f = n as f64;
-    -RYDBERG_EV * z_eff * z_eff / (n_f * n_f)
+    Ok(-RYDBERG_EV * z_eff * z_eff / (n_f * n_f))
 }
 
 /// Identify the spectral series based on the lower principal quantum number n_lower.
@@ -42,9 +45,12 @@ pub fn calculate_transition(z_eff: f64, n1: u32, n2: u32) -> Result<TransitionRe
     if n1 == n2 {
         return Err("Initial and final quantum numbers must be different".into());
     }
+    if z_eff <= 0.0 {
+        return Err(format!("Effective nuclear charge Z_eff ({}) must be positive", z_eff));
+    }
 
-    let e1 = calculate_energy_ev(z_eff, n1);
-    let e2 = calculate_energy_ev(z_eff, n2);
+    let e1 = calculate_energy_ev(z_eff, n1)?;
+    let e2 = calculate_energy_ev(z_eff, n2)?;
     let delta_e = (e2 - e1).abs();
 
     let n_min = n1.min(n2);
@@ -63,3 +69,4 @@ pub fn calculate_transition(z_eff: f64, n1: u32, n2: u32) -> Result<TransitionRe
         series_name,
     })
 }
+

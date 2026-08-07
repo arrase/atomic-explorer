@@ -122,12 +122,11 @@ const raymarchFragmentShader = `
     return exp(-zr / float(n));
   }
 
-  // Angular wavefunction in GLSL
   float evalY(int l, int m, bool useReal, float theta, float phi) {
     float ct = cos(theta);
     float st = sin(theta);
-    float cp = cos(phi);
-    float sp = sin(phi);
+    float cp = useReal ? cos(phi) : 1.0;
+    float sp = useReal ? sin(phi) : 1.0;
 
     if (l == 0) {
       return 0.5 * sqrt(1.0 / PI);
@@ -139,13 +138,13 @@ const raymarchFragmentShader = `
       if (m == 0) return 0.25 * sqrt(5.0 / PI) * (3.0 * ct * ct - 1.0);
       if (m == 1) return 0.5 * sqrt(15.0 / PI) * st * ct * cp;
       if (m == -1) return 0.5 * sqrt(15.0 / PI) * st * ct * sp;
-      if (m == 2) return 0.25 * sqrt(15.0 / PI) * st * st * cos(2.0 * phi);
-      if (m == -2) return 0.25 * sqrt(15.0 / PI) * st * st * sin(2.0 * phi);
+      if (m == 2) return 0.25 * sqrt(15.0 / PI) * st * st * (useReal ? cos(2.0 * phi) : 1.0);
+      if (m == -2) return 0.25 * sqrt(15.0 / PI) * st * st * (useReal ? sin(2.0 * phi) : 1.0);
     } else if (l == 3) {
       if (m == 0) return 0.25 * sqrt(7.0 / PI) * (5.0 * ct * ct * ct - 3.0 * ct);
       if (abs(m) == 1) return 0.125 * sqrt(42.0 / PI) * st * (5.0 * ct * ct - 1.0) * (m > 0 ? cp : sp);
-      if (abs(m) == 2) return 0.25 * sqrt(105.0 / PI) * st * st * ct * (m > 0 ? cos(2.0*phi) : sin(2.0*phi));
-      if (abs(m) == 3) return 0.125 * sqrt(70.0 / PI) * st * st * st * (m > 0 ? cos(3.0*phi) : sin(3.0*phi));
+      if (abs(m) == 2) return 0.25 * sqrt(105.0 / PI) * st * st * ct * (useReal ? (m > 0 ? cos(2.0*phi) : sin(2.0*phi)) : 1.0);
+      if (abs(m) == 3) return 0.125 * sqrt(70.0 / PI) * st * st * st * (useReal ? (m > 0 ? cos(3.0*phi) : sin(3.0*phi)) : 1.0);
     }
     return 0.5 * sqrt(1.0 / PI);
   }
@@ -474,21 +473,21 @@ export class OrbitalRenderer {
   private evalAngular(l: number, m: number, useReal: boolean, theta: number, phi: number): number {
     const ct = Math.cos(theta);
     const st = Math.sin(theta);
-    const cp = Math.cos(phi);
-    const sp = Math.sin(phi);
+    const cp = useReal ? Math.cos(phi) : 1.0;
+    const sp = useReal ? Math.sin(phi) : 1.0;
 
     if (l === 0) return 0.5 * Math.sqrt(1.0 / Math.PI);
     if (l === 1) {
       if (m === 0) return 0.5 * Math.sqrt(3.0 / Math.PI) * ct;
-      if (m === 1) return 0.5 * Math.sqrt(3.0 / Math.PI) * st * (useReal ? cp : 1.0);
-      if (m === -1) return 0.5 * Math.sqrt(3.0 / Math.PI) * st * (useReal ? sp : 1.0);
+      if (m === 1) return 0.5 * Math.sqrt(3.0 / Math.PI) * st * cp;
+      if (m === -1) return 0.5 * Math.sqrt(3.0 / Math.PI) * st * sp;
     }
     if (l === 2) {
       if (m === 0) return 0.25 * Math.sqrt(5.0 / Math.PI) * (3.0 * ct * ct - 1.0);
       if (m === 1) return 0.5 * Math.sqrt(15.0 / Math.PI) * st * ct * cp;
       if (m === -1) return 0.5 * Math.sqrt(15.0 / Math.PI) * st * ct * sp;
-      if (m === 2) return 0.25 * Math.sqrt(15.0 / Math.PI) * st * st * Math.cos(2 * phi);
-      if (m === -2) return 0.25 * Math.sqrt(15.0 / Math.PI) * st * st * Math.sin(2 * phi);
+      if (m === 2) return 0.25 * Math.sqrt(15.0 / Math.PI) * st * st * (useReal ? Math.cos(2 * phi) : 1.0);
+      if (m === -2) return 0.25 * Math.sqrt(15.0 / Math.PI) * st * st * (useReal ? Math.sin(2 * phi) : 1.0);
     }
     return 0.5 * Math.sqrt(1.0 / Math.PI);
   }

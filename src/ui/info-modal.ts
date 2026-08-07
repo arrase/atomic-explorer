@@ -1,22 +1,11 @@
-import { getStrings } from '../i18n';
+import { ConceptExplanation, getStrings } from '../i18n';
 
-export interface ConceptExplanation {
-  title: string;
-  summary: string;
-  detail: string;
-  analogy?: string;
-}
-
-export class InfoModal {
+export class ExplanationModal {
   private static overlayElement: HTMLElement | null = null;
   private static keydownHandler: ((e: KeyboardEvent) => void) | null = null;
 
-  /**
-   * Shows a glassmorphic modal with scientific explanation details.
-   */
   public static show(info: ConceptExplanation): void {
-    // Close existing modal if one is currently open
-    InfoModal.close();
+    ExplanationModal.close();
 
     const strings = getStrings();
 
@@ -50,12 +39,12 @@ export class InfoModal {
 
     overlay.appendChild(card);
     document.body.appendChild(overlay);
-    InfoModal.overlayElement = overlay;
+    ExplanationModal.overlayElement = overlay;
 
     const closeBtn = card.querySelector('.btn-close-modal');
     const footerCloseBtn = card.querySelector('.info-modal-close-btn');
 
-    const handleClose = () => InfoModal.close();
+    const handleClose = () => ExplanationModal.close();
 
     closeBtn?.addEventListener('click', handleClose);
     footerCloseBtn?.addEventListener('click', handleClose);
@@ -66,33 +55,27 @@ export class InfoModal {
       }
     });
 
-    InfoModal.keydownHandler = (e: KeyboardEvent) => {
+    ExplanationModal.keydownHandler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         handleClose();
       }
     };
-    document.addEventListener('keydown', InfoModal.keydownHandler);
+    document.addEventListener('keydown', ExplanationModal.keydownHandler);
   }
 
-  /**
-   * Helper method to show a simple explanation modal without optional analogy.
-   */
   public static showSimple(title: string, summary: string, detail: string): void {
-    InfoModal.show({ title, summary, detail });
+    ExplanationModal.show({ title, summary, detail });
   }
 
-  /**
-   * Closes the active info modal if present.
-   */
   public static close(): void {
-    if (InfoModal.keydownHandler) {
-      document.removeEventListener('keydown', InfoModal.keydownHandler);
-      InfoModal.keydownHandler = null;
+    if (ExplanationModal.keydownHandler) {
+      document.removeEventListener('keydown', ExplanationModal.keydownHandler);
+      ExplanationModal.keydownHandler = null;
     }
 
-    if (InfoModal.overlayElement) {
-      const overlay = InfoModal.overlayElement;
-      InfoModal.overlayElement = null;
+    if (ExplanationModal.overlayElement) {
+      const overlay = ExplanationModal.overlayElement;
+      ExplanationModal.overlayElement = null;
 
       overlay.classList.add('fade-out');
 
@@ -107,3 +90,4 @@ export class InfoModal {
     }
   }
 }
+

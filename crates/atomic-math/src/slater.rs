@@ -90,9 +90,18 @@ fn slater_group_rank(n: u32, l: u32) -> u32 {
 }
 
 /// Calculate effective nuclear charge Z_eff using Slater's rules for element Z and orbital (n, l).
-pub fn calculate_slater_z_eff(z: u32, n: u32, l: u32) -> f64 {
-    if z == 0 || n == 0 {
-        return 1.0;
+pub fn calculate_slater_z_eff(z: u32, n: u32, l: u32) -> Result<f64, String> {
+    if z == 0 {
+        return Err("Atomic number Z must be greater than 0".into());
+    }
+    if n == 0 {
+        return Err("Principal quantum number n must be greater than 0".into());
+    }
+    if l >= n {
+        return Err(format!(
+            "Azimuthal quantum number l ({}) must be less than n ({})",
+            l, n
+        ));
     }
 
     let target_rank = slater_group_rank(n, l);
@@ -153,7 +162,7 @@ pub fn calculate_slater_z_eff(z: u32, n: u32, l: u32) -> f64 {
     }
 
     let z_eff = (z as f64) - shielding;
-    z_eff.max(0.1)
+    Ok(z_eff.max(0.1))
 }
 
 /// Parse string like "1s", "2p", "3d", "4f" into (n, l).
@@ -184,5 +193,6 @@ pub fn parse_orbital_designation(name: &str) -> Option<(u32, u32)> {
 pub fn get_slater_z_eff_by_name(z: u32, orbital_name: &str) -> Result<f64, String> {
     let (n, l) = parse_orbital_designation(orbital_name)
         .ok_or_else(|| format!("Invalid orbital designation: {}", orbital_name))?;
-    Ok(calculate_slater_z_eff(z, n, l))
+    calculate_slater_z_eff(z, n, l)
 }
+

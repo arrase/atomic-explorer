@@ -2,5 +2,9 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    atomic_explorer_lib::run()
+    if let Err(err) = atomic_explorer_lib::run() {
+        eprintln!("Failed to start Tauri application: {err}");
+        std::process::exit(1);
+    }
 }
+

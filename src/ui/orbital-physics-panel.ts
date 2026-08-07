@@ -1,6 +1,6 @@
 import { ExtendedOrbitalParams } from './controls';
 import { getStrings, onLanguageChange } from '../i18n';
-import { InfoModal } from './info-modal';
+import { ExplanationModal } from './info-modal';
 
 export class OrbitalPhysicsPanel {
   private container: HTMLElement;
@@ -144,7 +144,7 @@ export class OrbitalPhysicsPanel {
     radialBtn?.addEventListener('click', (e: Event) => {
       e.preventDefault();
       e.stopPropagation();
-      InfoModal.showSimple(
+      ExplanationModal.showSimple(
         strings.radialNodes,
         `${strings.radialNodes}: ${radialNodes}`,
         strings.radialNodesDesc
@@ -155,7 +155,7 @@ export class OrbitalPhysicsPanel {
     angularBtn?.addEventListener('click', (e: Event) => {
       e.preventDefault();
       e.stopPropagation();
-      InfoModal.showSimple(
+      ExplanationModal.showSimple(
         strings.angularNodes,
         `${strings.angularNodes}: ${angularNodes}`,
         strings.angularNodesDesc
@@ -166,7 +166,7 @@ export class OrbitalPhysicsPanel {
     totalBtn?.addEventListener('click', (e: Event) => {
       e.preventDefault();
       e.stopPropagation();
-      InfoModal.showSimple(
+      ExplanationModal.showSimple(
         strings.totalNodes,
         `${strings.totalNodes}: ${totalNodes}`,
         strings.totalNodesDesc
@@ -177,7 +177,7 @@ export class OrbitalPhysicsPanel {
     formulaBtn?.addEventListener('click', (e: Event) => {
       e.preventDefault();
       e.stopPropagation();
-      InfoModal.showSimple(
+      ExplanationModal.showSimple(
         strings.wavefunctionFormula,
         strings.wavefunctionFormulaDesc,
         strings.wavefunctionFormulaDetail
@@ -188,7 +188,7 @@ export class OrbitalPhysicsPanel {
     zeffBtn?.addEventListener('click', (e: Event) => {
       e.preventDefault();
       e.stopPropagation();
-      InfoModal.show(strings.explainZeff);
+      ExplanationModal.show(strings.explainZeff);
     });
   }
 }

@@ -1,6 +1,6 @@
 import elementsData from '../../assets/data/elements.json';
-import { getStrings, getLanguage, onLanguageChange, I18nStrings } from '../i18n';
-import { InfoModal, ConceptExplanation } from './info-modal';
+import { getStrings, getLanguage, onLanguageChange, I18nStrings, ConceptExplanation } from '../i18n';
+import { ExplanationModal } from './info-modal';
 
 export interface ElementData {
   Z: number;
@@ -269,7 +269,7 @@ export class PeriodicTableView {
         const explainKey = (btn as HTMLElement).dataset.explain as keyof I18nStrings;
         if (explainKey && strings[explainKey]) {
           const explanation = strings[explainKey] as ConceptExplanation;
-          InfoModal.show(explanation);
+          ExplanationModal.show(explanation);
         }
       });
     });

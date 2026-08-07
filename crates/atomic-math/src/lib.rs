@@ -15,6 +15,33 @@ pub struct QuantumNumbers {
     pub m: i32,
 }
 
+impl QuantumNumbers {
+    pub fn new(n: u32, l: u32, m: i32) -> Result<Self, String> {
+        let qn = Self { n, l, m };
+        qn.validate()?;
+        Ok(qn)
+    }
+
+    pub fn validate(&self) -> Result<(), String> {
+        if self.n == 0 {
+            return Err("Principal quantum number n must be greater than 0".into());
+        }
+        if self.l >= self.n {
+            return Err(format!(
+                "Azimuthal quantum number l ({}) must be less than n ({})",
+                self.l, self.n
+            ));
+        }
+        if self.m.abs() > self.l as i32 {
+            return Err(format!(
+                "Magnetic quantum number m ({}) magnitude cannot exceed l ({})",
+                self.m, self.l
+            ));
+        }
+        Ok(())
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RealOrbitalKind {
     S,
@@ -35,25 +62,25 @@ pub enum RealOrbitalKind {
     Fy3X2Y2,
 }
 
-pub fn real_orbital_kind_from_lm(l: u32, m: i32) -> RealOrbitalKind {
+pub fn real_orbital_kind_from_lm(l: u32, m: i32) -> Option<RealOrbitalKind> {
     match (l, m) {
-        (0, 0) => RealOrbitalKind::S,
-        (1, 0) => RealOrbitalKind::Pz,
-        (1, 1) => RealOrbitalKind::Px,
-        (1, -1) => RealOrbitalKind::Py,
-        (2, 0) => RealOrbitalKind::Dz2,
-        (2, 1) => RealOrbitalKind::Dxz,
-        (2, -1) => RealOrbitalKind::Dyz,
-        (2, 2) => RealOrbitalKind::Dx2y2,
-        (2, -2) => RealOrbitalKind::Dxy,
-        (3, 0) => RealOrbitalKind::Fz3,
-        (3, 1) => RealOrbitalKind::Fxz2,
-        (3, -1) => RealOrbitalKind::Fyz2,
-        (3, 2) => RealOrbitalKind::FzX2Y2,
-        (3, -2) => RealOrbitalKind::Fxyz,
-        (3, 3) => RealOrbitalKind::FxX23Y2,
-        (3, -3) => RealOrbitalKind::Fy3X2Y2,
-        _ => RealOrbitalKind::S,
+        (0, 0) => Some(RealOrbitalKind::S),
+        (1, 0) => Some(RealOrbitalKind::Pz),
+        (1, 1) => Some(RealOrbitalKind::Px),
+        (1, -1) => Some(RealOrbitalKind::Py),
+        (2, 0) => Some(RealOrbitalKind::Dz2),
+        (2, 1) => Some(RealOrbitalKind::Dxz),
+        (2, -1) => Some(RealOrbitalKind::Dyz),
+        (2, 2) => Some(RealOrbitalKind::Dx2y2),
+        (2, -2) => Some(RealOrbitalKind::Dxy),
+        (3, 0) => Some(RealOrbitalKind::Fz3),
+        (3, 1) => Some(RealOrbitalKind::Fxz2),
+        (3, -1) => Some(RealOrbitalKind::Fyz2),
+        (3, 2) => Some(RealOrbitalKind::FzX2Y2),
+        (3, -2) => Some(RealOrbitalKind::Fxyz),
+        (3, 3) => Some(RealOrbitalKind::FxX23Y2),
+        (3, -3) => Some(RealOrbitalKind::Fy3X2Y2),
+        _ => None,
     }
 }
 
@@ -70,18 +97,19 @@ pub fn probability_density(
     r: f64,
     theta: f64,
     phi: f64,
-) -> f64 {
-    let r_part = wavefunctions::r_nl(qn.n, qn.l, z_eff, r);
+) -> Result<f64, String> {
+    qn.validate()?;
+    let r_part = wavefunctions::r_nl(qn.n, qn.l, z_eff, r)?;
 
     let angular_part_sq = match mode {
-        OrbitalMode::PureEigenstate => spherical_harmonics::y_lm_real_squared(qn.l, qn.m, theta),
+        OrbitalMode::PureEigenstate => spherical_harmonics::y_lm_real_squared(qn.l, qn.m, theta)?,
         OrbitalMode::RealChemist(kind) => {
             let y = spherical_harmonics::real_orbital_angular(kind, theta, phi);
             y * y
         }
     };
 
-    r_part * r_part * angular_part_sq
+    Ok(r_part * r_part * angular_part_sq)
 }
 
 pub fn sample_points(
@@ -90,7 +118,7 @@ pub fn sample_points(
     z_eff: f64,
     n_points: usize,
     seed: u64,
-) -> Vec<[f32; 3]> {
+) -> Result<Vec<[f32; 3]>, String> {
     sampling::sample_points_internal(qn, mode, z_eff, n_points, seed)
 }
 
@@ -103,16 +131,19 @@ pub fn sample_orbital_points(
     z_eff: f64,
     n_points: usize,
     seed: u64,
-) -> js_sys::Float32Array {
-    let qn = QuantumNumbers { n, l, m };
+) -> Result<js_sys::Float32Array, String> {
+    let qn = QuantumNumbers::new(n, l, m)?;
 
     let mode = if use_real_orbital {
-        OrbitalMode::RealChemist(real_orbital_kind_from_lm(l, m))
+        let kind = real_orbital_kind_from_lm(l, m).ok_or_else(|| {
+            format!("No real orbital representation available for l={}, m={}", l, m)
+        })?;
+        OrbitalMode::RealChemist(kind)
     } else {
         OrbitalMode::PureEigenstate
     };
 
-    let points = sample_points(&qn, &mode, z_eff, n_points, seed);
+    let points = sample_points(&qn, &mode, z_eff, n_points, seed)?;
 
     let mut flat = Vec::with_capacity(points.len() * 3);
     for p in points {
@@ -121,19 +152,17 @@ pub fn sample_orbital_points(
         flat.push(p[2]);
     }
 
-    js_sys::Float32Array::from(flat.as_slice())
+    Ok(js_sys::Float32Array::from(flat.as_slice()))
 }
 
 #[wasm_bindgen]
-pub fn get_slater_z_eff(z: u32, n: u32, l: u32) -> f64 {
+pub fn get_slater_z_eff(z: u32, n: u32, l: u32) -> Result<f64, String> {
     slater::calculate_slater_z_eff(z, n, l)
 }
 
 #[wasm_bindgen]
-pub fn calculate_transition_wavelength(z_eff: f64, n1: u32, n2: u32) -> f64 {
-    transition::calculate_transition(z_eff, n1, n2)
-        .map(|res| res.wavelength_nm)
-        .unwrap_or(0.0)
+pub fn calculate_transition_wavelength(z_eff: f64, n1: u32, n2: u32) -> Result<f64, String> {
+    transition::calculate_transition(z_eff, n1, n2).map(|res| res.wavelength_nm)
 }
 
 #[wasm_bindgen]
@@ -145,14 +174,18 @@ pub fn evaluate_density_grid(
     z_eff: f64,
     grid_size: usize,
     bounds: f32,
-) -> js_sys::Float32Array {
-    let qn = QuantumNumbers { n, l, m };
+) -> Result<js_sys::Float32Array, String> {
+    let qn = QuantumNumbers::new(n, l, m)?;
     let mode = if use_real_orbital {
-        OrbitalMode::RealChemist(real_orbital_kind_from_lm(l, m))
+        let kind = real_orbital_kind_from_lm(l, m).ok_or_else(|| {
+            format!("No real orbital representation available for l={}, m={}", l, m)
+        })?;
+        OrbitalMode::RealChemist(kind)
     } else {
         OrbitalMode::PureEigenstate
     };
 
-    let grid = grid::evaluate_density_grid_internal(&qn, &mode, z_eff, grid_size, bounds);
-    js_sys::Float32Array::from(grid.as_slice())
+    let grid = grid::evaluate_density_grid_internal(&qn, &mode, z_eff, grid_size, bounds)?;
+    Ok(js_sys::Float32Array::from(grid.as_slice()))
 }
+

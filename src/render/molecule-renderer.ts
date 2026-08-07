@@ -104,7 +104,6 @@ export class MoleculeRenderer {
   public loadMolecule(data: MoleculeData): void {
     this.clear();
 
-    // 1. Render Atoms
     data.atoms.forEach((atom) => {
       const geometry = new THREE.SphereGeometry(atom.radius, 32, 32);
       const material = new THREE.MeshStandardMaterial({
@@ -118,7 +117,6 @@ export class MoleculeRenderer {
       this.moleculeGroup.add(sphere);
     });
 
-    // 2. Render Bonds
     data.bonds.forEach((bond) => {
       const start = new THREE.Vector3(...data.atoms[bond.fromIndex].position);
       const end = new THREE.Vector3(...data.atoms[bond.toIndex].position);
@@ -139,7 +137,6 @@ export class MoleculeRenderer {
       }
     });
 
-    // 3. Render Hybrid Orbital Lobes
     data.hybrid_lobes.forEach((lobe) => {
       const lobeMesh = this.createTeardropLobe(
         new THREE.Color(lobe.color),

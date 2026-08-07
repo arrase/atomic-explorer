@@ -1,16 +1,23 @@
 use crate::math_utils::{associated_legendre, factorial};
 use crate::RealOrbitalKind;
 
-pub fn y_lm_real_squared(l: u32, m: i32, theta: f64) -> f64 {
+pub fn y_lm_real_squared(l: u32, m: i32, theta: f64) -> Result<f64, String> {
     let m_abs = m.unsigned_abs();
+    if m_abs > l {
+        return Err(format!(
+            "Magnetic quantum number m ({}) magnitude exceeds azimuthal l ({})",
+            m, l
+        ));
+    }
     let x = theta.cos();
-    let plm = associated_legendre(l, m_abs as i32, x);
+    let plm = associated_legendre(l, m_abs as i32, x)?;
 
     let l_f = l as f64;
-    let prefactor = ((2.0 * l_f + 1.0) / (4.0 * std::f64::consts::PI))
-        * (factorial(l - m_abs) / factorial(l + m_abs));
+    let num_fact = factorial(l - m_abs)?;
+    let den_fact = factorial(l + m_abs)?;
+    let prefactor = ((2.0 * l_f + 1.0) / (4.0 * std::f64::consts::PI)) * (num_fact / den_fact);
 
-    prefactor * plm * plm
+    Ok(prefactor * plm * plm)
 }
 
 pub fn real_orbital_angular(kind: &RealOrbitalKind, theta: f64, phi: f64) -> f64 {
@@ -54,3 +61,4 @@ pub fn real_orbital_angular(kind: &RealOrbitalKind, theta: f64, phi: f64) -> f64
         }
     }
 }
+

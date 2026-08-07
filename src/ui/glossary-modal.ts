@@ -148,44 +148,7 @@ export class GlossaryModal {
         </div>
 
         <div class="glossary-list">
-          ${
-            filteredItems.length === 0
-              ? `
-            <div class="glossary-empty">
-              <p>🔍 ${
-                currentLang === 'es'
-                  ? 'No se encontraron términos que coincidan con la búsqueda.'
-                  : 'No matching glossary terms found.'
-              }</p>
-            </div>
-          `
-              : filteredItems
-                  .map((item) => {
-                    const isExpanded = this.expandedItemIds.has(item.id);
-                    return `
-              <div class="glossary-item-card ${isExpanded ? 'expanded' : ''}" data-id="${item.id}">
-                <div class="glossary-item-header">
-                  <div class="glossary-item-title-group">
-                    <h3 class="glossary-item-term">${this.escapeHtml(item.term)}</h3>
-                    <span class="glossary-item-badge">${this.escapeHtml(item.category)}</span>
-                  </div>
-                  <span class="glossary-item-toggle">${isExpanded ? '▲' : '▼'}</span>
-                </div>
-                <p class="glossary-item-definition">${this.escapeHtml(item.definition)}</p>
-                ${
-                  isExpanded
-                    ? `
-                  <div class="glossary-item-details">
-                    <p>${this.escapeHtml(item.details)}</p>
-                  </div>
-                `
-                    : ''
-                }
-              </div>
-            `;
-                  })
-                  .join('')
-          }
+          ${this.renderGlossaryListHtml(filteredItems, currentLang)}
         </div>
 
         <div class="glass-modal-footer">
@@ -200,28 +163,24 @@ export class GlossaryModal {
   private attachDomEvents(): void {
     if (!this.overlayElement) return;
 
-    // Overlay click outside card
     this.overlayElement.onclick = (e: MouseEvent) => {
       if (e.target === this.overlayElement) {
         this.close();
       }
     };
 
-    // Close buttons
     const closeBtn = this.overlayElement.querySelector('.btn-close-modal');
     const footerCloseBtn = this.overlayElement.querySelector('.glossary-modal-close-btn');
 
     closeBtn?.addEventListener('click', () => this.close());
     footerCloseBtn?.addEventListener('click', () => this.close());
 
-    // Search input
     const searchInput = this.overlayElement.querySelector('#glossary-search-input') as HTMLInputElement;
     if (searchInput) {
       searchInput.addEventListener('input', (e: Event) => {
         this.searchQuery = (e.target as HTMLInputElement).value;
         this.renderListOnly();
       });
-      // Maintain focus position when re-rendering list
     }
 
     const clearBtn = this.overlayElement.querySelector('#btn-clear-search');
@@ -230,7 +189,6 @@ export class GlossaryModal {
       this.render();
     });
 
-    // Category tags
     const categoryTags = this.overlayElement.querySelectorAll('.category-tag');
     categoryTags.forEach((tag) => {
       tag.addEventListener('click', (e: Event) => {
@@ -242,21 +200,7 @@ export class GlossaryModal {
       });
     });
 
-    // Expand / Collapse item cards
-    const itemCards = this.overlayElement.querySelectorAll('.glossary-item-card');
-    itemCards.forEach((card) => {
-      card.addEventListener('click', () => {
-        const id = card.getAttribute('data-id');
-        if (id) {
-          if (this.expandedItemIds.has(id)) {
-            this.expandedItemIds.delete(id);
-          } else {
-            this.expandedItemIds.add(id);
-          }
-          this.renderListOnly();
-        }
-      });
-    });
+    this.attachCardClickEvents(this.overlayElement);
   }
 
   private renderListOnly(): void {
@@ -279,59 +223,8 @@ export class GlossaryModal {
 
     const listContainer = this.overlayElement.querySelector('.glossary-list');
     if (listContainer) {
-      listContainer.innerHTML =
-        filteredItems.length === 0
-          ? `
-        <div class="glossary-empty">
-          <p>🔍 ${
-            currentLang === 'es'
-              ? 'No se encontraron términos que coincidan con la búsqueda.'
-              : 'No matching glossary terms found.'
-          }</p>
-        </div>
-      `
-          : filteredItems
-              .map((item) => {
-                const isExpanded = this.expandedItemIds.has(item.id);
-                return `
-          <div class="glossary-item-card ${isExpanded ? 'expanded' : ''}" data-id="${item.id}">
-            <div class="glossary-item-header">
-              <div class="glossary-item-title-group">
-                <h3 class="glossary-item-term">${this.escapeHtml(item.term)}</h3>
-                <span class="glossary-item-badge">${this.escapeHtml(item.category)}</span>
-              </div>
-              <span class="glossary-item-toggle">${isExpanded ? '▲' : '▼'}</span>
-            </div>
-            <p class="glossary-item-definition">${this.escapeHtml(item.definition)}</p>
-            ${
-              isExpanded
-                ? `
-              <div class="glossary-item-details">
-                <p>${this.escapeHtml(item.details)}</p>
-              </div>
-            `
-                : ''
-            }
-          </div>
-        `;
-              })
-              .join('');
-
-      // Re-attach card click listeners
-      const itemCards = listContainer.querySelectorAll('.glossary-item-card');
-      itemCards.forEach((card) => {
-        card.addEventListener('click', () => {
-          const id = card.getAttribute('data-id');
-          if (id) {
-            if (this.expandedItemIds.has(id)) {
-              this.expandedItemIds.delete(id);
-            } else {
-              this.expandedItemIds.add(id);
-            }
-            this.renderListOnly();
-          }
-        });
-      });
+      listContainer.innerHTML = this.renderGlossaryListHtml(filteredItems, currentLang);
+      this.attachCardClickEvents(listContainer as HTMLElement);
     }
 
     // Toggle clear search button visibility
@@ -353,6 +246,49 @@ export class GlossaryModal {
     } else if (!this.searchQuery && existingClearBtn) {
       existingClearBtn.remove();
     }
+  }
+
+  private renderGlossaryListHtml(items: GlossaryItem[], lang: string): string {
+    if (items.length === 0) {
+      const emptyMsg = lang === 'es'
+        ? 'No se encontraron términos que coincidan con la búsqueda.'
+        : 'No matching glossary terms found.';
+      return `<div class="glossary-empty"><p>🔍 ${emptyMsg}</p></div>`;
+    }
+    return items.map((item) => this.renderGlossaryCardHtml(item, this.expandedItemIds.has(item.id))).join('');
+  }
+
+  private renderGlossaryCardHtml(item: GlossaryItem, isExpanded: boolean): string {
+    return `
+      <div class="glossary-item-card ${isExpanded ? 'expanded' : ''}" data-id="${item.id}">
+        <div class="glossary-item-header">
+          <div class="glossary-item-title-group">
+            <h3 class="glossary-item-term">${this.escapeHtml(item.term)}</h3>
+            <span class="glossary-item-badge">${this.escapeHtml(item.category)}</span>
+          </div>
+          <span class="glossary-item-toggle">${isExpanded ? '▲' : '▼'}</span>
+        </div>
+        <p class="glossary-item-definition">${this.escapeHtml(item.definition)}</p>
+        ${isExpanded ? `<div class="glossary-item-details"><p>${this.escapeHtml(item.details)}</p></div>` : ''}
+      </div>
+    `;
+  }
+
+  private attachCardClickEvents(parent: HTMLElement): void {
+    const itemCards = parent.querySelectorAll('.glossary-item-card');
+    itemCards.forEach((card) => {
+      card.addEventListener('click', () => {
+        const id = card.getAttribute('data-id');
+        if (id) {
+          if (this.expandedItemIds.has(id)) {
+            this.expandedItemIds.delete(id);
+          } else {
+            this.expandedItemIds.add(id);
+          }
+          this.renderListOnly();
+        }
+      });
+    });
   }
 
   private escapeHtml(str: string): string {

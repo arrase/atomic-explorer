@@ -1,8 +1,9 @@
 import moleculesData from '../../assets/data/molecules.json';
 import elementsData from '../../assets/data/elements.json';
 import { MoleculeRenderer, MoleculeData as BaseMoleculeData } from '../render/molecule-renderer';
-import { getStrings, getLanguage, onLanguageChange, I18nStrings } from '../i18n';
-import { InfoModal, ConceptExplanation } from './info-modal';
+import { getStrings, getLanguage, onLanguageChange, I18nStrings, ConceptExplanation } from '../i18n';
+import { ElementData } from './periodic-table';
+import { ExplanationModal } from './info-modal';
 
 export interface LocalizedMoleculeData extends BaseMoleculeData {
   name_es?: string;
@@ -26,10 +27,10 @@ export class MoleculeView {
     this.renderer.onLobeClick = (type) => {
       const strings = getStrings();
       const expl = type === 'bonding' ? strings.explainBondingLobe : strings.explainLonePairLobe;
-      InfoModal.show(expl as any);
+      ExplanationModal.show(expl);
     };
     this.renderer.onAtomClick = (symbol) => {
-      const element = (elementsData as any[]).find(e => e.symbol === symbol);
+      const element = (elementsData as ElementData[]).find(e => e.symbol === symbol);
       const lang = getLanguage();
       const elementName = element ? (lang === 'es' ? element.name_es : element.name_en) : symbol;
       const title = lang === 'es' ? `Átomo: ${elementName} (${symbol})` : `Atom: ${elementName} (${symbol})`;
@@ -38,7 +39,7 @@ export class MoleculeView {
         ? 'Las esferas representan el núcleo atómico. Aquí puedes ver cómo se distribuyen las nubes electrónicas a su alrededor formando enlaces.' 
         : 'The spheres represent the atomic nucleus. Here you can see how the electron clouds are distributed around it forming bonds.';
 
-      InfoModal.showSimple(title, summary, detail);
+      ExplanationModal.showSimple(title, summary, detail);
     };
     this.render();
     onLanguageChange(() => this.render());
@@ -172,7 +173,7 @@ export class MoleculeView {
         const explainKey = (btn as HTMLElement).dataset.explain as keyof I18nStrings;
         if (explainKey && strings[explainKey]) {
           const explanation = strings[explainKey] as ConceptExplanation;
-          InfoModal.show(explanation);
+          ExplanationModal.show(explanation);
         }
       });
     });

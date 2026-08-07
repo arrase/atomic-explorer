@@ -8,10 +8,17 @@ pub fn evaluate_density_grid_internal(
     z_eff: f64,
     grid_size: usize,
     bounds: f32,
-) -> Vec<f32> {
+) -> Result<Vec<f32>, String> {
     if grid_size == 0 {
-        return Vec::new();
+        return Err("Grid size must be greater than 0".into());
     }
+    if bounds <= 0.0 {
+        return Err(format!("Grid bounds ({}) must be positive", bounds));
+    }
+    if z_eff <= 0.0 {
+        return Err(format!("Effective nuclear charge Z_eff ({}) must be positive", z_eff));
+    }
+    qn.validate()?;
 
     let mut data = vec![0.0f32; grid_size * grid_size * grid_size];
     let bounds_f64 = bounds as f64;
@@ -44,12 +51,13 @@ pub fn evaluate_density_grid_internal(
                     (theta, phi)
                 };
 
-                let density = probability_density(qn, mode, z_eff, r, theta, phi);
+                let density = probability_density(qn, mode, z_eff, r, theta, phi)?;
                 let idx = (iz * grid_size + iy) * grid_size + ix;
                 data[idx] = density as f32;
             }
         }
     }
 
-    data
+    Ok(data)
 }
+
