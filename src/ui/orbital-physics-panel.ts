@@ -88,7 +88,10 @@ export class OrbitalPhysicsPanel {
 
     panel.innerHTML = `
       <div class="physics-header">
-        <h3>${strings.physicsPanelTitle}</h3>
+        <div class="physics-header-top">
+          <h3>${strings.physicsPanelTitle}</h3>
+          <button class="panel-close-btn" id="btn-close-physics" aria-label="Close">✕</button>
+        </div>
         <div class="active-state-badge">
           <span class="badge-label">${strings.activeState}:</span>
           <span class="badge-value">${notation} (n=${n}, l=${l}, m=${m})</span>
@@ -172,6 +175,11 @@ export class OrbitalPhysicsPanel {
 
   private attachEventListeners(): void {
     if (!this.panelElement) return;
+
+    const closePhysicsBtn = this.panelElement.querySelector('#btn-close-physics');
+    closePhysicsBtn?.addEventListener('click', () => {
+      this.container.classList.remove('mobile-open');
+    });
 
     const strings = getStrings();
     const { n, l } = this.currentParams;

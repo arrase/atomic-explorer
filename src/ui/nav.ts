@@ -34,7 +34,7 @@ export class NavigationBar {
           <span class="nav-logo">⚛️</span>
           <span class="nav-title">${strings.title}</span>
         </div>
-        <div class="nav-tabs">
+        <div class="nav-tabs" id="nav-tabs-menu">
           ${tabs
             .map(
               (tab) => `
@@ -54,11 +54,16 @@ export class NavigationBar {
             <span class="tab-label">${strings.btnIntro}</span>
           </button>
         </div>
-        <div class="nav-lang-switcher">
-          <select id="lang-select" aria-label="${strings.language}">
-            <option value="es" ${currentLang === 'es' ? 'selected' : ''}>🇪🇸 ES</option>
-            <option value="en" ${currentLang === 'en' ? 'selected' : ''}>🇬🇧 EN</option>
-          </select>
+        <div class="nav-actions">
+          <div class="nav-lang-switcher">
+            <select id="lang-select" aria-label="${strings.language}">
+              <option value="es" ${currentLang === 'es' ? 'selected' : ''}>🇪🇸 ES</option>
+              <option value="en" ${currentLang === 'en' ? 'selected' : ''}>🇬🇧 EN</option>
+            </select>
+          </div>
+          <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Menu">
+            <span class="hamburger-icon">☰</span>
+          </button>
         </div>
       </nav>
     `;
@@ -67,10 +72,29 @@ export class NavigationBar {
   }
 
   private attachEventListeners(): void {
+    const navTabsMenu = this.container.querySelector('#nav-tabs-menu');
+    const mobileMenuToggle = this.container.querySelector('#mobile-menu-toggle');
+
+    mobileMenuToggle?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      navTabsMenu?.classList.toggle('mobile-open');
+      mobileMenuToggle.classList.toggle('active');
+    });
+
+    document.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      if (!this.container.contains(target)) {
+        navTabsMenu?.classList.remove('mobile-open');
+        mobileMenuToggle?.classList.remove('active');
+      }
+    });
+
     const buttons = this.container.querySelectorAll('.nav-tab[data-tab]');
     buttons.forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const target = (e.currentTarget as HTMLElement).getAttribute('data-tab') as TabId;
+        navTabsMenu?.classList.remove('mobile-open');
+        mobileMenuToggle?.classList.remove('active');
         if (target && target !== this.activeTab) {
           this.setActiveTab(target);
           this.onTabChange(target);
@@ -80,11 +104,15 @@ export class NavigationBar {
 
     const glossaryBtn = this.container.querySelector('#nav-glossary-btn');
     glossaryBtn?.addEventListener('click', () => {
+      navTabsMenu?.classList.remove('mobile-open');
+      mobileMenuToggle?.classList.remove('active');
       this.glossaryModal.open();
     });
 
     const introBtn = this.container.querySelector('#nav-intro-btn');
     introBtn?.addEventListener('click', () => {
+      navTabsMenu?.classList.remove('mobile-open');
+      mobileMenuToggle?.classList.remove('active');
       ExplanationModal.show(getStrings().explainIntro);
     });
 

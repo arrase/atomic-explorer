@@ -61,9 +61,17 @@ export class MoleculeView {
     this.renderer.loadMolecule(this.currentMolecule);
 
     this.container.innerHTML = `
+      <div class="mobile-floating-actions">
+        <button class="mobile-float-btn" id="btn-show-molecule" title="${strings.moleculesVseprTitle}">
+          <span class="btn-icon">🧬</span>
+          <span class="btn-label">${strings.moleculesVseprTitle}</span>
+        </button>
+      </div>
+
       <div class="molecule-overlay-panel">
         <div class="panel-header">
           <h3>${strings.moleculesVseprTitle}</h3>
+          <button class="panel-close-btn" id="btn-close-molecule" aria-label="Close">✕</button>
         </div>
 
         <div class="molecule-controls">
@@ -135,6 +143,18 @@ export class MoleculeView {
   }
 
   private attachEventListeners(): void {
+    const molPanel = this.container.querySelector('.molecule-overlay-panel') as HTMLElement;
+    const btnShowMol = this.container.querySelector('#btn-show-molecule');
+    const btnCloseMol = this.container.querySelector('#btn-close-molecule');
+
+    btnShowMol?.addEventListener('click', () => {
+      molPanel?.classList.add('mobile-open');
+    });
+
+    btnCloseMol?.addEventListener('click', () => {
+      molPanel?.classList.remove('mobile-open');
+    });
+
     const molSelect = this.container.querySelector('#molecule-select') as HTMLSelectElement;
     const btnToggle = this.container.querySelector('#btn-toggle-lobes') as HTMLButtonElement;
 

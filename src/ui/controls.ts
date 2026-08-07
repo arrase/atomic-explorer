@@ -53,12 +53,26 @@ export class ControlPanel {
     const isCustom = this.currentParams.quality === 'custom';
 
     this.container.innerHTML = `
+      <div class="mobile-floating-actions">
+        <button class="mobile-float-btn" id="btn-show-controls" title="${strings.orbitalControls}">
+          <span class="btn-icon">🎛️</span>
+          <span class="btn-label">${strings.orbitalControls}</span>
+        </button>
+        <button class="mobile-float-btn" id="btn-show-physics" title="${strings.physicsPanelTitle}">
+          <span class="btn-icon">📊</span>
+          <span class="btn-label">${strings.physicsPanelTitle}</span>
+        </button>
+      </div>
+
       <div class="control-panel">
         <div class="panel-header">
           <h3>${strings.orbitalControls}</h3>
-          <button class="btn-export-hdr" id="btn-open-export" title="${strings.exportImage}">
-            ${strings.exportImage}
-          </button>
+          <div class="panel-header-actions">
+            <button class="btn-export-hdr" id="btn-open-export" title="${strings.exportImage}">
+              ${strings.exportImage}
+            </button>
+            <button class="panel-close-btn" id="btn-close-controls" aria-label="Close">✕</button>
+          </div>
         </div>
 
         <div class="control-grid">
@@ -201,6 +215,27 @@ export class ControlPanel {
 
   private attachEventListeners(): void {
     const strings = getStrings();
+
+    const controlPanel = this.container.querySelector('.control-panel') as HTMLElement;
+    const physicsContainer = this.container.querySelector('.physics-panel-container') as HTMLElement;
+
+    const btnShowControls = this.container.querySelector('#btn-show-controls');
+    const btnShowPhysics = this.container.querySelector('#btn-show-physics');
+    const btnCloseControls = this.container.querySelector('#btn-close-controls');
+
+    btnShowControls?.addEventListener('click', () => {
+      controlPanel?.classList.add('mobile-open');
+      physicsContainer?.classList.remove('mobile-open');
+    });
+
+    btnShowPhysics?.addEventListener('click', () => {
+      physicsContainer?.classList.add('mobile-open');
+      controlPanel?.classList.remove('mobile-open');
+    });
+
+    btnCloseControls?.addEventListener('click', () => {
+      controlPanel?.classList.remove('mobile-open');
+    });
 
     const nInput = this.container.querySelector('#n-select') as HTMLInputElement;
     const lInput = this.container.querySelector('#l-select') as HTMLInputElement;
