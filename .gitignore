@@ -2,6 +2,7 @@
 /dist
 /dist-ssr
 /target
+site/
 **/target/
 crates/*/pkg/
 **/pkg/
