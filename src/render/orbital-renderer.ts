@@ -222,8 +222,9 @@ const raymarchFragmentShader = `
     return vec2(tNear, tFar);
   }
 
-  vec3 getPaletteColor(float psi, float density, int paletteId) {
-    float t = clamp(density * 12.0, 0.0, 1.0);
+  vec3 getPaletteColor(float psi, float normalizedDensity, int paletteId) {
+    // We use the normalized density which keeps nodes (zeros) mathematically pure
+    float t = clamp(pow(normalizedDensity, 0.60) * 1.5, 0.0, 1.0);
     if (paletteId == 1) { // Atomic Fire
       if (psi > 0.0) return mix(vec3(1.0, 0.4, 0.0), vec3(1.0, 0.9, 0.2), t);
       return mix(vec3(0.8, 0.0, 0.2), vec3(0.4, 0.0, 0.6), t);
@@ -265,9 +266,18 @@ const raymarchFragmentShader = `
       float psi = evalPsi(currentPos);
       float density = psi * psi;
 
-      if (density > 0.0001) {
-        vec3 color = getPaletteColor(psi, density, u_palette);
-        float alphaSample = 1.0 - exp(-density * stepSize * 30.0);
+      // Compensate for the physical volume expansion of higher orbitals:
+      // Since volume scales as (n/Z)^3, density drops as (Z/n)^3.
+      // Multiplying by (n/Z)^3 normalizes the peak density mathematically.
+      float scaleFactor = pow(float(u_n) / max(u_zEff, 0.1), 3.0);
+      float normalizedDensity = density * scaleFactor * 50.0; // Base multiplier for visibility
+
+      if (normalizedDensity > 1e-6) {
+        vec3 color = getPaletteColor(psi, normalizedDensity, u_palette);
+        
+        // Gamma 0.60: increases opacity of valence tails while strictly preserving 
+        // nodes (since 0^0.60 = 0). Maintains mathematical topology.
+        float alphaSample = 1.0 - exp(-pow(normalizedDensity, 0.60) * stepSize * 2.0);
 
         accumColor.rgb += (1.0 - accumColor.a) * color * alphaSample;
         accumColor.a += (1.0 - accumColor.a) * alphaSample;
@@ -438,12 +448,18 @@ export class OrbitalRenderer {
 
   private fillMarchingCubesGrid(mc: MarchingCubes, resolution: number, params: OrbitalRenderParams): void {
     const { n, l, m, useRealOrbital, zEff } = params;
-    const isolevel = params.isolevel ?? 0.005;
+    
+    // We adjust the isolevel to work with our mathematically normalized density
+    const isolevel = params.isolevel ?? 0.02;
 
     mc.reset();
     mc.isolation = isolevel;
 
     const rMax = (4.0 * (n * n)) / Math.max(zEff, 0.5);
+    
+    // Volume compensation factor
+    const scaleFactor = Math.pow(n / Math.max(zEff, 0.1), 3.0) * 50.0;
+
     for (let x = 0; x < resolution; x++) {
       for (let y = 0; y < resolution; y++) {
         for (let z = 0; z < resolution; z++) {
@@ -452,7 +468,7 @@ export class OrbitalRenderer {
           const pz = (z / (resolution - 1) - 0.5) * 2.0 * rMax;
 
           const r = Math.hypot(px, py, pz);
-          let density = 0;
+          let normalizedDensity = 0;
           if (r > 1e-4) {
             const theta = Math.acos(Math.max(-1, Math.min(1, pz / r)));
             const phi = Math.atan2(py, px);
@@ -460,10 +476,13 @@ export class OrbitalRenderer {
             const R = this.evalRadial(n, l, zEff, r);
             const Y = this.evalAngular(l, m, useRealOrbital, theta, phi);
             const psi = R * Y;
-            density = psi * psi;
+            const rawDensity = psi * psi;
+            
+            // Normalize density to preserve nodes while boosting overall volume (Gamma 0.60)
+            normalizedDensity = Math.pow(rawDensity * scaleFactor, 0.60);
           }
 
-          mc.setCell(x, y, z, density);
+          mc.setCell(x, y, z, normalizedDensity);
         }
       }
     }
