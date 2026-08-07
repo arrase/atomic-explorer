@@ -64,6 +64,8 @@ export const strings: I18nStrings = {
   selectElementPrompt: 'Select an element from the periodic table to view details and inspect valence orbitals.',
   btnView3DOrbital: '⚛️ Visualize 3D Valence Orbitals',
   elementDetails: 'Element Details',
+  swipeToExplore: 'Swipe horizontally to explore all groups',
+  viewFullDetails: 'View full details',
   atomicMass: 'Atomic Mass',
   electronConfig: 'Electron Config.',
   atomicRadius: 'Atomic Radius',

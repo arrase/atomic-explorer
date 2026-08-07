@@ -37,15 +37,6 @@ export class PeriodicTableView {
 
     this.container.innerHTML = `
       <div class="periodic-table-wrapper">
-        <div class="mobile-drawer-backdrop" id="periodic-drawer-backdrop"></div>
-
-        <div class="mobile-floating-actions">
-          <button class="mobile-float-btn" id="btn-show-inspector" title="${strings.elementDetails || 'Detalles'}">
-            <span class="btn-icon">🔍</span>
-            <span class="btn-label">${strings.elementDetails || 'Detalles'}</span>
-          </button>
-        </div>
-
         <div class="table-toolbar">
           <div class="toolbar-group">
             <label for="color-scheme-select">${strings.colorCoding}:</label>
@@ -57,15 +48,15 @@ export class PeriodicTableView {
           </div>
           <div class="toolbar-group search-group">
             <input type="text" id="element-search" placeholder="${strings.searchPlaceholder}" />
-            <button class="btn-primary" id="btn-view-orbital">
-              ${strings.btnView3DOrbital}
-            </button>
           </div>
         </div>
 
         <div class="periodic-grid-container">
           <div class="periodic-grid" id="periodic-grid">
             ${this.renderGridCells()}
+          </div>
+          <div class="periodic-scroll-hint">
+            <span>👈 ${strings.swipeToExplore} 👉</span>
           </div>
           <div class="periodic-trends-card">
             <div class="trends-card-header">
@@ -76,6 +67,15 @@ export class PeriodicTableView {
           </div>
         </div>
 
+        <!-- Persistent Mobile Quick Inspector Bar (Visible on mobile/tablet <=1024px) -->
+        <div class="mobile-quick-inspector" id="mobile-quick-inspector">
+          ${this.renderQuickInspectorContent()}
+        </div>
+
+        <!-- Mobile Drawer Backdrop -->
+        <div class="mobile-drawer-backdrop" id="periodic-drawer-backdrop"></div>
+
+        <!-- Full Element Inspector Panel (Desktop sidebar / Mobile bottom sheet) -->
         <div class="element-inspector-panel" id="element-inspector">
           <div class="mobile-drawer-handle"></div>
           <div class="panel-header-actions mobile-only-header">
@@ -194,6 +194,38 @@ export class PeriodicTableView {
     }
   }
 
+  private renderQuickInspectorContent(): string {
+    const strings = getStrings();
+    if (!this.selectedElement) {
+      return `<div class="quick-inspector-placeholder"><span>${strings.selectElementPrompt}</span></div>`;
+    }
+
+    const el = this.selectedElement;
+    const name = this.getElementName(el);
+    const color = this.getElementColor(el);
+
+    return `
+      <div class="quick-inspector-card" id="quick-inspector-trigger">
+        <div class="quick-el-badge" style="border-color: ${color}">
+          <span class="quick-z">${el.Z}</span>
+          <span class="quick-symbol">${el.symbol}</span>
+        </div>
+        <div class="quick-el-info">
+          <span class="quick-name">${name}</span>
+          <span class="quick-config"><code>${el.electron_config_str}</code></span>
+        </div>
+        <div class="quick-actions">
+          <button class="btn-primary btn-quick-3d" id="btn-quick-3d" title="${strings.btnView3DOrbital}">
+            ⚛️ 3D
+          </button>
+          <button class="btn-secondary btn-quick-details" id="btn-quick-details" title="${strings.viewFullDetails}">
+            📋
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
   private renderInspectorContent(): string {
     const strings = getStrings();
 
@@ -217,10 +249,15 @@ export class PeriodicTableView {
     return `
       <div class="inspector-card">
         <div class="inspector-header">
-          <span class="insp-z">Z = ${el.Z}</span>
-          <h2 class="insp-symbol">${el.symbol}</h2>
-          <span class="insp-name">${elementName}</span>
-          <span class="insp-category">${categoryName}</span>
+          <div class="insp-header-title">
+            <span class="insp-z">Z = ${el.Z}</span>
+            <h2 class="insp-symbol">${el.symbol}</h2>
+            <span class="insp-name">${elementName}</span>
+            <span class="insp-category">${categoryName}</span>
+          </div>
+          <button class="btn-primary btn-inspector-view-3d" id="btn-view-orbital">
+            ${strings.btnView3DOrbital}
+          </button>
         </div>
 
         <div class="inspector-details">
@@ -261,35 +298,25 @@ export class PeriodicTableView {
     const colorSelect = this.container.querySelector('#color-scheme-select') as HTMLSelectElement;
     const searchInput = this.container.querySelector('#element-search') as HTMLInputElement;
     const grid = this.container.querySelector('#periodic-grid') as HTMLElement;
-    const btnView = this.container.querySelector('#btn-view-orbital') as HTMLButtonElement;
 
     const inspector = this.container.querySelector('#element-inspector') as HTMLElement;
     const backdrop = this.container.querySelector('#periodic-drawer-backdrop') as HTMLElement;
-    const btnShowInspector = this.container.querySelector('#btn-show-inspector') as HTMLElement;
     const btnCloseInspector = this.container.querySelector('#btn-close-inspector');
 
-    const toggleInspectorDrawer = () => {
-      const isOpen = inspector?.classList.contains('mobile-open');
-      if (isOpen) {
-        inspector?.classList.remove('mobile-open');
-        backdrop?.classList.remove('active');
-        btnShowInspector?.classList.remove('active');
-      } else {
+    const openFullInspector = () => {
+      if (window.innerWidth <= 1024) {
         inspector?.classList.add('mobile-open');
         backdrop?.classList.add('active');
-        btnShowInspector?.classList.add('active');
       }
     };
 
-    const closeInspectorDrawer = () => {
+    const closeFullInspector = () => {
       inspector?.classList.remove('mobile-open');
       backdrop?.classList.remove('active');
-      btnShowInspector?.classList.remove('active');
     };
 
-    btnShowInspector?.addEventListener('click', toggleInspectorDrawer);
-    btnCloseInspector?.addEventListener('click', closeInspectorDrawer);
-    backdrop?.addEventListener('click', closeInspectorDrawer);
+    btnCloseInspector?.addEventListener('click', closeFullInspector);
+    backdrop?.addEventListener('click', closeFullInspector);
 
     colorSelect?.addEventListener('change', () => {
       this.currentColorScheme = colorSelect.value as 'category' | 'electronegativity' | 'radius';
@@ -302,15 +329,40 @@ export class PeriodicTableView {
       this.attachCellClickEvents();
     });
 
-    btnView?.addEventListener('click', () => {
+    this.attachQuickInspectorEvents(openFullInspector, closeFullInspector);
+    this.attachCellClickEvents();
+    this.attachInfoButtonEvents(this.container);
+  }
+
+  private attachQuickInspectorEvents(openFullInspector: () => void, closeFullInspector: () => void): void {
+    const quick3dBtn = this.container.querySelector('#btn-quick-3d');
+    const quickDetailsBtn = this.container.querySelector('#btn-quick-details');
+    const quickTrigger = this.container.querySelector('#quick-inspector-trigger');
+    const inspector3dBtn = this.container.querySelector('#btn-view-orbital');
+
+    quick3dBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
       if (this.selectedElement) {
-        closeInspectorDrawer();
+        closeFullInspector();
         this.onSelectElementOrbital(this.selectedElement);
       }
     });
 
-    this.attachCellClickEvents();
-    this.attachInfoButtonEvents(this.container);
+    quickDetailsBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openFullInspector();
+    });
+
+    quickTrigger?.addEventListener('click', () => {
+      openFullInspector();
+    });
+
+    inspector3dBtn?.addEventListener('click', () => {
+      if (this.selectedElement) {
+        closeFullInspector();
+        this.onSelectElementOrbital(this.selectedElement);
+      }
+    });
   }
 
   private attachInfoButtonEvents(parent: HTMLElement): void {
@@ -332,8 +384,21 @@ export class PeriodicTableView {
   private attachCellClickEvents(): void {
     const cells = this.container.querySelectorAll('.element-cell');
     const inspector = this.container.querySelector('#element-inspector') as HTMLElement;
-    const backdrop = this.container.querySelector('#periodic-drawer-backdrop') as HTMLElement;
-    const btnShowInspector = this.container.querySelector('#btn-show-inspector') as HTMLElement;
+    const quickInspector = this.container.querySelector('#mobile-quick-inspector') as HTMLElement;
+
+    const openFullInspector = () => {
+      if (window.innerWidth <= 1024) {
+        inspector?.classList.add('mobile-open');
+        const backdrop = this.container.querySelector('#periodic-drawer-backdrop');
+        backdrop?.classList.add('active');
+      }
+    };
+
+    const closeFullInspector = () => {
+      inspector?.classList.remove('mobile-open');
+      const backdrop = this.container.querySelector('#periodic-drawer-backdrop');
+      backdrop?.classList.remove('active');
+    };
 
     cells.forEach((cell) => {
       cell.addEventListener('click', () => {
@@ -343,6 +408,12 @@ export class PeriodicTableView {
         cells.forEach((c) => c.classList.remove('selected'));
         cell.classList.add('selected');
 
+        // Update Quick Inspector Bar
+        if (quickInspector) {
+          quickInspector.innerHTML = this.renderQuickInspectorContent();
+        }
+
+        // Update Full Inspector Panel
         if (inspector) {
           inspector.innerHTML = `
             <div class="mobile-drawer-handle"></div>
@@ -354,18 +425,10 @@ export class PeriodicTableView {
           this.attachInfoButtonEvents(inspector);
 
           const closeBtn = inspector.querySelector('#btn-close-inspector');
-          closeBtn?.addEventListener('click', () => {
-            inspector.classList.remove('mobile-open');
-            backdrop?.classList.remove('active');
-            btnShowInspector?.classList.remove('active');
-          });
-
-          if (window.innerWidth <= 1024) {
-            inspector.classList.add('mobile-open');
-            backdrop?.classList.add('active');
-            btnShowInspector?.classList.add('active');
-          }
+          closeBtn?.addEventListener('click', closeFullInspector);
         }
+
+        this.attachQuickInspectorEvents(openFullInspector, closeFullInspector);
       });
     });
   }

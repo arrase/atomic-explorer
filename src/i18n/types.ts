@@ -85,6 +85,8 @@ export interface I18nStrings {
   selectElementPrompt: string;
   btnView3DOrbital: string;
   elementDetails: string;
+  swipeToExplore: string;
+  viewFullDetails: string;
   atomicMass: string;
   electronConfig: string;
   atomicRadius: string;
