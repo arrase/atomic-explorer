@@ -1024,6 +1024,17 @@ select:focus {
 }
 
 /* Info Modal Specifics */
+.info-modal-dont-show-again {
+  margin-right: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 0.9em;
+  user-select: none;
+}
+
 .info-modal-card {
   width: 560px;
   max-width: 92vw;

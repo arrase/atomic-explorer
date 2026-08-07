@@ -121,6 +121,7 @@ export interface I18nStrings {
   // Info Modal & Help Labels
   infoModalTitle: string;
   infoModalClose: string;
+  dontShowAgain: string;
   analogyLabel: string;
   glossaryTitle: string;
   glossarySubtitle: string;

@@ -4,7 +4,7 @@ export class ExplanationModal {
   private static overlayElement: HTMLElement | null = null;
   private static keydownHandler: ((e: KeyboardEvent) => void) | null = null;
 
-  public static show(info: ConceptExplanation): void {
+  public static show(info: ConceptExplanation, options?: { showDontShowAgain?: boolean, storageKey?: string }): void {
     ExplanationModal.close();
 
     const strings = getStrings();
@@ -33,6 +33,12 @@ export class ExplanationModal {
         ${analogyHtml}
       </div>
       <div class="glass-modal-footer">
+        ${options?.showDontShowAgain ? `
+          <label class="info-modal-dont-show-again">
+            <input type="checkbox" id="dont-show-again-checkbox">
+            ${strings.dontShowAgain || "Don't show again"}
+          </label>
+        ` : ''}
         <button class="btn-primary info-modal-close-btn">${strings.infoModalClose || 'Close'}</button>
       </div>
     `;
@@ -44,7 +50,15 @@ export class ExplanationModal {
     const closeBtn = card.querySelector('.btn-close-modal');
     const footerCloseBtn = card.querySelector('.info-modal-close-btn');
 
-    const handleClose = () => ExplanationModal.close();
+    const handleClose = () => {
+      if (options?.showDontShowAgain && options?.storageKey) {
+        const checkbox = card.querySelector('#dont-show-again-checkbox') as HTMLInputElement;
+        if (checkbox && checkbox.checked) {
+          localStorage.setItem(options.storageKey, 'true');
+        }
+      }
+      ExplanationModal.close();
+    };
 
     closeBtn?.addEventListener('click', handleClose);
     footerCloseBtn?.addEventListener('click', handleClose);

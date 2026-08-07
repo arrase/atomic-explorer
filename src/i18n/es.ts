@@ -100,6 +100,7 @@ export const strings: I18nStrings = {
   // Info Modal & Help Labels
   infoModalTitle: 'Guía de Mecánica Cuántica y Estructura Atómica',
   infoModalClose: 'Cerrar',
+  dontShowAgain: 'No volver a mostrar',
   analogyLabel: 'Analogía Intuitiva',
   glossaryTitle: 'Glosario Científico de Física Cuántica',
   glossarySubtitle: 'Explora los términos fundamentales de la física atómica, orbitales y teoría química.',

@@ -100,6 +100,7 @@ export const strings: I18nStrings = {
   // Info Modal & Help Labels
   infoModalTitle: 'Quantum Mechanics & Atomic Structure Guide',
   infoModalClose: 'Close',
+  dontShowAgain: 'Don\'t show again',
   analogyLabel: 'Intuitive Analogy',
   glossaryTitle: 'Quantum Physics Scientific Glossary',
   glossarySubtitle: 'Explore key terms in atomic physics, orbital wavefunctions, and chemical theory.',

@@ -153,7 +153,12 @@ async function init() {
   await loadOrbital(controlPanel.getParams());
   orbitalRenderer.start();
 
-  ExplanationModal.show(getStrings().explainIntro);
+  if (localStorage.getItem('skipIntroModal') !== 'true') {
+    ExplanationModal.show(getStrings().explainIntro, {
+      showDontShowAgain: true,
+      storageKey: 'skipIntroModal'
+    });
+  }
 }
 
 window.addEventListener('DOMContentLoaded', init);
