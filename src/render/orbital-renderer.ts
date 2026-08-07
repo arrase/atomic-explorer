@@ -357,29 +357,21 @@ export class OrbitalRenderer {
     this.scene.add(dirLight2);
   }
 
-
-  public setPointCloud(positions: Float32Array): void {
+  public setPointCloud(buffer: Float32Array): void {
     this.clearCurrentMesh();
     this.currentMode = 'points';
 
-    const count = positions.length / 3;
+    const count = Math.floor(buffer.length / 4);
+    if (count === 0) return;
+
+    const positions = new Float32Array(count * 3);
     const signs = new Float32Array(count);
-    const { n, l, m, useRealOrbital, zEff } = this.currentParams;
 
     for (let i = 0; i < count; i++) {
-      const px = positions[i * 3];
-      const py = positions[i * 3 + 1];
-      const pz = positions[i * 3 + 2];
-      const r = Math.hypot(px, py, pz);
-      if (r < 1e-4) {
-        signs[i] = 1.0;
-        continue;
-      }
-      const theta = Math.acos(Math.max(-1, Math.min(1, pz / r)));
-      const phi = Math.atan2(py, px);
-      const R = this.evalRadial(n, l, zEff, r);
-      const Y = this.evalAngular(l, m, useRealOrbital, theta, phi);
-      signs[i] = (R * Y >= 0) ? 1.0 : -1.0;
+      positions[i * 3] = buffer[i * 4];
+      positions[i * 3 + 1] = buffer[i * 4 + 1];
+      positions[i * 3 + 2] = buffer[i * 4 + 2];
+      signs[i] = buffer[i * 4 + 3];
     }
 
     const geometry = new THREE.BufferGeometry();
@@ -691,6 +683,8 @@ export class OrbitalRenderer {
     mergedParams.mode = mode;
     this.currentMode = mode;
     this.currentParams = mergedParams;
+
+    this.clearCurrentMesh();
 
     if (mode === 'isosurface') {
       this.updateIsosurface(mergedParams);

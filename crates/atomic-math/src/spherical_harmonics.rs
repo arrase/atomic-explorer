@@ -1,7 +1,7 @@
 use crate::math_utils::{associated_legendre, factorial};
 use crate::RealOrbitalKind;
 
-pub fn y_lm_real_squared(l: u32, m: i32, theta: f64) -> Result<f64, String> {
+pub fn y_lm_real(l: u32, m: i32, theta: f64, phi: f64) -> Result<f64, String> {
     let m_abs = m.unsigned_abs();
     if m_abs > l {
         return Err(format!(
@@ -15,9 +15,22 @@ pub fn y_lm_real_squared(l: u32, m: i32, theta: f64) -> Result<f64, String> {
     let l_f = l as f64;
     let num_fact = factorial(l - m_abs)?;
     let den_fact = factorial(l + m_abs)?;
-    let prefactor = ((2.0 * l_f + 1.0) / (4.0 * std::f64::consts::PI)) * (num_fact / den_fact);
+    let prefactor = (((2.0 * l_f + 1.0) / (4.0 * std::f64::consts::PI)) * (num_fact / den_fact)).sqrt();
 
-    Ok(prefactor * plm * plm)
+    let phi_part = if m == 0 {
+        1.0
+    } else if m > 0 {
+        std::f64::consts::SQRT_2 * (m as f64 * phi).cos()
+    } else {
+        std::f64::consts::SQRT_2 * (m.abs() as f64 * phi).sin()
+    };
+
+    Ok(prefactor * plm * phi_part)
+}
+
+pub fn y_lm_real_squared(l: u32, m: i32, theta: f64) -> Result<f64, String> {
+    let y = y_lm_real(l, m, theta, 0.0)?;
+    Ok(y * y)
 }
 
 pub fn real_orbital_angular(kind: &RealOrbitalKind, theta: f64, phi: f64) -> f64 {

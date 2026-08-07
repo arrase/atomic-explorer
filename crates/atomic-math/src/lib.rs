@@ -90,7 +90,7 @@ pub enum OrbitalMode {
     RealChemist(RealOrbitalKind),
 }
 
-pub fn probability_density(
+pub fn wavefunction_value(
     qn: &QuantumNumbers,
     mode: &OrbitalMode,
     z_eff: f64,
@@ -101,15 +101,36 @@ pub fn probability_density(
     qn.validate()?;
     let r_part = wavefunctions::r_nl(qn.n, qn.l, z_eff, r)?;
 
-    let angular_part_sq = match mode {
-        OrbitalMode::PureEigenstate => spherical_harmonics::y_lm_real_squared(qn.l, qn.m, theta)?,
+    let angular_part = match mode {
+        OrbitalMode::PureEigenstate => {
+            let m_abs = qn.m.unsigned_abs();
+            let x = theta.cos();
+            let plm = math_utils::associated_legendre(qn.l, m_abs as i32, x)?;
+            let l_f = qn.l as f64;
+            let num_fact = math_utils::factorial(qn.l - m_abs)?;
+            let den_fact = math_utils::factorial(qn.l + m_abs)?;
+            let norm = (((2.0 * l_f + 1.0) / (4.0 * std::f64::consts::PI)) * (num_fact / den_fact)).sqrt();
+            let trig = if qn.m >= 0 { (qn.m as f64 * phi).cos() } else { (qn.m.abs() as f64 * phi).sin() };
+            norm * plm * trig
+        }
         OrbitalMode::RealChemist(kind) => {
-            let y = spherical_harmonics::real_orbital_angular(kind, theta, phi);
-            y * y
+            spherical_harmonics::real_orbital_angular(kind, theta, phi)
         }
     };
 
-    Ok(r_part * r_part * angular_part_sq)
+    Ok(r_part * angular_part)
+}
+
+pub fn probability_density(
+    qn: &QuantumNumbers,
+    mode: &OrbitalMode,
+    z_eff: f64,
+    r: f64,
+    theta: f64,
+    phi: f64,
+) -> Result<f64, String> {
+    let psi = wavefunction_value(qn, mode, z_eff, r, theta, phi)?;
+    Ok(psi * psi)
 }
 
 pub fn sample_points(
@@ -118,7 +139,7 @@ pub fn sample_points(
     z_eff: f64,
     n_points: usize,
     seed: u64,
-) -> Result<Vec<[f32; 3]>, String> {
+) -> Result<Vec<([f32; 3], f32)>, String> {
     sampling::sample_points_internal(qn, mode, z_eff, n_points, seed)
 }
 
@@ -145,11 +166,12 @@ pub fn sample_orbital_points(
 
     let points = sample_points(&qn, &mode, z_eff, n_points, seed)?;
 
-    let mut flat = Vec::with_capacity(points.len() * 3);
-    for p in points {
+    let mut flat = Vec::with_capacity(points.len() * 4);
+    for (p, sign) in points {
         flat.push(p[0]);
         flat.push(p[1]);
         flat.push(p[2]);
+        flat.push(sign);
     }
 
     Ok(js_sys::Float32Array::from(flat.as_slice()))
