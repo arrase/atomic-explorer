@@ -174,25 +174,31 @@ const raymarchFragmentShader = `
     float cp = useReal ? cos(phi) : 1.0;
     float sp = useReal ? sin(phi) : 1.0;
 
+    float y = 0.5 * sqrt(1.0 / PI);
+
     if (l == 0) {
-      return 0.5 * sqrt(1.0 / PI);
+      y = 0.5 * sqrt(1.0 / PI);
     } else if (l == 1) {
-      if (m == 0) return 0.5 * sqrt(3.0 / PI) * ct;
-      if (m == 1) return 0.5 * sqrt(3.0 / PI) * st * cp;
-      if (m == -1) return 0.5 * sqrt(3.0 / PI) * st * sp;
+      if (m == 0) y = 0.5 * sqrt(3.0 / PI) * ct;
+      else if (m == 1) y = 0.5 * sqrt(3.0 / PI) * st * cp;
+      else if (m == -1) y = 0.5 * sqrt(3.0 / PI) * st * sp;
     } else if (l == 2) {
-      if (m == 0) return 0.25 * sqrt(5.0 / PI) * (3.0 * ct * ct - 1.0);
-      if (m == 1) return 0.5 * sqrt(15.0 / PI) * st * ct * cp;
-      if (m == -1) return 0.5 * sqrt(15.0 / PI) * st * ct * sp;
-      if (m == 2) return 0.25 * sqrt(15.0 / PI) * st * st * (useReal ? cos(2.0 * phi) : 1.0);
-      if (m == -2) return 0.25 * sqrt(15.0 / PI) * st * st * (useReal ? sin(2.0 * phi) : 1.0);
+      if (m == 0) y = 0.25 * sqrt(5.0 / PI) * (3.0 * ct * ct - 1.0);
+      else if (m == 1) y = 0.5 * sqrt(15.0 / PI) * st * ct * cp;
+      else if (m == -1) y = 0.5 * sqrt(15.0 / PI) * st * ct * sp;
+      else if (m == 2) y = 0.25 * sqrt(15.0 / PI) * st * st * (useReal ? cos(2.0 * phi) : 1.0);
+      else if (m == -2) y = 0.25 * sqrt(15.0 / PI) * st * st * (useReal ? sin(2.0 * phi) : 1.0);
     } else if (l == 3) {
-      if (m == 0) return 0.25 * sqrt(7.0 / PI) * (5.0 * ct * ct * ct - 3.0 * ct);
-      if (abs(m) == 1) return 0.125 * sqrt(42.0 / PI) * st * (5.0 * ct * ct - 1.0) * (m > 0 ? cp : sp);
-      if (abs(m) == 2) return 0.25 * sqrt(105.0 / PI) * st * st * ct * (useReal ? (m > 0 ? cos(2.0*phi) : sin(2.0*phi)) : 1.0);
-      if (abs(m) == 3) return 0.125 * sqrt(70.0 / PI) * st * st * st * (useReal ? (m > 0 ? cos(3.0*phi) : sin(3.0*phi)) : 1.0);
+      if (m == 0) y = 0.25 * sqrt(7.0 / PI) * (5.0 * ct * ct * ct - 3.0 * ct);
+      else if (abs(m) == 1) y = 0.125 * sqrt(42.0 / PI) * st * (5.0 * ct * ct - 1.0) * (m > 0 ? cp : sp);
+      else if (abs(m) == 2) y = 0.25 * sqrt(105.0 / PI) * st * st * ct * (useReal ? (m > 0 ? cos(2.0*phi) : sin(2.0*phi)) : 1.0);
+      else if (abs(m) == 3) y = 0.125 * sqrt(70.0 / PI) * st * st * st * (useReal ? (m > 0 ? cos(3.0*phi) : sin(3.0*phi)) : 1.0);
     }
-    return 0.5 * sqrt(1.0 / PI);
+    
+    if (!useReal && m != 0) {
+      y *= 0.70710678;
+    }
+    return y;
   }
 
   float evalPsi(vec3 p) {
@@ -573,29 +579,35 @@ export class OrbitalRenderer {
     const cp = useReal ? Math.cos(phi) : 1.0;
     const sp = useReal ? Math.sin(phi) : 1.0;
 
-    if (l === 0) return 0.5 * Math.sqrt(1.0 / Math.PI);
-    if (l === 1) {
-      if (m === 0) return 0.5 * Math.sqrt(3.0 / Math.PI) * ct;
-      if (m === 1) return 0.5 * Math.sqrt(3.0 / Math.PI) * st * cp;
-      if (m === -1) return 0.5 * Math.sqrt(3.0 / Math.PI) * st * sp;
+    let y = 0.5 * Math.sqrt(1.0 / Math.PI);
+
+    if (l === 0) y = 0.5 * Math.sqrt(1.0 / Math.PI);
+    else if (l === 1) {
+      if (m === 0) y = 0.5 * Math.sqrt(3.0 / Math.PI) * ct;
+      else if (m === 1) y = 0.5 * Math.sqrt(3.0 / Math.PI) * st * cp;
+      else if (m === -1) y = 0.5 * Math.sqrt(3.0 / Math.PI) * st * sp;
     }
-    if (l === 2) {
-      if (m === 0) return 0.25 * Math.sqrt(5.0 / Math.PI) * (3.0 * ct * ct - 1.0);
-      if (m === 1) return 0.5 * Math.sqrt(15.0 / Math.PI) * st * ct * cp;
-      if (m === -1) return 0.5 * Math.sqrt(15.0 / Math.PI) * st * ct * sp;
-      if (m === 2) return 0.25 * Math.sqrt(15.0 / Math.PI) * st * st * (useReal ? Math.cos(2 * phi) : 1.0);
-      if (m === -2) return 0.25 * Math.sqrt(15.0 / Math.PI) * st * st * (useReal ? Math.sin(2 * phi) : 1.0);
+    else if (l === 2) {
+      if (m === 0) y = 0.25 * Math.sqrt(5.0 / Math.PI) * (3.0 * ct * ct - 1.0);
+      else if (m === 1) y = 0.5 * Math.sqrt(15.0 / Math.PI) * st * ct * cp;
+      else if (m === -1) y = 0.5 * Math.sqrt(15.0 / Math.PI) * st * ct * sp;
+      else if (m === 2) y = 0.25 * Math.sqrt(15.0 / Math.PI) * st * st * (useReal ? Math.cos(2 * phi) : 1.0);
+      else if (m === -2) y = 0.25 * Math.sqrt(15.0 / Math.PI) * st * st * (useReal ? Math.sin(2 * phi) : 1.0);
     }
-    if (l === 3) {
-      if (m === 0) return 0.25 * Math.sqrt(7.0 / Math.PI) * (5.0 * ct * ct * ct - 3.0 * ct);
-      if (m === 1) return 0.25 * Math.sqrt(10.5 / Math.PI) * st * (5.0 * ct * ct - 1.0) * cp;
-      if (m === -1) return 0.25 * Math.sqrt(10.5 / Math.PI) * st * (5.0 * ct * ct - 1.0) * sp;
-      if (m === 2) return 0.25 * Math.sqrt(105.0 / Math.PI) * st * st * ct * (useReal ? Math.cos(2 * phi) : 1.0);
-      if (m === -2) return 0.25 * Math.sqrt(105.0 / Math.PI) * st * st * ct * (useReal ? Math.sin(2 * phi) : 1.0);
-      if (m === 3) return 0.25 * Math.sqrt(17.5 / Math.PI) * st * st * st * (useReal ? Math.cos(3 * phi) : 1.0);
-      if (m === -3) return 0.25 * Math.sqrt(17.5 / Math.PI) * st * st * st * (useReal ? Math.sin(3 * phi) : 1.0);
+    else if (l === 3) {
+      if (m === 0) y = 0.25 * Math.sqrt(7.0 / Math.PI) * (5.0 * ct * ct * ct - 3.0 * ct);
+      else if (m === 1) y = 0.25 * Math.sqrt(10.5 / Math.PI) * st * (5.0 * ct * ct - 1.0) * cp;
+      else if (m === -1) y = 0.25 * Math.sqrt(10.5 / Math.PI) * st * (5.0 * ct * ct - 1.0) * sp;
+      else if (m === 2) y = 0.25 * Math.sqrt(105.0 / Math.PI) * st * st * ct * (useReal ? Math.cos(2 * phi) : 1.0);
+      else if (m === -2) y = 0.25 * Math.sqrt(105.0 / Math.PI) * st * st * ct * (useReal ? Math.sin(2 * phi) : 1.0);
+      else if (m === 3) y = 0.25 * Math.sqrt(17.5 / Math.PI) * st * st * st * (useReal ? Math.cos(3 * phi) : 1.0);
+      else if (m === -3) y = 0.25 * Math.sqrt(17.5 / Math.PI) * st * st * st * (useReal ? Math.sin(3 * phi) : 1.0);
     }
-    return 0.5 * Math.sqrt(1.0 / Math.PI);
+    
+    if (!useReal && m !== 0) {
+      y *= Math.SQRT1_2;
+    }
+    return y;
   }
 
   private clearCurrentMesh(): void {
