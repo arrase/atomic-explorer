@@ -18,7 +18,7 @@
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2",
-    "@types/node": "^26.1.2",
+    "@types/node": "^26.2.0",
     "@types/three": "^0.172.0",
     "esbuild": "^0.28.1",
     "rollup": "^4.62.4",
