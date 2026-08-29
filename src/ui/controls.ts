@@ -219,10 +219,12 @@ export class ControlPanel {
       <div class="physics-panel-container"></div>
     `;
 
-    const physicsContainer = this.container.querySelector('.physics-panel-container') as HTMLElement;
-    if (physicsContainer) {
-      this.physicsPanel = new OrbitalPhysicsPanel(physicsContainer, this.currentParams);
+    if (this.physicsPanel) {
+      this.physicsPanel.destroy();
     }
+
+    const physicsContainer = this.container.querySelector('.physics-panel-container') as HTMLElement;
+    this.physicsPanel = new OrbitalPhysicsPanel(physicsContainer, this.currentParams);
 
     this.attachEventListeners();
   }
@@ -236,38 +238,38 @@ export class ControlPanel {
 
     const btnShowControls = this.container.querySelector('#btn-show-controls') as HTMLElement;
     const btnShowPhysics = this.container.querySelector('#btn-show-physics') as HTMLElement;
-    const btnCloseControls = this.container.querySelector('#btn-close-controls');
+    const btnCloseControls = this.container.querySelector('#btn-close-controls') as HTMLElement;
 
     const closeAllDrawers = () => {
-      controlPanel?.classList.remove('mobile-open');
-      physicsContainer?.classList.remove('mobile-open');
-      backdrop?.classList.remove('active');
-      btnShowControls?.classList.remove('active');
-      btnShowPhysics?.classList.remove('active');
+      controlPanel.classList.remove('mobile-open');
+      physicsContainer.classList.remove('mobile-open');
+      backdrop.classList.remove('active');
+      btnShowControls.classList.remove('active');
+      btnShowPhysics.classList.remove('active');
     };
 
-    btnShowControls?.addEventListener('click', () => {
-      const isOpen = controlPanel?.classList.contains('mobile-open');
+    btnShowControls.addEventListener('click', () => {
+      const isOpen = controlPanel.classList.contains('mobile-open');
       closeAllDrawers();
       if (!isOpen) {
-        controlPanel?.classList.add('mobile-open');
-        backdrop?.classList.add('active');
+        controlPanel.classList.add('mobile-open');
+        backdrop.classList.add('active');
         btnShowControls.classList.add('active');
       }
     });
 
-    btnShowPhysics?.addEventListener('click', () => {
-      const isOpen = physicsContainer?.classList.contains('mobile-open');
+    btnShowPhysics.addEventListener('click', () => {
+      const isOpen = physicsContainer.classList.contains('mobile-open');
       closeAllDrawers();
       if (!isOpen) {
-        physicsContainer?.classList.add('mobile-open');
-        backdrop?.classList.add('active');
+        physicsContainer.classList.add('mobile-open');
+        backdrop.classList.add('active');
         btnShowPhysics.classList.add('active');
       }
     });
 
-    btnCloseControls?.addEventListener('click', closeAllDrawers);
-    backdrop?.addEventListener('click', closeAllDrawers);
+    btnCloseControls.addEventListener('click', closeAllDrawers);
+    backdrop.addEventListener('click', closeAllDrawers);
 
     const nInput = this.container.querySelector('#n-select') as HTMLInputElement;
     const lInput = this.container.querySelector('#l-select') as HTMLInputElement;
@@ -280,7 +282,7 @@ export class ControlPanel {
     const zeffInput = this.container.querySelector('#zeff-input') as HTMLInputElement;
     const contrastInput = this.container.querySelector('#contrast-input') as HTMLInputElement;
 
-    const exportBtn = this.container.querySelector('#btn-open-export');
+    const exportBtn = this.container.querySelector('#btn-open-export') as HTMLElement;
 
     const customPanel = this.container.querySelector('#custom-tuning') as HTMLElement;
     const ptsInput = this.container.querySelector('#pts-input') as HTMLInputElement;
@@ -295,7 +297,7 @@ export class ControlPanel {
     const ptsVal = this.container.querySelector('#pts-val') as HTMLElement;
     const stepsVal = this.container.querySelector('#steps-val') as HTMLElement;
 
-    exportBtn?.addEventListener('click', () => {
+    exportBtn.addEventListener('click', () => {
       if (this.onExportClick) this.onExportClick();
     });
 
@@ -340,7 +342,7 @@ export class ControlPanel {
       const zEff = parseFloat(zeffInput.value);
       zeffVal.textContent = zEff.toFixed(2);
       const contrast = parseFloat(contrastInput.value);
-      if (contrastVal) contrastVal.textContent = String(Math.round(contrast));
+      contrastVal.textContent = String(Math.round(contrast));
 
       const qualitySettings = this.resolveQualityPreset(
         quality,
@@ -352,9 +354,9 @@ export class ControlPanel {
         stepsVal
       );
 
-      if (ptsInput) ptsInput.value = String(qualitySettings.pointCount);
-      if (stepsInput) stepsInput.value = String(qualitySettings.raymarchingSteps);
-      if (scaleSelect) scaleSelect.value = String(qualitySettings.resolutionScale);
+      ptsInput.value = String(qualitySettings.pointCount);
+      stepsInput.value = String(qualitySettings.raymarchingSteps);
+      scaleSelect.value = String(qualitySettings.resolutionScale);
 
       this.currentParams = {
         ...this.currentParams,
@@ -373,7 +375,7 @@ export class ControlPanel {
         contrast,
       };
 
-      this.physicsPanel?.updateParams(this.currentParams);
+      this.physicsPanel!.updateParams(this.currentParams);
       this.onChange(this.currentParams);
     };
 
@@ -388,28 +390,28 @@ export class ControlPanel {
     zeffInput.addEventListener('input', updateControls);
     contrastInput.addEventListener('input', updateControls);
 
-    if (ptsInput) ptsInput.addEventListener('input', updateControls);
-    if (stepsInput) stepsInput.addEventListener('input', updateControls);
-    if (scaleSelect) scaleSelect.addEventListener('change', updateControls);
+    ptsInput.addEventListener('input', updateControls);
+    stepsInput.addEventListener('input', updateControls);
+    scaleSelect.addEventListener('change', updateControls);
   }
 
   private resolveQualityPreset(
     quality: QualityPreset,
     customPanel: HTMLElement,
-    ptsInput: HTMLInputElement | null,
-    stepsInput: HTMLInputElement | null,
-    scaleSelect: HTMLSelectElement | null,
-    ptsVal: HTMLElement | null,
-    stepsVal: HTMLElement | null
+    ptsInput: HTMLInputElement,
+    stepsInput: HTMLInputElement,
+    scaleSelect: HTMLSelectElement,
+    ptsVal: HTMLElement,
+    stepsVal: HTMLElement
   ): { pointCount: number; raymarchingSteps: number; resolutionScale: number } {
     if (quality === 'custom') {
       customPanel.classList.remove('hidden');
-      const pointCount = ptsInput ? parseInt(ptsInput.value, 10) : 50000;
-      const raymarchingSteps = stepsInput ? parseInt(stepsInput.value, 10) : 96;
-      const resolutionScale = scaleSelect ? parseFloat(scaleSelect.value) : 1.0;
+      const pointCount = parseInt(ptsInput.value, 10);
+      const raymarchingSteps = parseInt(stepsInput.value, 10);
+      const resolutionScale = parseFloat(scaleSelect.value);
 
-      if (ptsVal) ptsVal.textContent = pointCount.toLocaleString();
-      if (stepsVal) stepsVal.textContent = String(raymarchingSteps);
+      ptsVal.textContent = pointCount.toLocaleString();
+      stepsVal.textContent = String(raymarchingSteps);
 
       return { pointCount, raymarchingSteps, resolutionScale };
     }
@@ -424,15 +426,13 @@ export class ControlPanel {
       extreme: { pointCount: 1500000, raymarchingSteps: 512, resolutionScale: 2.0 },
     };
 
-    return presets[quality] || presets.medium;
+    return presets[quality];
   }
 
   public setParams(params: Partial<ExtendedOrbitalParams>): void {
     this.currentParams = { ...this.currentParams, ...params };
     
-    if (this.currentParams.n !== undefined) {
-      this.currentParams.n = Math.max(1, Math.min(7, Math.floor(this.currentParams.n)));
-    }
+    this.currentParams.n = Math.max(1, Math.min(7, Math.floor(this.currentParams.n)));
     const maxL = this.currentParams.n - 1;
     if (this.currentParams.l > maxL) {
       this.currentParams.l = maxL;

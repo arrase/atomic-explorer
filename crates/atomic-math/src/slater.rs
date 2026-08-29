@@ -230,18 +230,7 @@ pub fn sto_radial_wavefunction(n: u32, z_eff: f64, r: f64) -> Result<f64, String
     let norm_num = (2.0 * zeta).powf(n_eff + 0.5);
     let norm = norm_num / norm_denom;
 
-    let radial_factor = if r == 0.0 {
-        if (n_eff - 1.0).abs() < 1e-9 {
-            1.0
-        } else if n_eff > 1.0 {
-            0.0
-        } else {
-            0.0
-        }
-    } else {
-        r.powf(n_eff - 1.0)
-    };
-
+    let radial_factor = r.powf(n_eff - 1.0);
     Ok(norm * radial_factor * (-zeta * r).exp())
 }
 

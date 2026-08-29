@@ -56,14 +56,7 @@ async function calculateValenceQuantumNumbers(Z: number) {
   }
 
   const m = 0;
-
-  let zEff: number;
-  try {
-    zEff = await getSlaterZEff(Z, n, l);
-  } catch {
-    zEff = Math.min(30.0, Math.max(1.0, 1.0 + (Z - 1) * 0.35));
-  }
-
+  const zEff = await getSlaterZEff(Z, n, l);
   return { n, l, m, zEff: parseFloat(zEff.toFixed(2)) };
 }
 
@@ -71,11 +64,6 @@ async function init() {
   const canvas = document.getElementById('orbital-canvas') as HTMLCanvasElement;
   const uiOverlay = document.getElementById('ui-overlay') as HTMLElement;
   const fpsCounter = document.getElementById('fps-counter') as HTMLElement;
-
-  if (!canvas || !uiOverlay || !fpsCounter) {
-    console.error('Required DOM elements not found');
-    return;
-  }
 
   const orbitalRenderer = new OrbitalRenderer(canvas);
   const moleculeRenderer = new MoleculeRenderer(canvas);
@@ -128,8 +116,6 @@ async function init() {
           orbitalRenderer.updateRaymarching(params);
         }
       }
-    } catch (err) {
-      console.error('Failed to load orbital:', err);
     } finally {
       if (requestId === currentLoadRequestId) {
         document.body.classList.remove('loading');

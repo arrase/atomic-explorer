@@ -72,20 +72,20 @@ export class NavigationBar {
   }
 
   private attachEventListeners(): void {
-    const navTabsMenu = this.container.querySelector('#nav-tabs-menu');
-    const mobileMenuToggle = this.container.querySelector('#mobile-menu-toggle');
+    const navTabsMenu = this.container.querySelector('#nav-tabs-menu') as HTMLElement;
+    const mobileMenuToggle = this.container.querySelector('#mobile-menu-toggle') as HTMLElement;
 
-    mobileMenuToggle?.addEventListener('click', (e) => {
+    mobileMenuToggle.addEventListener('click', (e) => {
       e.stopPropagation();
-      navTabsMenu?.classList.toggle('mobile-open');
+      navTabsMenu.classList.toggle('mobile-open');
       mobileMenuToggle.classList.toggle('active');
     });
 
     document.addEventListener('click', (e) => {
       const target = e.target as HTMLElement;
       if (!this.container.contains(target)) {
-        navTabsMenu?.classList.remove('mobile-open');
-        mobileMenuToggle?.classList.remove('active');
+        navTabsMenu.classList.remove('mobile-open');
+        mobileMenuToggle.classList.remove('active');
       }
     });
 
@@ -93,8 +93,8 @@ export class NavigationBar {
     buttons.forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const target = (e.currentTarget as HTMLElement).getAttribute('data-tab') as TabId;
-        navTabsMenu?.classList.remove('mobile-open');
-        mobileMenuToggle?.classList.remove('active');
+        navTabsMenu.classList.remove('mobile-open');
+        mobileMenuToggle.classList.remove('active');
         if (target && target !== this.activeTab) {
           this.setActiveTab(target);
           this.onTabChange(target);
@@ -102,22 +102,22 @@ export class NavigationBar {
       });
     });
 
-    const glossaryBtn = this.container.querySelector('#nav-glossary-btn');
-    glossaryBtn?.addEventListener('click', () => {
-      navTabsMenu?.classList.remove('mobile-open');
-      mobileMenuToggle?.classList.remove('active');
+    const glossaryBtn = this.container.querySelector('#nav-glossary-btn') as HTMLElement;
+    glossaryBtn.addEventListener('click', () => {
+      navTabsMenu.classList.remove('mobile-open');
+      mobileMenuToggle.classList.remove('active');
       this.glossaryModal.open();
     });
 
-    const introBtn = this.container.querySelector('#nav-intro-btn');
-    introBtn?.addEventListener('click', () => {
-      navTabsMenu?.classList.remove('mobile-open');
-      mobileMenuToggle?.classList.remove('active');
+    const introBtn = this.container.querySelector('#nav-intro-btn') as HTMLElement;
+    introBtn.addEventListener('click', () => {
+      navTabsMenu.classList.remove('mobile-open');
+      mobileMenuToggle.classList.remove('active');
       ExplanationModal.show(getStrings().explainIntro);
     });
 
     const langSelect = this.container.querySelector('#lang-select') as HTMLSelectElement;
-    langSelect?.addEventListener('change', (e) => {
+    langSelect.addEventListener('change', (e) => {
       const selectedLang = (e.target as HTMLSelectElement).value as Language;
       setLanguage(selectedLang);
     });

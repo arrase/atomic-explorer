@@ -95,14 +95,14 @@ export class ImageExporterModal {
   }
 
   private attachEvents(): void {
-    const closeBtn = this.overlay.querySelector('#btn-close-export');
-    const cancelBtn = this.overlay.querySelector('#btn-cancel-export');
+    const closeBtn = this.overlay.querySelector('#btn-close-export') as HTMLElement;
+    const cancelBtn = this.overlay.querySelector('#btn-cancel-export') as HTMLElement;
     const exportBtn = this.overlay.querySelector('#btn-do-export') as HTMLButtonElement;
 
-    closeBtn?.addEventListener('click', () => this.close());
-    cancelBtn?.addEventListener('click', () => this.close());
+    closeBtn.addEventListener('click', () => this.close());
+    cancelBtn.addEventListener('click', () => this.close());
 
-    exportBtn?.addEventListener('click', async () => {
+    exportBtn.addEventListener('click', async () => {
       const resSelect = this.overlay.querySelector('#export-res-select') as HTMLSelectElement;
       const ssSelect = this.overlay.querySelector('#export-ss-select') as HTMLSelectElement;
       const bgSelect = this.overlay.querySelector('#export-bg-select') as HTMLSelectElement;
@@ -138,28 +138,23 @@ export class ImageExporterModal {
       const origText = exportBtn.textContent;
       exportBtn.textContent = getStrings().exportGenerating;
 
-      try {
-        const dataUrl = await this.onExport({ width, height, superSampling, background, format });
+      const dataUrl = await this.onExport({ width, height, superSampling, background, format });
 
-        // Trigger download
-        const ext = format === 'image/jpeg' ? 'jpg' : format === 'image/webp' ? 'webp' : 'png';
-        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-        const filename = `atomic-explorer-${width}x${height}-${timestamp}.${ext}`;
+      // Trigger download
+      const ext = format === 'image/jpeg' ? 'jpg' : format === 'image/webp' ? 'webp' : 'png';
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const filename = `atomic-explorer-${width}x${height}-${timestamp}.${ext}`;
 
-        const a = document.createElement('a');
-        a.href = dataUrl;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
 
-        this.close();
-      } catch (err) {
-        console.error('Export image failed:', err);
-      } finally {
-        exportBtn.disabled = false;
-        exportBtn.textContent = origText;
-      }
+      exportBtn.disabled = false;
+      exportBtn.textContent = origText;
+      this.close();
     });
   }
 }

@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { MarchingCubes } from 'three/addons/objects/MarchingCubes.js';
+import { captureWebGLSnapshot, SnapshotOptions } from './render-utils';
 
 export type RenderMode = 'points' | 'isosurface' | 'raymarching';
 export type QualityPreset = 'low' | 'medium' | 'high' | 'ultra' | 'extreme' | 'custom';
@@ -21,6 +22,13 @@ export interface OrbitalRenderParams {
   colorPalette?: ColorPalette;
   contrast?: number;
 }
+
+export const PALETTE_CONFIG: Record<ColorPalette, { id: number; posColor: number; negColor: number }> = {
+  default: { id: 0, posColor: 0x00ccff, negColor: 0xff6611 },
+  fire: { id: 1, posColor: 0xffcc33, negColor: 0x6600cc },
+  emerald: { id: 2, posColor: 0x66ffb2, negColor: 0xcc9900 },
+  spectrum: { id: 3, posColor: 0x22ccff, negColor: 0xff2255 },
+};
 
 // Shader for Point Cloud rendering with Wavefunction Phase Sign (+/-)
 const pointVertexShader = `
@@ -406,8 +414,8 @@ export class OrbitalRenderer {
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geometry.setAttribute('a_sign', new THREE.BufferAttribute(signs, 1));
 
-    const paletteId = this.paletteToId(this.currentParams.colorPalette);
-    const spatialScale = Math.sqrt((this.currentParams.n * this.currentParams.n) / Math.max(this.currentParams.zEff, 0.5));
+    const palette = PALETTE_CONFIG[this.currentParams.colorPalette || 'default'];
+    const spatialScale = Math.sqrt((this.currentParams.n * this.currentParams.n) / this.currentParams.zEff);
 
     const material = new THREE.ShaderMaterial({
       vertexShader: pointVertexShader,
@@ -415,7 +423,7 @@ export class OrbitalRenderer {
       uniforms: {
         u_pointSizeScale: { value: 18.0 },
         u_spatialScale: { value: spatialScale },
-        u_palette: { value: paletteId },
+        u_palette: { value: palette.id },
       },
       transparent: true,
       blending: THREE.AdditiveBlending,
@@ -444,8 +452,9 @@ export class OrbitalRenderer {
         ? 128
         : 64;
 
-    const baseColorPos = this.paletteToIsoColorPos(params.colorPalette);
-    const baseColorNeg = this.paletteToIsoColorNeg(params.colorPalette);
+    const palette = PALETTE_CONFIG[params.colorPalette || 'default'];
+    const baseColorPos = palette.posColor;
+    const baseColorNeg = palette.negColor;
 
     const materialPos = new THREE.MeshPhysicalMaterial({
       color: baseColorPos,
@@ -534,7 +543,7 @@ export class OrbitalRenderer {
     this.currentMode = 'raymarching';
     this.currentParams = { ...params };
 
-    const boxExtent = (4.0 * (params.n * params.n)) / Math.max(params.zEff, 0.5);
+    const boxExtent = (4.0 * (params.n * params.n)) / params.zEff;
     const geometry = new THREE.BoxGeometry(boxExtent * 2, boxExtent * 2, boxExtent * 2);
 
     const steps = params.raymarchingSteps ?? (
@@ -545,7 +554,7 @@ export class OrbitalRenderer {
       params.quality === 'extreme' ? 512 : 128
     );
 
-    const paletteId = this.paletteToId(params.colorPalette);
+    const palette = PALETTE_CONFIG[params.colorPalette || 'default'];
     const peakDensity = this.calculatePeakDensity(params.n, params.l, params.m, params.zEff, params.useRealOrbital);
     const contrast = params.contrast ?? 25.0;
 
@@ -561,7 +570,7 @@ export class OrbitalRenderer {
         u_boxMin: { value: new THREE.Vector3(-boxExtent, -boxExtent, -boxExtent) },
         u_boxMax: { value: new THREE.Vector3(boxExtent, boxExtent, boxExtent) },
         u_steps: { value: steps },
-        u_palette: { value: paletteId },
+        u_palette: { value: palette.id },
         u_peakDensity: { value: peakDensity },
         u_contrast: { value: contrast },
       },
@@ -572,33 +581,6 @@ export class OrbitalRenderer {
 
     this.raymarchingMesh = new THREE.Mesh(geometry, this.raymarchingMaterial);
     this.scene.add(this.raymarchingMesh);
-  }
-
-  private paletteToId(palette?: ColorPalette): number {
-    switch (palette) {
-      case 'fire': return 1;
-      case 'emerald': return 2;
-      case 'spectrum': return 3;
-      default: return 0;
-    }
-  }
-
-  private paletteToIsoColorPos(palette?: ColorPalette): number {
-    switch (palette) {
-      case 'fire': return 0xffcc33;
-      case 'emerald': return 0x66ffb2;
-      case 'spectrum': return 0x22ccff;
-      default: return 0x00ccff; // Cyan
-    }
-  }
-
-  private paletteToIsoColorNeg(palette?: ColorPalette): number {
-    switch (palette) {
-      case 'fire': return 0x6600cc;
-      case 'emerald': return 0xcc9900;
-      case 'spectrum': return 0xff2255;
-      default: return 0xff6611; // Orange/Red
-    }
   }
 
   private factorial(n: number): number {
@@ -748,47 +730,8 @@ export class OrbitalRenderer {
 
   };
 
-  public async captureSnapshot(options: {
-    width: number;
-    height: number;
-    superSampling: number;
-    format: 'image/png' | 'image/jpeg' | 'image/webp';
-    background: 'dark' | 'black' | 'white' | 'transparent';
-  }): Promise<string> {
-    const origPixelRatio = this.renderer.getPixelRatio();
-    const origClearColor = new THREE.Color();
-    this.renderer.getClearColor(origClearColor);
-    const origClearAlpha = this.renderer.getClearAlpha();
-
-    const targetWidth = Math.round(options.width);
-    const targetHeight = Math.round(options.height);
-
-    this.renderer.setPixelRatio(options.superSampling);
-    this.renderer.setSize(targetWidth, targetHeight, false);
-
-    this.camera.aspect = targetWidth / targetHeight;
-    this.camera.updateProjectionMatrix();
-
-    if (options.background === 'black') {
-      this.renderer.setClearColor(new THREE.Color(0x000000), 1.0);
-    } else if (options.background === 'white') {
-      this.renderer.setClearColor(new THREE.Color(0xffffff), 1.0);
-    } else if (options.background === 'transparent') {
-      this.renderer.setClearColor(new THREE.Color(0x000000), 0.0);
-    } else {
-      this.renderer.setClearColor(new THREE.Color('#0a0a1a'), 1.0);
-    }
-
-    this.renderer.render(this.scene, this.camera);
-
-    const dataUrl = this.renderer.domElement.toDataURL(options.format, 0.95);
-
-    // Restore original size
-    this.renderer.setPixelRatio(origPixelRatio);
-    this.renderer.setClearColor(origClearColor, origClearAlpha);
-    this.onWindowResize();
-
-    return dataUrl;
+  public async captureSnapshot(options: SnapshotOptions): Promise<string> {
+    return captureWebGLSnapshot(this.renderer, this.scene, this.camera, options, this.onWindowResize);
   }
 
   private isAnimating: boolean = false;
@@ -796,18 +739,14 @@ export class OrbitalRenderer {
   public start(): void {
     if (!this.isAnimating) {
       this.isAnimating = true;
-      if (this.animationId !== undefined) {
-        cancelAnimationFrame(this.animationId);
-      }
+      cancelAnimationFrame(this.animationId);
       this.animate();
     }
   }
 
   public stop(): void {
     this.isAnimating = false;
-    if (this.animationId !== undefined) {
-      cancelAnimationFrame(this.animationId);
-    }
+    cancelAnimationFrame(this.animationId);
   }
 
   public animate = (): void => {

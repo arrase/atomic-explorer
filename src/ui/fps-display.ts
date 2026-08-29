@@ -5,6 +5,8 @@ export class FPSDisplay {
   private lastTime: number = performance.now();
   private frames: number = 0;
   private fpsValues: number[] = [];
+  private currentEl!: HTMLElement;
+  private avgEl!: HTMLElement;
   
   constructor(container: HTMLElement) {
     this.container = container;
@@ -22,6 +24,8 @@ export class FPSDisplay {
       <div>${strings.fps}: <span id="fps-current">0</span></div>
       <div class="fps-avg">${strings.avgFps}: <span id="fps-avg">0</span></div>
     `;
+    this.currentEl = this.container.querySelector('#fps-current') as HTMLElement;
+    this.avgEl = this.container.querySelector('#fps-avg') as HTMLElement;
   }
 
   private update = (): void => {
@@ -40,16 +44,13 @@ export class FPSDisplay {
         this.fpsValues.reduce((a, b) => a + b, 0) / this.fpsValues.length
       );
       
-      const currentEl = this.container.querySelector('#fps-current');
-      const avgEl = this.container.querySelector('#fps-avg');
-      
-      if (currentEl) currentEl.textContent = fps.toString();
-      if (avgEl) avgEl.textContent = avgFps.toString();
+      this.currentEl.textContent = String(fps);
+      this.avgEl.textContent = String(avgFps);
       
       this.frames = 0;
       this.lastTime = now;
     }
     
     requestAnimationFrame(this.update);
-  }
+  };
 }

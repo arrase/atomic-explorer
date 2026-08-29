@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { captureWebGLSnapshot, SnapshotOptions } from './render-utils';
 
 export interface MoleculeAtom {
   symbol: string;
@@ -228,7 +229,7 @@ export class MoleculeRenderer {
   }
 
   public toggleLobes(visible?: boolean): boolean {
-    this.showLobes = visible ?? !this.showLobes;
+    this.showLobes = visible === undefined ? !this.showLobes : visible;
     this.lobesGroup.visible = this.showLobes;
     return this.showLobes;
   }
@@ -236,7 +237,8 @@ export class MoleculeRenderer {
   public clear(): void {
     const clearGroup = (group: THREE.Group) => {
       while (group.children.length > 0) {
-        const obj = group.children.pop()!;
+        const obj = group.children[group.children.length - 1];
+        group.remove(obj);
         if (obj instanceof THREE.Mesh) {
           obj.geometry.dispose();
           (obj.material as THREE.Material).dispose();
@@ -253,46 +255,8 @@ export class MoleculeRenderer {
     this.renderer.setSize(window.innerWidth, window.innerHeight);
   };
 
-  public async captureSnapshot(options: {
-    width: number;
-    height: number;
-    superSampling: number;
-    format: 'image/png' | 'image/jpeg' | 'image/webp';
-    background: 'dark' | 'black' | 'white' | 'transparent';
-  }): Promise<string> {
-    const origPixelRatio = this.renderer.getPixelRatio();
-    const origClearColor = new THREE.Color();
-    this.renderer.getClearColor(origClearColor);
-    const origClearAlpha = this.renderer.getClearAlpha();
-
-    const targetWidth = Math.round(options.width);
-    const targetHeight = Math.round(options.height);
-
-    this.renderer.setPixelRatio(options.superSampling);
-    this.renderer.setSize(targetWidth, targetHeight, false);
-
-    this.camera.aspect = targetWidth / targetHeight;
-    this.camera.updateProjectionMatrix();
-
-    if (options.background === 'black') {
-      this.renderer.setClearColor(new THREE.Color(0x000000), 1.0);
-    } else if (options.background === 'white') {
-      this.renderer.setClearColor(new THREE.Color(0xffffff), 1.0);
-    } else if (options.background === 'transparent') {
-      this.renderer.setClearColor(new THREE.Color(0x000000), 0.0);
-    } else {
-      this.renderer.setClearColor(new THREE.Color('#0a0a1a'), 1.0);
-    }
-
-    this.renderer.render(this.scene, this.camera);
-    const dataUrl = this.renderer.domElement.toDataURL(options.format, 0.95);
-
-    // Restore original size
-    this.renderer.setPixelRatio(origPixelRatio);
-    this.renderer.setClearColor(origClearColor, origClearAlpha);
-    this.onWindowResize();
-
-    return dataUrl;
+  public async captureSnapshot(options: SnapshotOptions): Promise<string> {
+    return captureWebGLSnapshot(this.renderer, this.scene, this.camera, options, this.onWindowResize);
   }
 
   private isAnimating: boolean = false;
@@ -300,18 +264,14 @@ export class MoleculeRenderer {
   public start(): void {
     if (!this.isAnimating) {
       this.isAnimating = true;
-      if (this.animationId !== undefined) {
-        cancelAnimationFrame(this.animationId);
-      }
+      cancelAnimationFrame(this.animationId);
       this.animate();
     }
   }
 
   public stop(): void {
     this.isAnimating = false;
-    if (this.animationId !== undefined) {
-      cancelAnimationFrame(this.animationId);
-    }
+    cancelAnimationFrame(this.animationId);
   }
 
   public animate = (): void => {

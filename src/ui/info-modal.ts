@@ -47,8 +47,8 @@ export class ExplanationModal {
     document.body.appendChild(overlay);
     ExplanationModal.overlayElement = overlay;
 
-    const closeBtn = card.querySelector('.btn-close-modal');
-    const footerCloseBtn = card.querySelector('.info-modal-close-btn');
+    const closeBtn = card.querySelector('.btn-close-modal') as HTMLElement;
+    const footerCloseBtn = card.querySelector('.info-modal-close-btn') as HTMLElement;
 
     const handleClose = () => {
       if (options?.showDontShowAgain && options?.storageKey) {
@@ -60,8 +60,8 @@ export class ExplanationModal {
       ExplanationModal.close();
     };
 
-    closeBtn?.addEventListener('click', handleClose);
-    footerCloseBtn?.addEventListener('click', handleClose);
+    closeBtn.addEventListener('click', handleClose);
+    footerCloseBtn.addEventListener('click', handleClose);
 
     overlay.addEventListener('click', (e: MouseEvent) => {
       if (e.target === overlay) {

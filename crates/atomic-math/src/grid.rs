@@ -31,12 +31,14 @@ pub fn evaluate_density_grid_internal(
 
     for iz in 0..grid_size {
         let z = -bounds_f64 + (iz as f64) * step;
+        let z2 = z * z;
         for iy in 0..grid_size {
             let y = -bounds_f64 + (iy as f64) * step;
+            let y2_z2 = y * y + z2;
             for ix in 0..grid_size {
                 let x = -bounds_f64 + (ix as f64) * step;
 
-                let r = (x * x + y * y + z * z).sqrt();
+                let r = (x * x + y2_z2).sqrt();
                 let (theta, phi) = if r < 1e-12 {
                     (0.0, 0.0)
                 } else {
