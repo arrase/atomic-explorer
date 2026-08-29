@@ -69,16 +69,6 @@ body {
   top: 16px;
   left: 16px;
   right: 16px;
-  z-index: 20;
-  pointer-events: auto;
-}
-
-/* Top Navigation Bar */
-.top-nav-container {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  right: 16px;
   z-index: 50;
   pointer-events: auto;
 }

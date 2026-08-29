@@ -68,18 +68,11 @@ export class GlossaryModal {
     }
   }
 
-  private render(): void {
-    const strings = getStrings();
-    const currentLang = getLanguage();
-    const items: GlossaryItem[] = strings.glossaryItems || [];
-
-    // Extract unique categories dynamically from current language glossary items
-    const rawCategories = Array.from(new Set(items.map((item) => item.category)));
-    const allLabel = currentLang === 'es' ? 'Todos' : 'All';
-
-    // Filter items based on active category & search query
+  private getFilteredItems(): GlossaryItem[] {
+    const items: GlossaryItem[] = getStrings().glossaryItems || [];
     const query = this.searchQuery.toLowerCase().trim();
-    const filteredItems = items.filter((item) => {
+
+    return items.filter((item) => {
       const matchesCategory = this.activeCategory === 'all' || item.category === this.activeCategory;
       const matchesQuery =
         !query ||
@@ -89,6 +82,16 @@ export class GlossaryModal {
         item.details.toLowerCase().includes(query);
       return matchesCategory && matchesQuery;
     });
+  }
+
+  private render(): void {
+    const strings = getStrings();
+    const currentLang = getLanguage();
+    const items = strings.glossaryItems || [];
+
+    const rawCategories = Array.from(new Set(items.map((item) => item.category)));
+    const allLabel = currentLang === 'es' ? 'Todos' : 'All';
+    const filteredItems = this.getFilteredItems();
 
     if (!this.overlayElement) {
       this.overlayElement = document.createElement('div');
@@ -169,25 +172,25 @@ export class GlossaryModal {
       }
     };
 
-    const closeBtn = this.overlayElement.querySelector('.btn-close-modal');
-    const footerCloseBtn = this.overlayElement.querySelector('.glossary-modal-close-btn');
+    const closeBtn = this.overlayElement.querySelector('.btn-close-modal') as HTMLElement;
+    const footerCloseBtn = this.overlayElement.querySelector('.glossary-modal-close-btn') as HTMLElement;
 
-    closeBtn?.addEventListener('click', () => this.close());
-    footerCloseBtn?.addEventListener('click', () => this.close());
+    closeBtn.addEventListener('click', () => this.close());
+    footerCloseBtn.addEventListener('click', () => this.close());
 
     const searchInput = this.overlayElement.querySelector('#glossary-search-input') as HTMLInputElement;
-    if (searchInput) {
-      searchInput.addEventListener('input', (e: Event) => {
-        this.searchQuery = (e.target as HTMLInputElement).value;
-        this.renderListOnly();
-      });
-    }
+    searchInput.addEventListener('input', (e: Event) => {
+      this.searchQuery = (e.target as HTMLInputElement).value;
+      this.renderListOnly();
+    });
 
     const clearBtn = this.overlayElement.querySelector('#btn-clear-search');
-    clearBtn?.addEventListener('click', () => {
-      this.searchQuery = '';
-      this.render();
-    });
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        this.searchQuery = '';
+        this.render();
+      });
+    }
 
     const categoryTags = this.overlayElement.querySelectorAll('.category-tag');
     categoryTags.forEach((tag) => {
@@ -205,32 +208,16 @@ export class GlossaryModal {
 
   private renderListOnly(): void {
     if (!this.overlayElement) return;
-    const strings = getStrings();
     const currentLang = getLanguage();
-    const items: GlossaryItem[] = strings.glossaryItems || [];
+    const filteredItems = this.getFilteredItems();
 
-    const query = this.searchQuery.toLowerCase().trim();
-    const filteredItems = items.filter((item) => {
-      const matchesCategory = this.activeCategory === 'all' || item.category === this.activeCategory;
-      const matchesQuery =
-        !query ||
-        item.term.toLowerCase().includes(query) ||
-        item.category.toLowerCase().includes(query) ||
-        item.definition.toLowerCase().includes(query) ||
-        item.details.toLowerCase().includes(query);
-      return matchesCategory && matchesQuery;
-    });
+    const listContainer = this.overlayElement.querySelector('.glossary-list') as HTMLElement;
+    listContainer.innerHTML = this.renderGlossaryListHtml(filteredItems, currentLang);
+    this.attachCardClickEvents(listContainer);
 
-    const listContainer = this.overlayElement.querySelector('.glossary-list');
-    if (listContainer) {
-      listContainer.innerHTML = this.renderGlossaryListHtml(filteredItems, currentLang);
-      this.attachCardClickEvents(listContainer as HTMLElement);
-    }
-
-    // Toggle clear search button visibility
-    const searchWrapper = this.overlayElement.querySelector('.glossary-search-wrapper');
-    const existingClearBtn = searchWrapper?.querySelector('#btn-clear-search');
-    if (this.searchQuery && !existingClearBtn && searchWrapper) {
+    const searchWrapper = this.overlayElement.querySelector('.glossary-search-wrapper') as HTMLElement;
+    const existingClearBtn = searchWrapper.querySelector('#btn-clear-search');
+    if (this.searchQuery && !existingClearBtn) {
       const clearBtn = document.createElement('button');
       clearBtn.type = 'button';
       clearBtn.className = 'btn-clear-search';
@@ -238,8 +225,8 @@ export class GlossaryModal {
       clearBtn.innerHTML = '&times;';
       clearBtn.addEventListener('click', () => {
         this.searchQuery = '';
-        const searchInput = this.overlayElement?.querySelector('#glossary-search-input') as HTMLInputElement;
-        if (searchInput) searchInput.value = '';
+        const searchInput = this.overlayElement!.querySelector('#glossary-search-input') as HTMLInputElement;
+        searchInput.value = '';
         this.render();
       });
       searchWrapper.appendChild(clearBtn);

@@ -25,7 +25,8 @@ pub fn y_lm_real(l: u32, m: i32, theta: f64, phi: f64) -> Result<f64, String> {
         std::f64::consts::SQRT_2 * (m.abs() as f64 * phi).sin()
     };
 
-    Ok(prefactor * plm * phi_part)
+    let phase = if m_abs % 2 == 1 { -1.0 } else { 1.0 };
+    Ok(prefactor * phase * plm * phi_part)
 }
 
 pub fn y_lm_real_squared(l: u32, m: i32, theta: f64) -> Result<f64, String> {

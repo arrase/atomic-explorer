@@ -13,7 +13,7 @@ export interface ElementData {
   radius_pm: number;
   electronegativity: number | null;
   ionization_energy: number | null;
-  oxidation_states?: number[] | string;
+  oxidation_states?: number[];
   discovery_year: number | string;
 }
 
@@ -27,7 +27,7 @@ export class PeriodicTableView {
   constructor(container: HTMLElement, onSelectElementOrbital: (element: ElementData) => void) {
     this.container = container;
     this.onSelectElementOrbital = onSelectElementOrbital;
-    this.selectedElement = this.elements.find((e) => e.Z === 1) || this.elements[0] || null;
+    this.selectedElement = this.elements[0];
     this.render();
     onLanguageChange(() => this.render());
   }
@@ -90,8 +90,7 @@ export class PeriodicTableView {
   }
 
   private getElementName(el: ElementData): string {
-    const lang = getLanguage();
-    return lang === 'es' ? el.name_es : (el.name_en || el.name_es);
+    return getLanguage() === 'es' ? el.name_es : el.name_en;
   }
 
   private getCategoryName(categoryKey: string, strings: I18nStrings): string {
@@ -116,7 +115,7 @@ export class PeriodicTableView {
     return this.elements
       .map((el) => {
         const nameEs = el.name_es.toLowerCase();
-        const nameEn = (el.name_en || '').toLowerCase();
+        const nameEn = el.name_en.toLowerCase();
         const matches =
           !query ||
           nameEs.includes(query) ||
@@ -283,7 +282,7 @@ export class PeriodicTableView {
           </div>
           <div class="detail-row">
             <span>${strings.oxidationStates}:</span>
-            <strong>${el.oxidation_states ? (Array.isArray(el.oxidation_states) ? el.oxidation_states.map(s => s > 0 ? `+${s}` : `${s}`).join(', ') : el.oxidation_states) : 'N/A'}</strong>
+            <strong>${el.oxidation_states && el.oxidation_states.length > 0 ? el.oxidation_states.map(s => s > 0 ? `+${s}` : `${s}`).join(', ') : 'N/A'}</strong>
           </div>
           <div class="detail-row">
             <span>${strings.discovery}:</span>
@@ -294,72 +293,74 @@ export class PeriodicTableView {
     `;
   }
 
+  private openFullInspector(): void {
+    if (window.innerWidth <= 1024) {
+      const inspector = this.container.querySelector('#element-inspector') as HTMLElement;
+      const backdrop = this.container.querySelector('#periodic-drawer-backdrop') as HTMLElement;
+      inspector.classList.add('mobile-open');
+      backdrop.classList.add('active');
+    }
+  }
+
+  private closeFullInspector(): void {
+    const inspector = this.container.querySelector('#element-inspector') as HTMLElement;
+    const backdrop = this.container.querySelector('#periodic-drawer-backdrop') as HTMLElement;
+    inspector.classList.remove('mobile-open');
+    backdrop.classList.remove('active');
+  }
+
   private attachEventListeners(): void {
     const colorSelect = this.container.querySelector('#color-scheme-select') as HTMLSelectElement;
     const searchInput = this.container.querySelector('#element-search') as HTMLInputElement;
     const grid = this.container.querySelector('#periodic-grid') as HTMLElement;
-
-    const inspector = this.container.querySelector('#element-inspector') as HTMLElement;
     const backdrop = this.container.querySelector('#periodic-drawer-backdrop') as HTMLElement;
-    const btnCloseInspector = this.container.querySelector('#btn-close-inspector');
+    const btnCloseInspector = this.container.querySelector('#btn-close-inspector') as HTMLButtonElement;
 
-    const openFullInspector = () => {
-      if (window.innerWidth <= 1024) {
-        inspector?.classList.add('mobile-open');
-        backdrop?.classList.add('active');
-      }
-    };
+    btnCloseInspector.addEventListener('click', () => this.closeFullInspector());
+    backdrop.addEventListener('click', () => this.closeFullInspector());
 
-    const closeFullInspector = () => {
-      inspector?.classList.remove('mobile-open');
-      backdrop?.classList.remove('active');
-    };
-
-    btnCloseInspector?.addEventListener('click', closeFullInspector);
-    backdrop?.addEventListener('click', closeFullInspector);
-
-    colorSelect?.addEventListener('change', () => {
+    colorSelect.addEventListener('change', () => {
       this.currentColorScheme = colorSelect.value as 'category' | 'electronegativity' | 'radius';
-      grid.innerHTML = this.renderGridCells(searchInput?.value || '');
-      this.attachCellClickEvents();
-    });
-
-    searchInput?.addEventListener('input', () => {
       grid.innerHTML = this.renderGridCells(searchInput.value);
       this.attachCellClickEvents();
     });
 
-    this.attachQuickInspectorEvents(openFullInspector, closeFullInspector);
+    searchInput.addEventListener('input', () => {
+      grid.innerHTML = this.renderGridCells(searchInput.value);
+      this.attachCellClickEvents();
+    });
+
+    this.attachQuickInspectorEvents();
     this.attachCellClickEvents();
     this.attachInfoButtonEvents(this.container);
   }
 
-  private attachQuickInspectorEvents(openFullInspector: () => void, closeFullInspector: () => void): void {
-    const quick3dBtn = this.container.querySelector('#btn-quick-3d');
-    const quickDetailsBtn = this.container.querySelector('#btn-quick-details');
-    const quickTrigger = this.container.querySelector('#quick-inspector-trigger');
-    const inspector3dBtn = this.container.querySelector('#btn-view-orbital');
+  private attachQuickInspectorEvents(): void {
+    const quick3dBtn = this.container.querySelector('#btn-quick-3d') as HTMLElement;
+    const quickDetailsBtn = this.container.querySelector('#btn-quick-details') as HTMLElement;
+    const quickTrigger = this.container.querySelector('#quick-inspector-trigger') as HTMLElement;
+    const inspector3dBtn = this.container.querySelector('#btn-view-orbital') as HTMLElement;
 
-    quick3dBtn?.addEventListener('click', (e) => {
+    quick3dBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       if (this.selectedElement) {
-        closeFullInspector();
+        this.closeFullInspector();
         this.onSelectElementOrbital(this.selectedElement);
       }
     });
 
-    quickDetailsBtn?.addEventListener('click', (e) => {
+    quickDetailsBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      openFullInspector();
+      this.openFullInspector();
     });
 
-    quickTrigger?.addEventListener('click', () => {
-      openFullInspector();
+    quickTrigger.addEventListener('click', () => {
+      this.openFullInspector();
     });
 
-    inspector3dBtn?.addEventListener('click', () => {
+    inspector3dBtn.addEventListener('click', () => {
       if (this.selectedElement) {
-        closeFullInspector();
+        this.closeFullInspector();
         this.onSelectElementOrbital(this.selectedElement);
       }
     });
@@ -386,49 +387,31 @@ export class PeriodicTableView {
     const inspector = this.container.querySelector('#element-inspector') as HTMLElement;
     const quickInspector = this.container.querySelector('#mobile-quick-inspector') as HTMLElement;
 
-    const openFullInspector = () => {
-      if (window.innerWidth <= 1024) {
-        inspector?.classList.add('mobile-open');
-        const backdrop = this.container.querySelector('#periodic-drawer-backdrop');
-        backdrop?.classList.add('active');
-      }
-    };
-
-    const closeFullInspector = () => {
-      inspector?.classList.remove('mobile-open');
-      const backdrop = this.container.querySelector('#periodic-drawer-backdrop');
-      backdrop?.classList.remove('active');
-    };
-
     cells.forEach((cell) => {
       cell.addEventListener('click', () => {
-        const z = parseInt(cell.getAttribute('data-z') || '1', 10);
-        this.selectedElement = this.elements.find((e) => e.Z === z) || null;
+        const z = parseInt(cell.getAttribute('data-z')!, 10);
+        this.selectedElement = this.elements.find((e) => e.Z === z)!;
 
         cells.forEach((c) => c.classList.remove('selected'));
         cell.classList.add('selected');
 
         // Update Quick Inspector Bar
-        if (quickInspector) {
-          quickInspector.innerHTML = this.renderQuickInspectorContent();
-        }
+        quickInspector.innerHTML = this.renderQuickInspectorContent();
 
         // Update Full Inspector Panel
-        if (inspector) {
-          inspector.innerHTML = `
-            <div class="mobile-drawer-handle"></div>
-            <div class="panel-header-actions mobile-only-header">
-              <button class="panel-close-btn" id="btn-close-inspector" aria-label="Close">✕</button>
-            </div>
-            ${this.renderInspectorContent()}
-          `;
-          this.attachInfoButtonEvents(inspector);
+        inspector.innerHTML = `
+          <div class="mobile-drawer-handle"></div>
+          <div class="panel-header-actions mobile-only-header">
+            <button class="panel-close-btn" id="btn-close-inspector" aria-label="Close">✕</button>
+          </div>
+          ${this.renderInspectorContent()}
+        `;
+        this.attachInfoButtonEvents(inspector);
 
-          const closeBtn = inspector.querySelector('#btn-close-inspector');
-          closeBtn?.addEventListener('click', closeFullInspector);
-        }
+        const closeBtn = inspector.querySelector('#btn-close-inspector') as HTMLButtonElement;
+        closeBtn.addEventListener('click', () => this.closeFullInspector());
 
-        this.attachQuickInspectorEvents(openFullInspector, closeFullInspector);
+        this.attachQuickInspectorEvents();
       });
     });
   }

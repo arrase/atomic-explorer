@@ -7,10 +7,6 @@ export type { Language, I18nStrings, GlossaryItem, QuantumExplanation, PropertyE
 const STORAGE_KEY = 'atomic_explorer_lang';
 
 function detectSystemLanguage(): Language {
-  if (typeof window === 'undefined' || !window.navigator) {
-    return 'en';
-  }
-
   const savedLang = localStorage.getItem(STORAGE_KEY);
   if (savedLang === 'es' || savedLang === 'en') {
     return savedLang;
@@ -24,7 +20,7 @@ function detectSystemLanguage(): Language {
     }
   }
 
-  return 'en'; // Default fallback to English
+  return 'en';
 }
 
 let currentLang: Language = detectSystemLanguage();
@@ -40,12 +36,7 @@ export function setLanguage(lang: Language): void {
   if (currentLang === lang) return;
 
   currentLang = lang;
-  try {
-    localStorage.setItem(STORAGE_KEY, lang);
-  } catch (err) {
-    console.warn('Unable to persist language setting:', err);
-  }
-
+  localStorage.setItem(STORAGE_KEY, lang);
   document.documentElement.lang = lang;
 
   listeners.forEach((listener) => listener(currentLang));
@@ -63,6 +54,4 @@ export function onLanguageChange(listener: (lang: Language) => void): () => void
 }
 
 // Initial document lang update
-if (typeof document !== 'undefined') {
-  document.documentElement.lang = currentLang;
-}
+document.documentElement.lang = currentLang;

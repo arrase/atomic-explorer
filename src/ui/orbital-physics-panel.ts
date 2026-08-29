@@ -6,17 +6,59 @@ export class OrbitalPhysicsPanel {
   private container: HTMLElement;
   private currentParams: ExtendedOrbitalParams;
   private panelElement: HTMLElement | null = null;
+  private unsubscribeLang: (() => void) | null = null;
 
   constructor(container: HTMLElement, params: ExtendedOrbitalParams) {
     this.container = container;
     this.currentParams = params;
     this.render();
-    onLanguageChange(() => this.render());
+    this.unsubscribeLang = onLanguageChange(() => this.render());
   }
 
   public updateParams(params: ExtendedOrbitalParams): void {
     this.currentParams = params;
-    this.render();
+    if (!this.panelElement) {
+      this.render();
+      return;
+    }
+
+    const { n, l, m, useRealOrbital, zEff } = params;
+    const radialNodes = n - l - 1;
+    const angularNodes = l;
+    const totalNodes = n - 1;
+    const notation = this.getOrbitalNotation(n, l, m, useRealOrbital);
+
+    const rExpBohr = (0.5 / zEff) * (3 * n * n - l * (l + 1));
+    const rExpPm = rExpBohr * 52.917721;
+    const energyEv = -13.605693 * (zEff * zEff) / (n * n);
+
+    const seriesMap: Record<number, string> = {
+      1: 'Lyman (UV)',
+      2: 'Balmer (Visible/UV)',
+      3: 'Paschen (Near-IR)',
+      4: 'Brackett (IR)',
+      5: 'Pfund (Far-IR)',
+      6: 'Humphreys (Far-IR)',
+    };
+    const seriesName = seriesMap[n] || `Shell n=${n}`;
+
+    const badgeVal = this.panelElement.querySelector('#val-active-state') as HTMLElement;
+    const radialVal = this.panelElement.querySelector('#val-radial-nodes') as HTMLElement;
+    const angularVal = this.panelElement.querySelector('#val-angular-nodes') as HTMLElement;
+    const totalVal = this.panelElement.querySelector('#val-total-nodes') as HTMLElement;
+    const radiusVal = this.panelElement.querySelector('#val-exp-radius') as HTMLElement;
+    const energyVal = this.panelElement.querySelector('#val-energy') as HTMLElement;
+    const seriesVal = this.panelElement.querySelector('#val-series') as HTMLElement;
+    const zeffVal = this.panelElement.querySelector('#val-zeff') as HTMLElement;
+
+    badgeVal.textContent = `${notation} (n=${n}, l=${l}, m=${m})`;
+    radialVal.textContent = String(radialNodes);
+    angularVal.textContent = String(angularNodes);
+    totalVal.textContent = String(totalNodes);
+    radiusVal.innerHTML = `${rExpBohr.toFixed(2)} a₀ <small>(${rExpPm.toFixed(1)} pm)</small>`;
+    energyVal.textContent = `${energyEv.toFixed(2)} eV`;
+    seriesVal.textContent = seriesName;
+    zeffVal.textContent = zEff.toFixed(2);
   }
 
   private getOrbitalNotation(n: number, l: number, m: number, useRealOrbital: boolean): string {
@@ -62,11 +104,8 @@ export class OrbitalPhysicsPanel {
     const totalNodes = n - 1;
     const notation = this.getOrbitalNotation(n, l, m, useRealOrbital);
 
-    // Expectation value <r> = (a_0 / 2 Z_eff) * (3n^2 - l(l+1))
-    const rExpBohr = (0.5 / Math.max(zEff, 0.1)) * (3 * n * n - l * (l + 1));
+    const rExpBohr = (0.5 / zEff) * (3 * n * n - l * (l + 1));
     const rExpPm = rExpBohr * 52.917721;
-
-    // Energy level E_n = -13.605693 * Z_eff^2 / n^2 eV
     const energyEv = -13.605693 * (zEff * zEff) / (n * n);
 
     const seriesMap: Record<number, string> = {
@@ -95,7 +134,7 @@ export class OrbitalPhysicsPanel {
         </div>
         <div class="active-state-badge">
           <span class="badge-label">${strings.activeState}:</span>
-          <span class="badge-value">${notation} (n=${n}, l=${l}, m=${m})</span>
+          <span class="badge-value" id="val-active-state">${notation} (n=${n}, l=${l}, m=${m})</span>
         </div>
       </div>
 
@@ -107,21 +146,21 @@ export class OrbitalPhysicsPanel {
               <span class="node-label">${strings.radialNodes}</span>
               <button class="btn-info-icon" data-node="radial" aria-label="Info">ℹ️</button>
             </div>
-            <span class="node-value">${radialNodes}</span>
+            <span class="node-value" id="val-radial-nodes">${radialNodes}</span>
           </div>
           <div class="node-item">
             <div class="node-header">
               <span class="node-label">${strings.angularNodes}</span>
               <button class="btn-info-icon" data-node="angular" aria-label="Info">ℹ️</button>
             </div>
-            <span class="node-value">${angularNodes}</span>
+            <span class="node-value" id="val-angular-nodes">${angularNodes}</span>
           </div>
           <div class="node-item">
             <div class="node-header">
               <span class="node-label">${strings.totalNodes}</span>
               <button class="btn-info-icon" data-node="total" aria-label="Info">ℹ️</button>
             </div>
-            <span class="node-value">${totalNodes}</span>
+            <span class="node-value" id="val-total-nodes">${totalNodes}</span>
           </div>
         </div>
       </div>
@@ -133,14 +172,14 @@ export class OrbitalPhysicsPanel {
               <span class="node-label">${strings.expectationRadius}</span>
               <button class="btn-info-icon" data-phys="radius" aria-label="Info">ℹ️</button>
             </div>
-            <span class="node-value">${rExpBohr.toFixed(2)} a₀ <small>(${rExpPm.toFixed(1)} pm)</small></span>
+            <span class="node-value" id="val-exp-radius">${rExpBohr.toFixed(2)} a₀ <small>(${rExpPm.toFixed(1)} pm)</small></span>
           </div>
           <div class="expectation-item">
             <div class="node-header">
               <span class="node-label">${strings.hydrogenicEnergy}</span>
               <button class="btn-info-icon" data-phys="energy" aria-label="Info">ℹ️</button>
             </div>
-            <span class="node-value">${energyEv.toFixed(2)} eV</span>
+            <span class="node-value" id="val-energy">${energyEv.toFixed(2)} eV</span>
           </div>
         </div>
       </div>
@@ -154,7 +193,7 @@ export class OrbitalPhysicsPanel {
           <code>&psi;_{n,l,m}(r,&theta;,&phi;) = R_{n,l}(r) &middot; Y_l^m(&theta;,&phi;)</code>
         </div>
         <div class="series-badge">
-          <span>${strings.spectralSeries}: <strong>${seriesName}</strong></span>
+          <span>${strings.spectralSeries}: <strong id="val-series">${seriesName}</strong></span>
         </div>
       </div>
 
@@ -164,7 +203,7 @@ export class OrbitalPhysicsPanel {
           <button class="btn-info-icon" data-explain="explainZeff" aria-label="Info">ℹ️</button>
         </div>
         <p class="shielding-note">
-          Z_eff = <strong>${zEff.toFixed(2)}</strong> &mdash; ${strings.shieldingNoteDesc}
+          Z_eff = <strong id="val-zeff">${zEff.toFixed(2)}</strong> &mdash; ${strings.shieldingNoteDesc}
         </p>
       </div>
     `;
@@ -175,27 +214,22 @@ export class OrbitalPhysicsPanel {
   }
 
   private attachEventListeners(): void {
-    if (!this.panelElement) return;
-
-    const closePhysicsBtn = this.panelElement.querySelector('#btn-close-physics');
-    closePhysicsBtn?.addEventListener('click', () => {
+    const closePhysicsBtn = this.panelElement!.querySelector('#btn-close-physics') as HTMLElement;
+    closePhysicsBtn.addEventListener('click', () => {
       this.container.classList.remove('mobile-open');
-      const backdrop = document.querySelector('#controls-drawer-backdrop');
-      backdrop?.classList.remove('active');
-      const btnShowPhysics = document.querySelector('#btn-show-physics');
-      btnShowPhysics?.classList.remove('active');
+      const backdrop = document.querySelector('#controls-drawer-backdrop') as HTMLElement;
+      backdrop.classList.remove('active');
+      const btnShowPhysics = document.querySelector('#btn-show-physics') as HTMLElement;
+      btnShowPhysics.classList.remove('active');
     });
 
     const strings = getStrings();
-    const { n, l } = this.currentParams;
-    const radialNodes = n - l - 1;
-    const angularNodes = l;
-    const totalNodes = n - 1;
 
-    const radialBtn = this.panelElement.querySelector('[data-node="radial"]');
-    radialBtn?.addEventListener('click', (e: Event) => {
+    const radialBtn = this.panelElement!.querySelector('[data-node="radial"]') as HTMLElement;
+    radialBtn.addEventListener('click', (e: Event) => {
       e.preventDefault();
       e.stopPropagation();
+      const radialNodes = this.currentParams.n - this.currentParams.l - 1;
       ExplanationModal.showSimple(
         strings.radialNodes,
         `${strings.radialNodes}: ${radialNodes}`,
@@ -203,21 +237,22 @@ export class OrbitalPhysicsPanel {
       );
     });
 
-    const angularBtn = this.panelElement.querySelector('[data-node="angular"]');
-    angularBtn?.addEventListener('click', (e: Event) => {
+    const angularBtn = this.panelElement!.querySelector('[data-node="angular"]') as HTMLElement;
+    angularBtn.addEventListener('click', (e: Event) => {
       e.preventDefault();
       e.stopPropagation();
       ExplanationModal.showSimple(
         strings.angularNodes,
-        `${strings.angularNodes}: ${angularNodes}`,
+        `${strings.angularNodes}: ${this.currentParams.l}`,
         strings.angularNodesDesc
       );
     });
 
-    const totalBtn = this.panelElement.querySelector('[data-node="total"]');
-    totalBtn?.addEventListener('click', (e: Event) => {
+    const totalBtn = this.panelElement!.querySelector('[data-node="total"]') as HTMLElement;
+    totalBtn.addEventListener('click', (e: Event) => {
       e.preventDefault();
       e.stopPropagation();
+      const totalNodes = this.currentParams.n - 1;
       ExplanationModal.showSimple(
         strings.totalNodes,
         `${strings.totalNodes}: ${totalNodes}`,
@@ -225,8 +260,8 @@ export class OrbitalPhysicsPanel {
       );
     });
 
-    const radiusBtn = this.panelElement.querySelector('[data-phys="radius"]');
-    radiusBtn?.addEventListener('click', (e: Event) => {
+    const radiusBtn = this.panelElement!.querySelector('[data-phys="radius"]') as HTMLElement;
+    radiusBtn.addEventListener('click', (e: Event) => {
       e.preventDefault();
       e.stopPropagation();
       ExplanationModal.showSimple(
@@ -236,8 +271,8 @@ export class OrbitalPhysicsPanel {
       );
     });
 
-    const energyBtn = this.panelElement.querySelector('[data-phys="energy"]');
-    energyBtn?.addEventListener('click', (e: Event) => {
+    const energyBtn = this.panelElement!.querySelector('[data-phys="energy"]') as HTMLElement;
+    energyBtn.addEventListener('click', (e: Event) => {
       e.preventDefault();
       e.stopPropagation();
       ExplanationModal.showSimple(
@@ -247,8 +282,8 @@ export class OrbitalPhysicsPanel {
       );
     });
 
-    const formulaBtn = this.panelElement.querySelector('[data-formula="wavefunction"]');
-    formulaBtn?.addEventListener('click', (e: Event) => {
+    const formulaBtn = this.panelElement!.querySelector('[data-formula="wavefunction"]') as HTMLElement;
+    formulaBtn.addEventListener('click', (e: Event) => {
       e.preventDefault();
       e.stopPropagation();
       ExplanationModal.showSimple(
@@ -258,11 +293,18 @@ export class OrbitalPhysicsPanel {
       );
     });
 
-    const zeffBtn = this.panelElement.querySelector('[data-explain="explainZeff"]');
-    zeffBtn?.addEventListener('click', (e: Event) => {
+    const zeffBtn = this.panelElement!.querySelector('[data-explain="explainZeff"]') as HTMLElement;
+    zeffBtn.addEventListener('click', (e: Event) => {
       e.preventDefault();
       e.stopPropagation();
       ExplanationModal.show(strings.explainZeff);
     });
+  }
+
+  public destroy(): void {
+    if (this.unsubscribeLang) {
+      this.unsubscribeLang();
+      this.unsubscribeLang = null;
+    }
   }
 }
