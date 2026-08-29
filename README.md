@@ -1,6 +1,6 @@
 # Atomic Explorer
 
-**Atomic Explorer** is an interactive science popularization application available on the web and as a desktop application for Linux. It allows students, teachers, and science enthusiasts to visually explore the atomic structure at different levels of complexity. It's the equivalent of a planetarium, but for the quantum world!
+**Atomic Explorer** is an interactive science popularization web application. It allows students, teachers, and science enthusiasts to visually explore the atomic structure at different levels of complexity. It's the equivalent of a planetarium, but for the quantum world!
 
 > 🌐 **Try it Live in your Browser:** [https://arrase.github.io/atomic-explorer/](https://arrase.github.io/atomic-explorer/)
 
@@ -30,67 +30,46 @@ The quantum world can be abstract and difficult to imagine. Atomic Explorer solv
 
 ---
 
-## Hardware Requirements
+## Requirements
 
-The application performs complex mathematical calculations and real-time 3D rendering (WebGL), so the following hardware is recommended for optimal performance:
-
-- **Operating System:** GNU/Linux (Ubuntu 22.04+, Debian 12+, Fedora, or other modern distributions). Native support for X11 and Wayland.
-- **Processor (CPU):** Modern multi-core processor (Intel Core i3 / AMD Ryzen 3 or higher).
-- **Memory (RAM):** 4 GB of RAM (8 GB recommended for a smooth experience).
-- **Graphics Card (GPU):** Graphics accelerator with WebGL support. Modern integrated cards (Intel HD, AMD Vega) or dedicated (NVIDIA, AMD) are supported.
+- Any modern web browser with **WebGL** support (Chrome, Firefox, Edge, Safari).
+- Graphics acceleration enabled for 3D orbital rendering and WebAssembly calculations.
 
 ---
 
-## How to Install and Test the Application
+## Development and Building Locally
 
-### Option 1: Web Version (Instant access, no installation required)
-You can try the application directly in your browser without installing anything:
-👉 **[https://arrase.github.io/atomic-explorer/](https://arrase.github.io/atomic-explorer/)**
+If you want to run or develop Atomic Explorer locally:
 
-For desktop installation on Linux, you can download the pre-compiled packages in the **Releases** tab of this GitHub repository:
+### Prerequisites
+- [Node.js](https://nodejs.org/) (v20+)
+- [Rust](https://www.rust-lang.org/) and [`wasm-pack`](https://rustwasm.github.io/wasm-pack/installer/)
 
-### Option 2: Using AppImage (Recommended Linux executable)
-The AppImage format works on almost any Linux distribution without installing anything on the system.
-
-1. Go to the **Releases** section of this repository and download the `.AppImage` file corresponding to the latest version (example: `atomic-explorer_0.1.0_amd64.AppImage`).
-2. Give it execution permissions. You can do this from the file properties in your file manager (right click -> *Properties* -> *Permissions* -> *Allow executing file as program*), or from the terminal:
+### Setup & Run
+1. Install dependencies:
    ```bash
-   chmod +x atomic-explorer_0.1.0_amd64.AppImage
+   npm install
    ```
-3. Double-click the downloaded file to launch the application.
 
-### Option 2: Debian Package (.deb)
-For distributions like Ubuntu, Debian, Linux Mint, Pop!_OS, Zorin OS, etc.
-
-1. Download the `.deb` package from the **Releases** section (example: `atomic-explorer_0.1.0_amd64.deb`).
-2. Double-click the file to install it with your system's Software Center, or run in the terminal:
+2. Build the WebAssembly math engine:
    ```bash
-   sudo apt install ./atomic-explorer_0.1.0_amd64.deb
+   npm run wasm:build
    ```
-3. Open "Atomic Explorer" from the system application menu.
 
-### Option 3: RPM Package (.rpm)
-For distributions like Fedora, openSUSE, RHEL, Rocky Linux, CentOS, etc.
-
-1. Download the `.rpm` package from the **Releases** section (example: `atomic-explorer-0.1.0-1.x86_64.rpm`).
-2. Install it from the terminal by running:
+3. Start the development server:
    ```bash
-   sudo dnf install ./atomic-explorer-0.1.0-1.x86_64.rpm
+   npm run dev
    ```
-3. Launch the application from the system menu.
+
+4. Build for production:
+   ```bash
+   npm run build
+   ```
 
 ---
 
-## Publishing New Versions (For Maintainers)
+## Automated Deployment
 
-This repository has an automated **GitHub Action** to generate and upload the installers (`AppImage`, `.deb`, `.rpm`) to GitHub Releases automatically when creating a new version.
+This repository uses a **GitHub Actions** workflow (`.github/workflows/deploy.yml`) to automatically compile the WASM math engine, build the web application, and deploy it to **GitHub Pages** on every push to `main` or new version tag.
 
-To publish a new Release:
-
-1. Create and push a tag with the version (e.g. `v0.1.0`):
-   ```bash
-   git tag v0.1.0
-   git push origin v0.1.0
-   ```
-2. The `.github/workflows/release.yml` action will automatically compile the WASM math engine, build the Tauri packages, and publish the release on GitHub with all attached installers.
 

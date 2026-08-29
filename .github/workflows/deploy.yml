@@ -2,6 +2,8 @@ name: Deploy Web App to GitHub Pages
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
   release:
