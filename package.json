@@ -7,17 +7,13 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri",
     "wasm:build": "cd crates/atomic-math && wasm-pack build --target web --out-dir pkg",
     "wasm:build:dev": "cd crates/atomic-math && wasm-pack build --target web --out-dir pkg --dev"
   },
   "dependencies": {
-    "@tauri-apps/api": "^2",
-    "@tauri-apps/plugin-opener": "^2",
     "three": "^0.185.1"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2",
     "@types/node": "^26.2.0",
     "@types/three": "^0.185.4",
     "esbuild": "^0.28.2",
