@@ -41,7 +41,7 @@ export class ControlPanel {
     raymarchingSteps: 96,
     resolutionScale: 1.0,
     colorPalette: 'default',
-    contrast: 25.0,
+    contrast: 0.0,
   };
 
   constructor(
@@ -254,7 +254,7 @@ export class ControlPanel {
                     <span>${strings.contrastControl}: <span id="contrast-val" class="val-badge">${this.currentParams.contrast}</span></span>
                     <button class="btn-info-icon" data-explain="explainContrast" aria-label="Info">${icon('info')}</button>
                   </label>
-                  <input type="range" id="contrast-input" min="1" max="100" value="${this.currentParams.contrast}" step="1" />
+                  <input type="range" id="contrast-input" min="0" max="100" value="${this.currentParams.contrast}" step="1" />
                 </div>
 
                 <!-- Custom Fine-Tuning Controls (Visible when quality=custom) -->

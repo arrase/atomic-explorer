@@ -278,7 +278,7 @@ const raymarchFragmentShader = `
       float normDensity = clamp(rawDensity / max(u_peakDensity, 1e-12), 0.0, 1.0);
 
       // Non-linear contrast enhancement for diffuse tails (preserves 0 nodes exactly)
-      float enhancedDensity = log(1.0 + u_contrast * normDensity) / log(1.0 + u_contrast);
+      float enhancedDensity = u_contrast > 0.0 ? log(1.0 + u_contrast * normDensity) / log(1.0 + u_contrast) : normDensity;
 
       if (enhancedDensity > 1e-6) {
         vec3 color = getPaletteColor(psi, enhancedDensity, u_palette);
@@ -324,7 +324,7 @@ export class OrbitalRenderer {
     raymarchingSteps: 128,
     colorPalette: 'default',
     resolutionScale: 1.0,
-    contrast: 25.0,
+    contrast: 0.0,
   };
 
   constructor(canvas: HTMLCanvasElement) {
@@ -489,7 +489,7 @@ export class OrbitalRenderer {
     const { n, l, m, useRealOrbital, zEff } = params;
     
     const isolevel = params.isolevel ?? 0.05;
-    const contrast = params.contrast ?? 25.0;
+    const contrast = params.contrast ?? 0.0;
     const peakDensity = this.calculatePeakDensity(n, l, m, zEff, useRealOrbital);
 
     mcPos.reset();
@@ -519,7 +519,7 @@ export class OrbitalRenderer {
             const rawDensity = psi * psi;
             
             const normDensity = Math.min(1.0, rawDensity / Math.max(peakDensity, 1e-12));
-            const enhancedDensity = Math.log(1.0 + contrast * normDensity) / Math.log(1.0 + contrast);
+            const enhancedDensity = contrast > 0 ? Math.log(1.0 + contrast * normDensity) / Math.log(1.0 + contrast) : normDensity;
             signedDensity = psi >= 0 ? enhancedDensity : -enhancedDensity;
           }
 
@@ -548,7 +548,7 @@ export class OrbitalRenderer {
 
     const palette = PALETTE_CONFIG[params.colorPalette || 'default'];
     const peakDensity = this.calculatePeakDensity(params.n, params.l, params.m, params.zEff, params.useRealOrbital);
-    const contrast = params.contrast ?? 25.0;
+    const contrast = params.contrast ?? 0.0;
 
     this.raymarchingMaterial = new THREE.ShaderMaterial({
       vertexShader: raymarchVertexShader,
