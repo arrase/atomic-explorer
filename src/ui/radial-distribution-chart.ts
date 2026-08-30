@@ -27,8 +27,7 @@ function associatedLaguerre(p: number, q: number, x: number): number {
   return current;
 }
 
-export function calculateRadialWavefunction(n: number, l: number, zEff: number, r: number): number {
-  if (r < 0) return 0;
+function calculateRadialWavefunction(n: number, l: number, zEff: number, r: number): number {
   const rho = (2 * zEff * r) / n;
   const p = n - l - 1;
   const q = 2 * l + 1;
@@ -41,13 +40,12 @@ export function calculateRadialWavefunction(n: number, l: number, zEff: number, 
   return prefactor * Math.exp((-zEff * r) / n) * Math.pow(rho, l) * laguerre;
 }
 
-export function calculateRadialProbabilityDensity(n: number, l: number, zEff: number, r: number): number {
-  if (r <= 0) return 0;
+function calculateRadialProbabilityDensity(n: number, l: number, zEff: number, r: number): number {
   const rNl = calculateRadialWavefunction(n, l, zEff, r);
   return r * r * rNl * rNl;
 }
 
-export function findRadialNodes(n: number, l: number, zEff: number): number[] {
+function findRadialNodes(n: number, l: number, zEff: number): number[] {
   const p = n - l - 1;
   if (p <= 0) return [];
 
@@ -128,7 +126,7 @@ export class RadialDistributionChart {
   public update(n: number, l: number, zEff: number): void {
     this.n = n;
     this.l = l;
-    this.zEff = Math.max(0.1, zEff);
+    this.zEff = zEff;
 
     this.expR = (0.5 / this.zEff) * (3 * n * n - l * (l + 1));
     this.radialNodes = findRadialNodes(n, l, this.zEff);
@@ -213,7 +211,7 @@ export class RadialDistributionChart {
     const rect = this.container.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return;
 
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = window.devicePixelRatio;
     this.canvas.width = Math.floor(rect.width * dpr);
     this.canvas.height = Math.floor(rect.height * dpr);
     this.canvas.style.width = `${rect.width}px`;

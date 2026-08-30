@@ -77,7 +77,6 @@ export const strings: I18nStrings = {
   searchPlaceholder: '원소 이름, 기호, 원자 번호 Z로 검색...',
   selectElementPrompt: '주기율표에서 원소를 선택하여 상세 정보와 원자가 오비탈을 확인하세요.',
   btnView3DOrbital: '⚛️ 3D 원자가 오비탈 시각화',
-  elementDetails: '원소 상세 정보',
   swipeToExplore: '좌우로 스와이프하여 모든 족 탐색',
   viewFullDetails: '전체 상세정보 보기',
   atomicMass: '원자량',
@@ -106,8 +105,6 @@ export const strings: I18nStrings = {
   selectMolecule: '분자 선택',
   showLobes: '혼성 오비탈 로브 표시',
   hideLobes: '혼성 오비탈 로브 숨기기',
-  toggleLobesShow: '👁️🗨️ 전자구름 표시',
-  toggleLobesHide: '👁️ 전자구름 숨기기',
   exportGenerating: '⏳ HD 렌더링 생성 중...',
   formatPng: 'PNG (무손실 / 투명 배경)',
   formatJpeg: 'JPEG (고화질 95%)',
@@ -123,26 +120,20 @@ export const strings: I18nStrings = {
   bondAngle: '결합각',
   showAngles: '결합각 표시',
   hideAngles: '결합각 숨기기',
-  toggleAnglesShow: '📐 3D 결합각 표시',
-  toggleAnglesHide: '📐 3D 결합각 숨기기',
-  bondAngles: '결합각',
   moleculeGallery: '분자 갤러리',
 
   // Language Switcher
   language: '언어',
-  langEs: 'Español',
-  langEn: 'English',
 
   // Info Modal & Help Labels
-  infoModalTitle: '양자역학 및 원자 구조 가이드',
   infoModalClose: '닫기',
   dontShowAgain: '다시 보지 않기',
   analogyLabel: '직관적 비유',
   glossaryTitle: '양자물리학 과학 용어사전',
   glossarySubtitle: '원자물리학, 파동 함수, 화학 결합 이론의 핵심 과학 용어를 탐구해 보세요.',
   glossarySearchPlaceholder: '용어 검색 (예: 슈뢰딩거, 마디, sp³, 파동 함수)...',
+  glossaryEmpty: '일치하는 용어를 찾을 수 없습니다.',
   btnGlossary: '과학 용어사전',
-  btnLearnMore: '자세히 보기',
   btnIntro: '개요 및 안내',
 
   // Orbital Parameter Explanations
@@ -262,8 +253,6 @@ export const strings: I18nStrings = {
   blockFilterF: 'f-블록',
   legendElectronegativity: '전기 음성도 (폴링 척도 Pauling)',
   legendAtomicRadius: '실험적 원자 반지름 (pm)',
-  groupHeaderLabel: '족 (Group)',
-  periodHeaderLabel: '주기 (Period)',
   explainAtomicNumber: {
     title: '원자 번호 (Z)',
     summary: '원자핵 내부에 포함된 양성자의 개수.',

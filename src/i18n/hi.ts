@@ -77,7 +77,6 @@ export const strings: I18nStrings = {
   searchPlaceholder: 'तत्व को नाम, प्रतीक या परमाणु क्रमांक Z से खोजें...',
   selectElementPrompt: 'विवरण देखने और संयोजकता कक्षकों का निरीक्षण करने के लिए आवर्त सारणी से एक तत्व चुनें।',
   btnView3DOrbital: '⚛️ 3D संयोजकता कक्षक देखें',
-  elementDetails: 'तत्व का विवरण',
   swipeToExplore: 'सभी समूहों को देखने के लिए क्षैतिज रूप से स्वाइप करें',
   viewFullDetails: 'पूरा विवरण देखें',
   atomicMass: 'परमाणु द्रव्यमान',
@@ -106,8 +105,6 @@ export const strings: I18nStrings = {
   selectMolecule: 'अणु चुनें',
   showLobes: 'संकर पालि दिखाएं',
   hideLobes: 'संकर पालि छिपाएं',
-  toggleLobesShow: '👁️🗨️ इलेक्ट्रॉन मेघ दिखाएं',
-  toggleLobesHide: '👁️ इलेक्ट्रॉन मेघ छिपाएं',
   exportGenerating: '⏳ HD रेंडर तैयार किया जा रहा है...',
   formatPng: 'PNG (दोषरहित / पारदर्शी)',
   formatJpeg: 'JPEG (उच्च गुणवत्ता 95%)',
@@ -123,26 +120,20 @@ export const strings: I18nStrings = {
   bondAngle: 'बंध कोण',
   showAngles: 'कोण दिखाएं',
   hideAngles: 'कोण छिपाएं',
-  toggleAnglesShow: '📐 3D कोण दिखाएं',
-  toggleAnglesHide: '📐 3D कोण छिपाएं',
-  bondAngles: 'बंध कोण',
   moleculeGallery: 'अणु दीर्घा',
 
   // Language Switcher
   language: 'भाषा',
-  langEs: 'Español',
-  langEn: 'English',
 
   // Info Modal & Help Labels
-  infoModalTitle: 'क्वांटम यांत्रिकी और परमाणु संरचना मार्गदर्शिका',
   infoModalClose: 'बंद करें',
   dontShowAgain: 'दोबारा न दिखाएं',
   analogyLabel: 'सहज सादृश्य',
   glossaryTitle: 'क्वांटम भौतिकी वैज्ञानिक शब्दावली',
   glossarySubtitle: 'परमाणु भौतिकी, कक्षक तरंग फलनों और रासायनिक सिद्धांतों के प्रमुख शब्दों को जानें।',
   glossarySearchPlaceholder: 'शब्दावली खोजें (उदा. श्रोडिंगर, नोडल, sp³)...',
+  glossaryEmpty: 'कोई मेल खाता शब्दावली शब्द नहीं मिला।',
   btnGlossary: 'वैज्ञानिक शब्दावली',
-  btnLearnMore: 'और जानें',
   btnIntro: 'यह क्या है?',
 
   // Orbital Parameter Explanations
@@ -262,8 +253,6 @@ export const strings: I18nStrings = {
   blockFilterF: 'f-ब्लॉक',
   legendElectronegativity: 'विद्युतऋणात्मकता (पॉलिंग)',
   legendAtomicRadius: 'अनुभवजन्य परमाणु त्रिज्या (pm)',
-  groupHeaderLabel: 'समूह',
-  periodHeaderLabel: 'आवर्त',
   explainAtomicNumber: {
     title: 'परमाणु क्रमांक (Z)',
     summary: 'परमाणु के केंद्र में प्रोटॉनों की संख्या।',

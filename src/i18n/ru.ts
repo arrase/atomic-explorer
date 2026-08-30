@@ -77,7 +77,6 @@ export const strings: I18nStrings = {
   searchPlaceholder: 'Поиск элемента по названию, символу или Z...',
   selectElementPrompt: 'Выберите элемент в периодической таблице для просмотра свойств и валентных орбиталей.',
   btnView3DOrbital: '⚛️ Визуализировать 3D валентные орбитали',
-  elementDetails: 'Сведения об элементе',
   swipeToExplore: 'Проведите пальцем по горизонтали для навигации',
   viewFullDetails: 'Показать все параметры',
   atomicMass: 'Атомная масса',
@@ -106,8 +105,6 @@ export const strings: I18nStrings = {
   selectMolecule: 'Выбрать молекулу',
   showLobes: 'Показать гибридные лепестки',
   hideLobes: 'Скрыть гибридные лепестки',
-  toggleLobesShow: '👁️🗨️ Показать электронные облака',
-  toggleLobesHide: '👁️ Скрыть электронные облака',
   exportGenerating: '⏳ Генерация HD рендера...',
   formatPng: 'PNG (Без потерь / Прозрачный)',
   formatJpeg: 'JPEG (Высокое качество 95%)',
@@ -123,26 +120,20 @@ export const strings: I18nStrings = {
   bondAngle: 'Валентный угол',
   showAngles: 'Показать углы',
   hideAngles: 'Скрыть углы',
-  toggleAnglesShow: '📐 Показать 3D углы',
-  toggleAnglesHide: '📐 Скрыть 3D углы',
-  bondAngles: 'Валентные углы',
   moleculeGallery: 'Галерея молекул',
 
   // Language Switcher
   language: 'Язык',
-  langEs: 'Español',
-  langEn: 'English',
 
   // Info Modal & Help Labels
-  infoModalTitle: 'Руководство по квантовой механике и строению атома',
   infoModalClose: 'Закрыть',
   dontShowAgain: 'Больше не показывать',
   analogyLabel: 'Наглядная аналогия',
   glossaryTitle: 'Научный глоссарий квантовой физики',
   glossarySubtitle: 'Изучите ключевые понятия физики атома, волновых функций орбиталей и химической связи.',
   glossarySearchPlaceholder: 'Поиск терминов (напр. Шрёдингер, узловая, sp³, волновая функция)...',
+  glossaryEmpty: 'Совпадающих терминов в глоссарии не найдено.',
   btnGlossary: 'Научный глоссарий',
-  btnLearnMore: 'Подробнее',
   btnIntro: 'Что это такое?',
 
   // Orbital Parameter Explanations
@@ -262,8 +253,6 @@ export const strings: I18nStrings = {
   blockFilterF: 'f-Блок',
   legendElectronegativity: 'Электроотрицательность (по Полингу)',
   legendAtomicRadius: 'Эмпирический атомный радиус (пм)',
-  groupHeaderLabel: 'Группа',
-  periodHeaderLabel: 'Период',
   explainAtomicNumber: {
     title: 'Атомный номер (Z)',
     summary: 'Количество протонов в ядре атома.',

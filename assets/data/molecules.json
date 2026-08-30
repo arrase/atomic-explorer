@@ -1,12 +1,9 @@
 [
   {
     "id": "H2",
-    "name": "Dihidrógeno",
     "formula": "H₂",
-    "geometry": "Lineal",
     "hybridization": "1s-1s",
     "bond_angle": "180°",
-    "description": "Molécula diatómica simple con un enlace covalente simple sigma.",
     "atoms": [
       {
         "symbol": "H",
@@ -77,12 +74,9 @@
   },
   {
     "id": "H2O",
-    "name": "Agua",
     "formula": "H₂O",
-    "geometry": "Angular",
     "hybridization": "sp³",
     "bond_angle": "104.5°",
-    "description": "Geometría angular con 2 pares libres de electrones en el oxígeno y hibridación sp³.",
     "atoms": [
       {
         "symbol": "O",
@@ -198,12 +192,9 @@
   },
   {
     "id": "CO2",
-    "name": "Dióxido de Carbono",
     "formula": "CO₂",
-    "geometry": "Lineal",
     "hybridization": "sp",
     "bond_angle": "180°",
-    "description": "Geometría lineal con hibridación sp en el carbono central y enlaces dobles.",
     "atoms": [
       {
         "symbol": "C",
@@ -261,7 +252,7 @@
           0
         ],
         "color": "#40c0ff",
-        "scale": 1.0,
+        "scale": 1,
         "type": "bonding"
       },
       {
@@ -276,7 +267,7 @@
           0
         ],
         "color": "#40c0ff",
-        "scale": 1.0,
+        "scale": 1,
         "type": "bonding"
       }
     ],
@@ -289,12 +280,9 @@
   },
   {
     "id": "NH3",
-    "name": "Amoníaco",
     "formula": "NH₃",
-    "geometry": "Piramidal Trigonal",
     "hybridization": "sp³",
     "bond_angle": "107.3°",
-    "description": "Geometría piramidal con 1 par no enlazante en el nitrógeno.",
     "atoms": [
       {
         "symbol": "N",
@@ -358,12 +346,12 @@
       {
         "position": [
           0.473,
-          0.0,
+          0,
           -0.187
         ],
         "direction": [
           0.93,
-          0.0,
+          0,
           -0.368
         ],
         "color": "#40c0ff",
@@ -425,12 +413,9 @@
   },
   {
     "id": "CH4",
-    "name": "Metano",
     "formula": "CH₄",
-    "geometry": "Tetraédrica",
     "hybridization": "sp³",
     "bond_angle": "109.5°",
-    "description": "Geometría tetraédrica perfecta con hibridación sp³ del carbono central.",
     "atoms": [
       {
         "symbol": "C",
@@ -576,12 +561,9 @@
   },
   {
     "id": "BeCl2",
-    "name": "Dicloruro de Berilio",
     "formula": "BeCl₂",
-    "geometry": "Lineal",
     "hybridization": "sp",
     "bond_angle": "180°",
-    "description": "Geometría lineal perfecta con hibridación sp en el berilio.",
     "atoms": [
       {
         "symbol": "Be",
@@ -639,7 +621,7 @@
           0
         ],
         "color": "#40c0ff",
-        "scale": 1.0,
+        "scale": 1,
         "type": "bonding"
       },
       {
@@ -654,7 +636,7 @@
           0
         ],
         "color": "#40c0ff",
-        "scale": 1.0,
+        "scale": 1,
         "type": "bonding"
       }
     ],
@@ -667,12 +649,9 @@
   },
   {
     "id": "BF3",
-    "name": "Trifluoruro de Boro",
     "formula": "BF₃",
-    "geometry": "Plana Trigonal",
     "hybridization": "sp²",
     "bond_angle": "120°",
-    "description": "Geometría plana trigonal simétrica con hibridación sp².",
     "atoms": [
       {
         "symbol": "B",
@@ -788,12 +767,9 @@
   },
   {
     "id": "PCl5",
-    "name": "Pentacloruro de Fósforo",
     "formula": "PCl₅",
-    "geometry": "Bipirámide Trigonal",
     "hybridization": "sp³d",
     "bond_angle": "90° / 120°",
-    "description": "Expandió el octeto con 5 pares enlazantes en geometría bipiramidal trigonal.",
     "atoms": [
       {
         "symbol": "P",
@@ -969,12 +945,9 @@
   },
   {
     "id": "SF6",
-    "name": "Hexafluoruro de Azufre",
     "formula": "SF₆",
-    "geometry": "Octaédrica",
     "hybridization": "sp³d²",
     "bond_angle": "90°",
-    "description": "Geometría octaédrica altamente simétrica con hibridación sp³d².",
     "atoms": [
       {
         "symbol": "S",
@@ -1180,12 +1153,9 @@
   },
   {
     "id": "SO2",
-    "name": "Dióxido de Azufre",
     "formula": "SO₂",
-    "geometry": "Angular",
     "hybridization": "sp²",
     "bond_angle": "119°",
-    "description": "Geometría angular derivada de una plana trigonal con 1 par libre en el azufre.",
     "atoms": [
       {
         "symbol": "S",
@@ -1286,12 +1256,9 @@
   },
   {
     "id": "SF4",
-    "name": "Tetrafluoruro de Azufre",
     "formula": "SF₄",
-    "geometry": "Balancín",
     "hybridization": "sp³d",
     "bond_angle": "173° / 101.6°",
-    "description": "Geometría de balancín (seesaw) debido a 1 par de electrones no enlazantes en la posición ecuatorial.",
     "atoms": [
       {
         "symbol": "S",
@@ -1452,12 +1419,9 @@
   },
   {
     "id": "ClF3",
-    "name": "Trifluoruro de Cloro",
     "formula": "ClF₃",
-    "geometry": "Forma de T",
     "hybridization": "sp³d",
     "bond_angle": "87.5°",
-    "description": "Geometría en forma de T con 2 pares solitarios ocupando posiciones ecuatoriales para minimizar la repulsión.",
     "atoms": [
       {
         "symbol": "Cl",
@@ -1603,12 +1567,9 @@
   },
   {
     "id": "XeF4",
-    "name": "Tetrafluoruro de Xenón",
     "formula": "XeF₄",
-    "geometry": "Cuadrada Plana",
     "hybridization": "sp³d²",
     "bond_angle": "90°",
-    "description": "Geometría cuadrada plana con 2 pares solitarios en posiciones axiales opuestas para máxima simetría.",
     "atoms": [
       {
         "symbol": "Xe",
@@ -1784,12 +1745,9 @@
   },
   {
     "id": "C2H4",
-    "name": "Etileno",
     "formula": "C₂H₄",
-    "geometry": "Plana Trigonal (sp²)",
     "hybridization": "sp²",
     "bond_angle": "120°",
-    "description": "Geometría plana coplanar con un doble enlace C=C (sigma + pi) e hibridación sp² en ambos carbonos.",
     "atoms": [
       {
         "symbol": "C",

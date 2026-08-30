@@ -77,7 +77,6 @@ export const strings: I18nStrings = {
   searchPlaceholder: 'Search element by name, symbol or Z...',
   selectElementPrompt: 'Select an element from the periodic table to view details and inspect valence orbitals.',
   btnView3DOrbital: '⚛️ Visualize 3D Valence Orbitals',
-  elementDetails: 'Element Details',
   swipeToExplore: 'Swipe horizontally to explore all groups',
   viewFullDetails: 'View full details',
   atomicMass: 'Atomic Mass',
@@ -106,8 +105,6 @@ export const strings: I18nStrings = {
   selectMolecule: 'Select Molecule',
   showLobes: 'Show Hybrid Lobes',
   hideLobes: 'Hide Hybrid Lobes',
-  toggleLobesShow: '👁️🗨️ Show Electron Clouds',
-  toggleLobesHide: '👁️ Hide Electron Clouds',
   exportGenerating: '⏳ Generating HD Render...',
   formatPng: 'PNG (Lossless / Transparent)',
   formatJpeg: 'JPEG (High Quality 95%)',
@@ -123,26 +120,20 @@ export const strings: I18nStrings = {
   bondAngle: 'Bond Angle',
   showAngles: 'Show Angles',
   hideAngles: 'Hide Angles',
-  toggleAnglesShow: '📐 Show 3D Angles',
-  toggleAnglesHide: '📐 Hide 3D Angles',
-  bondAngles: 'Bond Angles',
   moleculeGallery: 'Molecule Gallery',
 
   // Language Switcher
   language: 'Language',
-  langEs: 'Español',
-  langEn: 'English',
 
   // Info Modal & Help Labels
-  infoModalTitle: 'Quantum Mechanics & Atomic Structure Guide',
   infoModalClose: 'Close',
   dontShowAgain: 'Don\'t show again',
   analogyLabel: 'Intuitive Analogy',
   glossaryTitle: 'Quantum Physics Scientific Glossary',
   glossarySubtitle: 'Explore key terms in atomic physics, orbital wavefunctions, and chemical theory.',
   glossarySearchPlaceholder: 'Search glossary terms (e.g. Schrödinger, nodal, sp³)...',
+  glossaryEmpty: 'No matching glossary terms found.',
   btnGlossary: 'Scientific Glossary',
-  btnLearnMore: 'Learn More',
   btnIntro: 'What is this?',
 
   // Orbital Parameter Explanations
@@ -262,8 +253,6 @@ export const strings: I18nStrings = {
   blockFilterF: 'f-Block',
   legendElectronegativity: 'Electronegativity (Pauling)',
   legendAtomicRadius: 'Empirical Atomic Radius (pm)',
-  groupHeaderLabel: 'Group',
-  periodHeaderLabel: 'Period',
   explainAtomicNumber: {
     title: 'Atomic Number (Z)',
     summary: 'The number of protons in the center of the atom.',

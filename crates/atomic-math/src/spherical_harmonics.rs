@@ -29,11 +29,6 @@ pub fn y_lm_real(l: u32, m: i32, theta: f64, phi: f64) -> Result<f64, String> {
     Ok(prefactor * phase * plm * phi_part)
 }
 
-pub fn y_lm_real_squared(l: u32, m: i32, theta: f64) -> Result<f64, String> {
-    let y = y_lm_real(l, m, theta, 0.0)?;
-    Ok(y * y)
-}
-
 pub fn real_orbital_angular(kind: &RealOrbitalKind, theta: f64, phi: f64) -> f64 {
     let sin_t = theta.sin();
     let cos_t = theta.cos();

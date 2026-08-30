@@ -86,10 +86,8 @@ const pointFragmentShader = `
 const raymarchVertexShader = `
   varying vec3 vOrigin;
   varying vec3 vDirection;
-  varying vec3 vLocalPos;
 
   void main() {
-    vLocalPos = position;
     vec4 worldPos = modelMatrix * vec4(position, 1.0);
     vOrigin = cameraPosition;
     vDirection = worldPos.xyz - cameraPosition;
@@ -100,7 +98,6 @@ const raymarchVertexShader = `
 const raymarchFragmentShader = `
   varying vec3 vOrigin;
   varying vec3 vDirection;
-  varying vec3 vLocalPos;
 
   uniform int u_n;
   uniform int u_l;
@@ -404,19 +401,10 @@ export class OrbitalRenderer {
     const count = Math.floor(buffer.length / 4);
     if (count === 0) return;
 
-    const positions = new Float32Array(count * 3);
-    const signs = new Float32Array(count);
-
-    for (let i = 0; i < count; i++) {
-      positions[i * 3] = buffer[i * 4];
-      positions[i * 3 + 1] = buffer[i * 4 + 1];
-      positions[i * 3 + 2] = buffer[i * 4 + 2];
-      signs[i] = buffer[i * 4 + 3];
-    }
-
+    const interleavedBuffer = new THREE.InterleavedBuffer(buffer, 4);
     const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    geometry.setAttribute('a_sign', new THREE.BufferAttribute(signs, 1));
+    geometry.setAttribute('position', new THREE.InterleavedBufferAttribute(interleavedBuffer, 3, 0));
+    geometry.setAttribute('a_sign', new THREE.InterleavedBufferAttribute(interleavedBuffer, 1, 3));
 
     const palette = PALETTE_CONFIG[this.currentParams.colorPalette || 'default'];
     const spatialScale = Math.sqrt((this.currentParams.n * this.currentParams.n) / this.currentParams.zEff);
@@ -702,24 +690,21 @@ export class OrbitalRenderer {
     this.currentMode = mode;
     this.currentParams = mergedParams;
 
-    this.clearCurrentMesh();
-
     if (mode === 'isosurface') {
       this.updateIsosurface(mergedParams);
     } else if (mode === 'raymarching') {
       this.updateRaymarching(mergedParams);
+    } else {
+      this.clearCurrentMesh();
     }
   }
 
   public updateParams(params: Partial<OrbitalRenderParams>): void {
+    const modeChanged = params.mode && params.mode !== this.currentMode;
     this.currentParams = { ...this.currentParams, ...params };
-    if (params.mode) {
-      this.setMode(params.mode, this.currentParams);
+    if (modeChanged) {
+      this.setMode(params.mode!, this.currentParams);
     }
-  }
-
-  public getCurrentMode(): RenderMode {
-    return this.currentMode;
   }
 
   private onWindowResize = (): void => {

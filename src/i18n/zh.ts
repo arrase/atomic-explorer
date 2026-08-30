@@ -77,7 +77,6 @@ export const strings: I18nStrings = {
   searchPlaceholder: '通过名称、元素符号或原子序数 Z 搜索...',
   selectElementPrompt: '请在元素周期表中选择一个元素，查看其物理性质并检查价层轨道。',
   btnView3DOrbital: '⚛️ 查看 3D 价层原子轨道',
-  elementDetails: '元素详细信息',
   swipeToExplore: '水平滑动以探索所有周期和族',
   viewFullDetails: '查看完整详情',
   atomicMass: '相对原子质量',
@@ -106,8 +105,6 @@ export const strings: I18nStrings = {
   selectMolecule: '选择分子',
   showLobes: '显示杂化轨道瓣',
   hideLobes: '隐藏杂化轨道瓣',
-  toggleLobesShow: '👁️🗨️ 显示电子云',
-  toggleLobesHide: '👁️ 隐藏电子云',
   exportGenerating: '⏳ 正在生成高清渲染图...',
   formatPng: 'PNG (无损 / 透明背景)',
   formatJpeg: 'JPEG (95% 高画质)',
@@ -123,26 +120,20 @@ export const strings: I18nStrings = {
   bondAngle: '键角',
   showAngles: '显示键角',
   hideAngles: '隐藏键角',
-  toggleAnglesShow: '📐 显示 3D 键角',
-  toggleAnglesHide: '📐 隐藏 3D 键角',
-  bondAngles: '分子键角',
   moleculeGallery: '分子模型图库',
 
   // Language Switcher
   language: '语言',
-  langEs: 'Español',
-  langEn: 'English',
 
   // Info Modal & Help Labels
-  infoModalTitle: '量子力学与原子结构指南',
   infoModalClose: '关闭',
   dontShowAgain: '不再提示',
   analogyLabel: '通俗直观类比',
   glossaryTitle: '量子物理与原子科学名词词典',
   glossarySubtitle: '深入探索原子物理、轨道波函数与化学键理论的关键科学术语。',
   glossarySearchPlaceholder: '搜索名词术语（例如：薛定谔、节面、sp³、波函数）...',
+  glossaryEmpty: '未找到匹配的词汇表术语。',
   btnGlossary: '科学名词词典',
-  btnLearnMore: '了解更多',
   btnIntro: '这是什么？',
 
   // Orbital Parameter Explanations
@@ -262,8 +253,6 @@ export const strings: I18nStrings = {
   blockFilterF: 'f 区元素',
   legendElectronegativity: '电负性 (鲍林标度 Pauling)',
   legendAtomicRadius: '经验原子半径 (pm)',
-  groupHeaderLabel: '族 (Group)',
-  periodHeaderLabel: '周期 (Period)',
   explainAtomicNumber: {
     title: '原子序数 (Z)',
     summary: '原子核内部包含的正电荷质子数目。',

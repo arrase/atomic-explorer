@@ -77,7 +77,6 @@ export const strings: I18nStrings = {
   searchPlaceholder: 'ابحث عن عنصر بالاسم أو الرمز أو العدد الذري Z...',
   selectElementPrompt: 'اختر عنصراً من الجدول الدوري لعرض التفاصيل وفحص مدارات التكافؤ.',
   btnView3DOrbital: '⚛️ عرض مدارات التكافؤ ثلاثية الأبعاد 3D',
-  elementDetails: 'تفاصيل العنصر',
   swipeToExplore: 'اسحب أفقياً لاستكشاف جميع المجموعات',
   viewFullDetails: 'عرض التفاصيل الكاملة',
   atomicMass: 'الكتلة الذرية',
@@ -106,8 +105,6 @@ export const strings: I18nStrings = {
   selectMolecule: 'اختر الجزيء',
   showLobes: 'إظهار فصوص التهجين',
   hideLobes: 'إخفاء فصوص التهجين',
-  toggleLobesShow: '👁️🗨️ إظهار السحب الإلكترونية',
-  toggleLobesHide: '👁️ إخفاء السحب الإلكترونية',
   exportGenerating: '⏳ جارٍ إنشاء تجسيم عالي الدقة...',
   formatPng: 'PNG (بدون فقدان / شفاف)',
   formatJpeg: 'JPEG (جودة عالية 95%)',
@@ -123,26 +120,20 @@ export const strings: I18nStrings = {
   bondAngle: 'زاوية الرابطة',
   showAngles: 'إظهار الزوايا',
   hideAngles: 'إخفاء الزوايا',
-  toggleAnglesShow: '📐 إظهار الزوايا ثلاثية الأبعاد',
-  toggleAnglesHide: '📐 إخفاء الزوايا ثلاثية الأبعاد',
-  bondAngles: 'زوايا الروابط',
   moleculeGallery: 'معرض الجزيئات',
 
   // Language Switcher
   language: 'اللغة',
-  langEs: 'Español',
-  langEn: 'English',
 
   // Info Modal & Help Labels
-  infoModalTitle: 'دليل ميكانيكا الكم والبنية الذرية',
   infoModalClose: 'إغلاق',
   dontShowAgain: 'عدم الإظهار مرة أخرى',
   analogyLabel: 'تشبيه توضيحي مبسط',
   glossaryTitle: 'المسرد العلمي لفيزياء الكم',
   glossarySubtitle: 'استكشف المفاهيم والمصطلحات الأساسية في الفيزياء الذرية والدوال الموجية والنظرية الكيميائية.',
   glossarySearchPlaceholder: 'ابحث في مصطلحات المسرد (مثل شرودنغر، عقدية، sp³)...',
+  glossaryEmpty: 'لم يتم العثور على مصطلحات مطابقة في المسرد.',
   btnGlossary: 'المسرد العلمي',
-  btnLearnMore: 'اعرف المزيد',
   btnIntro: 'ما هذا؟',
 
   // Orbital Parameter Explanations
@@ -262,8 +253,6 @@ export const strings: I18nStrings = {
   blockFilterF: 'الفئة f',
   legendElectronegativity: 'الكهروسالبية (مقياس باولنغ)',
   legendAtomicRadius: 'نصف القطر الذري التجريبي (pm)',
-  groupHeaderLabel: 'المجموعة',
-  periodHeaderLabel: 'الدورة',
   explainAtomicNumber: {
     title: 'العدد الذري (Z)',
     summary: 'عدد البروتونات الموجودة في مركز الذرة.',

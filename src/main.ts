@@ -3,7 +3,7 @@ import { OrbitalRenderer } from './render/orbital-renderer';
 import { MoleculeRenderer } from './render/molecule-renderer';
 import { OrientationGizmo } from './render/orientation-gizmo';
 import { ViewportHUD } from './ui/viewport-hud';
-import { getStrings } from './i18n';
+import { getStrings, onLanguageChange } from './i18n';
 import { icon } from './ui/icons';
 
 import { NavigationBar, TabId } from './ui/nav';
@@ -14,53 +14,18 @@ import { FPSDisplay } from './ui/fps-display';
 import { ImageExporterModal } from './ui/image-exporter';
 import { ExplanationModal } from './ui/info-modal';
 
+const AUFBAU_TABLE: [number, number, number][] = [
+  [2, 1, 0], [4, 2, 0], [10, 2, 1], [12, 3, 0], [18, 3, 1],
+  [20, 4, 0], [30, 3, 2], [36, 4, 1], [38, 5, 0], [48, 4, 2],
+  [54, 5, 1], [56, 6, 0], [70, 4, 3], [80, 5, 2], [86, 6, 1],
+  [88, 7, 0], [102, 5, 3], [112, 6, 2], [Infinity, 7, 1],
+];
+
 async function calculateValenceQuantumNumbers(Z: number) {
-  let n = 1;
-  let l = 0;
-
-  if (Z <= 2) {
-    n = 1; l = 0; // 1s
-  } else if (Z <= 4) {
-    n = 2; l = 0; // 2s
-  } else if (Z <= 10) {
-    n = 2; l = 1; // 2p
-  } else if (Z <= 12) {
-    n = 3; l = 0; // 3s
-  } else if (Z <= 18) {
-    n = 3; l = 1; // 3p
-  } else if (Z <= 20) {
-    n = 4; l = 0; // 4s
-  } else if (Z <= 30) {
-    n = 3; l = 2; // 3d
-  } else if (Z <= 36) {
-    n = 4; l = 1; // 4p
-  } else if (Z <= 38) {
-    n = 5; l = 0; // 5s
-  } else if (Z <= 48) {
-    n = 4; l = 2; // 4d
-  } else if (Z <= 54) {
-    n = 5; l = 1; // 5p
-  } else if (Z <= 56) {
-    n = 6; l = 0; // 6s
-  } else if (Z <= 70) {
-    n = 4; l = 3; // 4f (Lanthanides)
-  } else if (Z <= 80) {
-    n = 5; l = 2; // 5d
-  } else if (Z <= 86) {
-    n = 6; l = 1; // 6p
-  } else if (Z <= 88) {
-    n = 7; l = 0; // 7s
-  } else if (Z <= 102) {
-    n = 5; l = 3; // 5f (Actinides: e.g. Americium Z=95)
-  } else if (Z <= 112) {
-    n = 6; l = 2; // 6d
-  } else {
-    n = 7; l = 1; // 7p
-  }
-
+  const [, n, l] = AUFBAU_TABLE.find(([maxZ]) => Z <= maxZ)!;
   const m = 0;
   const zEff = await getSlaterZEff(Z, n, l);
-  return { n, l, m, zEff: parseFloat(zEff.toFixed(2)) };
+  return { n, l, m, zEff: Math.round(zEff * 100) / 100 };
 }
 
 async function init() {
@@ -104,7 +69,7 @@ async function init() {
   const updatePhysicalScaleText = () => {
     if (activeTab === 'orbitals') {
       const p = controlPanel.getParams();
-      const extent = (4.0 * (p.n * p.n)) / Math.max(p.zEff, 0.5);
+      const extent = (4.0 * (p.n * p.n)) / p.zEff;
       const pm = Math.round(extent * 52.9177);
       viewportHud.updateScale(`r ≈ ${extent.toFixed(1)} a₀ (${pm} pm)`);
     } else if (activeTab === 'molecules') {
@@ -116,9 +81,9 @@ async function init() {
     const requestId = ++currentLoadRequestId;
     try {
       document.body.classList.add('loading');
-      orbitalRenderer.updateParams(params);
 
       if (params.mode === 'points') {
+        orbitalRenderer.updateParams(params);
         const points = await sampleOrbitalPoints(params);
         if (requestId === currentLoadRequestId) {
           orbitalRenderer.setPointCloud(points);
@@ -148,7 +113,7 @@ async function init() {
 
   new PeriodicTableView(viewLayers['periodic-table'], async (element: ElementData) => {
     const { n, l, m, zEff } = await calculateValenceQuantumNumbers(element.Z);
-    controlPanel.setParams({ n, l, m, zEff, elementZ: element.Z });
+    controlPanel.setParams({ n, l, m, zEff });
     switchTab('orbitals');
   });
 
@@ -158,9 +123,14 @@ async function init() {
   const zenRestoreBtn = document.createElement('button');
   zenRestoreBtn.className = 'zen-restore-btn';
   zenRestoreBtn.id = 'zen-restore-btn';
-  zenRestoreBtn.title = getStrings().exitZenMode;
-  zenRestoreBtn.setAttribute('aria-label', getStrings().exitZenMode);
-  zenRestoreBtn.innerHTML = `${icon('eye')} <span>${getStrings().exitZenMode}</span>`;
+  const updateZenRestoreBtnText = () => {
+    const text = getStrings().exitZenMode;
+    zenRestoreBtn.title = text;
+    zenRestoreBtn.setAttribute('aria-label', text);
+    zenRestoreBtn.innerHTML = `${icon('eye')} <span>${text}</span>`;
+  };
+  updateZenRestoreBtnText();
+  onLanguageChange(updateZenRestoreBtnText);
   uiOverlay.appendChild(zenRestoreBtn);
 
   const toggleZenMode = () => {

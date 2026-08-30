@@ -77,7 +77,6 @@ export const strings: I18nStrings = {
   searchPlaceholder: 'Szukaj pierwiastka po nazwie, symbolu lub Z...',
   selectElementPrompt: 'Wybierz pierwiastek z układu okresowego, aby zobaczyć szczegóły i zbadać orbitale walencyjne.',
   btnView3DOrbital: '⚛️ Wizualizuj Orbitale Walencyjne 3D',
-  elementDetails: 'Szczegóły Pierwiastka',
   swipeToExplore: 'Przesuń poziomo, aby przeglądać wszystkie grupy',
   viewFullDetails: 'Pokaż pełne szczegóły',
   atomicMass: 'Masa Atomowa',
@@ -106,8 +105,6 @@ export const strings: I18nStrings = {
   selectMolecule: 'Wybierz Cząsteczkę',
   showLobes: 'Pokaż Płaty Hybrydowe',
   hideLobes: 'Ukryj Płaty Hybrydowe',
-  toggleLobesShow: '👁️🗨️ Pokaż Chmury Elektronowe',
-  toggleLobesHide: '👁️ Ukryj Chmury Elektronowe',
   exportGenerating: '⏳ Generowanie Renderu HD...',
   formatPng: 'PNG (Bezstratny / Przezroczysty)',
   formatJpeg: 'JPEG (Wysoka Jakość 95%)',
@@ -123,26 +120,20 @@ export const strings: I18nStrings = {
   bondAngle: 'Kąt Wiązania',
   showAngles: 'Pokaż Kąty',
   hideAngles: 'Ukryj Kąty',
-  toggleAnglesShow: '📐 Pokaż Kąty 3D',
-  toggleAnglesHide: '📐 Ukryj Kąty 3D',
-  bondAngles: 'Kąty Wiązań',
   moleculeGallery: 'Galeria Cząsteczek',
 
   // Language Switcher
   language: 'Język',
-  langEs: 'Español',
-  langEn: 'English',
 
   // Info Modal & Help Labels
-  infoModalTitle: 'Przewodnik po Mechanice Kwantowej i Strukturze Atomu',
   infoModalClose: 'Zamknij',
   dontShowAgain: 'Nie pokazuj ponownie',
   analogyLabel: 'Intuicyjna Analogia',
   glossaryTitle: 'Słownik Naukowy Fizyki Kwantowej',
   glossarySubtitle: 'Odkryj kluczowe pojęcia fizyki atomowej, funkcji falowych i teorii chemicznej.',
   glossarySearchPlaceholder: 'Szukaj terminów w słowniku (np. Schrödinger, węzłowa, sp³)...',
+  glossaryEmpty: 'Nie znaleziono pasujących haseł w słowniku.',
   btnGlossary: 'Słownik Naukowy',
-  btnLearnMore: 'Dowiedz się Więcej',
   btnIntro: 'Co to jest?',
 
   // Orbital Parameter Explanations
@@ -262,8 +253,6 @@ export const strings: I18nStrings = {
   blockFilterF: 'Blok f',
   legendElectronegativity: 'Elektroujemność (Pauling)',
   legendAtomicRadius: 'Empiryczny Promień Atomowy (pm)',
-  groupHeaderLabel: 'Grupa',
-  periodHeaderLabel: 'Okres',
   explainAtomicNumber: {
     title: 'Liczba Atomowa (Z)',
     summary: 'Liczba protonów w jądrze atomu.',

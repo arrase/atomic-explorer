@@ -26,12 +26,9 @@ export interface HybridLobe {
 
 export interface MoleculeData {
   id: string;
-  name: string;
   formula: string;
-  geometry: string;
   hybridization: string;
   bond_angle: string;
-  description: string;
   atoms: MoleculeAtom[];
   bonds: MoleculeBond[];
   hybrid_lobes: HybridLobe[];
@@ -603,8 +600,11 @@ export class MoleculeRenderer {
 
     this.raycaster.setFromCamera(this.mouse, this.camera);
 
-    const objectsToCheck = [...this.moleculeGroup.children, ...this.lobesGroup.children];
-    const visibleObjects = objectsToCheck.filter(obj => obj.visible);
+    const objectsToCheck = [
+      ...(this.moleculeGroup.visible ? this.moleculeGroup.children : []),
+      ...(this.lobesGroup.visible ? this.lobesGroup.children : []),
+    ];
+    const visibleObjects = objectsToCheck.filter((obj) => obj.visible);
 
     const intersects = this.raycaster.intersectObjects(visibleObjects, false);
     if (intersects.length > 0) {

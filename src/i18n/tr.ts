@@ -77,7 +77,6 @@ export const strings: I18nStrings = {
   searchPlaceholder: 'Element adı, simgesi veya atom numarası Z ile ara...',
   selectElementPrompt: 'Özellikleri incelemek ve değerlik orbitallerini görmek için periyodik tablodan bir element seçin.',
   btnView3DOrbital: '⚛️ 3D Değerlik Orbitallerini İncele',
-  elementDetails: 'Element Ayrıntıları',
   swipeToExplore: 'Tüm grupları keşfetmek için yatay kaydırın',
   viewFullDetails: 'Tüm ayrıntıları görüntüle',
   atomicMass: 'Atom Kütlesi',
@@ -106,8 +105,6 @@ export const strings: I18nStrings = {
   selectMolecule: 'Molekül Seç',
   showLobes: 'Hibrit Loblarını Göster',
   hideLobes: 'Hibrit Loblarını Gizle',
-  toggleLobesShow: '👁️🗨️ Elektron Bulutlarını Göster',
-  toggleLobesHide: '👁️ Elektron Bulutlarını Gizle',
   exportGenerating: '⏳ HD Görüntü Oluşturuluyor...',
   formatPng: 'PNG (Kayıpsız / Şeffaf)',
   formatJpeg: 'JPEG (Yüksek Kalite %95)',
@@ -123,26 +120,20 @@ export const strings: I18nStrings = {
   bondAngle: 'Bağ Açısı',
   showAngles: 'Açıları Göster',
   hideAngles: 'Açıları Gizle',
-  toggleAnglesShow: '📐 3D Açıları Göster',
-  toggleAnglesHide: '📐 3D Açıları Gizle',
-  bondAngles: 'Bağ Açıları',
   moleculeGallery: 'Molekül Galerisi',
 
   // Language Switcher
   language: 'Dil',
-  langEs: 'Español',
-  langEn: 'English',
 
   // Info Modal & Help Labels
-  infoModalTitle: 'Kuantum Mekaniği ve Atomik Yapı Kılavuzu',
   infoModalClose: 'Kapat',
   dontShowAgain: 'Bir daha gösterme',
   analogyLabel: 'Sezgisel Analoji',
   glossaryTitle: 'Kuantum Fiziği Bilimsel Sözlüğü',
   glossarySubtitle: 'Atom fiziği, dalga fonksiyonları ve kimyasal bağ kuramının temel kavramlarını keşfedin.',
   glossarySearchPlaceholder: 'Terim ara (ör. Schrödinger, düğüm, sp³, dalga fonksiyonu)...',
+  glossaryEmpty: 'Eşleşen sözlük terimi bulunamadı.',
   btnGlossary: 'Bilimsel Sözlük',
-  btnLearnMore: 'Daha Fazla Bilgi',
   btnIntro: 'Bu Nedir?',
 
   // Orbital Parameter Explanations
@@ -262,8 +253,6 @@ export const strings: I18nStrings = {
   blockFilterF: 'f-Blok',
   legendElectronegativity: 'Elektronegatiflik (Pauling)',
   legendAtomicRadius: 'Deneysel Atom Yarıçapı (pm)',
-  groupHeaderLabel: 'Grup',
-  periodHeaderLabel: 'Periyot',
   explainAtomicNumber: {
     title: 'Atom Numarası (Z)',
     summary: 'Atom çekirdeğindeki pozitif yüklü proton sayısı.',

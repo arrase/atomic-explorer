@@ -387,7 +387,7 @@ export class PeriodicTableView {
       <div class="inspector-card">
         <div class="inspector-header">
           <div class="insp-header-title">
-            <span class="insp-z">Z = ${el.Z}</span>
+            <span class="insp-z">Z = ${el.Z}${strings.explainAtomicNumber ? ` <button class="btn-info-icon" data-explain="explainAtomicNumber" aria-label="Info">${icon('info')}</button>` : ''}</span>
             <h2 class="insp-symbol">${el.symbol}</h2>
             <span class="insp-name">${elementName}</span>
             <span class="insp-category">${categoryName}</span>
@@ -463,7 +463,6 @@ export class PeriodicTableView {
       this.currentColorScheme = colorSelect.value as 'category' | 'electronegativity' | 'radius';
       legendContainer.innerHTML = this.renderLegendBar();
       grid.innerHTML = this.renderGridCells(searchInput.value);
-      this.attachCellClickEvents();
     });
 
     // Block Filter Buttons
@@ -476,18 +475,45 @@ export class PeriodicTableView {
           blockBtns.forEach((b) => b.classList.remove('active'));
           btn.classList.add('active');
           grid.innerHTML = this.renderGridCells(searchInput.value);
-          this.attachCellClickEvents();
         }
       });
     });
 
     searchInput.addEventListener('input', () => {
       grid.innerHTML = this.renderGridCells(searchInput.value);
-      this.attachCellClickEvents();
+    });
+
+    grid.addEventListener('click', (e) => {
+      const cell = (e.target as HTMLElement).closest('.element-cell:not(.placeholder-cell)');
+      if (!cell) return;
+      const zStr = cell.getAttribute('data-z');
+      if (!zStr) return;
+      const z = parseInt(zStr, 10);
+      this.selectedElement = this.elements.find((el) => el.Z === z)!;
+
+      grid.querySelectorAll('.element-cell').forEach((c) => c.classList.remove('selected'));
+      cell.classList.add('selected');
+
+      const quickInspector = this.container.querySelector('#mobile-quick-inspector') as HTMLElement;
+      quickInspector.innerHTML = this.renderQuickInspectorContent();
+
+      const inspector = this.container.querySelector('#element-inspector') as HTMLElement;
+      inspector.innerHTML = `
+        <div class="mobile-drawer-handle"></div>
+        <div class="panel-header-actions mobile-only-header">
+          <button class="panel-close-btn" id="btn-close-inspector" aria-label="Close">${icon('close')}</button>
+        </div>
+        ${this.renderInspectorContent()}
+      `;
+      this.attachInfoButtonEvents(inspector);
+
+      const closeBtn = inspector.querySelector('#btn-close-inspector') as HTMLButtonElement;
+      closeBtn.addEventListener('click', () => this.closeFullInspector());
+
+      this.attachQuickInspectorEvents();
     });
 
     this.attachQuickInspectorEvents();
-    this.attachCellClickEvents();
     this.attachInfoButtonEvents(this.container);
   }
 
@@ -542,42 +568,6 @@ export class PeriodicTableView {
           const explanation = strings[explainKey] as ConceptExplanation;
           ExplanationModal.show(explanation);
         }
-      });
-    });
-  }
-
-  private attachCellClickEvents(): void {
-    const cells = this.container.querySelectorAll('.element-cell:not(.placeholder-cell)');
-    const inspector = this.container.querySelector('#element-inspector') as HTMLElement;
-    const quickInspector = this.container.querySelector('#mobile-quick-inspector') as HTMLElement;
-
-    cells.forEach((cell) => {
-      cell.addEventListener('click', () => {
-        const zStr = cell.getAttribute('data-z');
-        if (!zStr) return;
-        const z = parseInt(zStr, 10);
-        this.selectedElement = this.elements.find((e) => e.Z === z)!;
-
-        cells.forEach((c) => c.classList.remove('selected'));
-        cell.classList.add('selected');
-
-        // Update Quick Inspector Bar
-        quickInspector.innerHTML = this.renderQuickInspectorContent();
-
-        // Update Full Inspector Panel
-        inspector.innerHTML = `
-          <div class="mobile-drawer-handle"></div>
-          <div class="panel-header-actions mobile-only-header">
-            <button class="panel-close-btn" id="btn-close-inspector" aria-label="Close">✕</button>
-          </div>
-          ${this.renderInspectorContent()}
-        `;
-        this.attachInfoButtonEvents(inspector);
-
-        const closeBtn = inspector.querySelector('#btn-close-inspector') as HTMLButtonElement;
-        closeBtn.addEventListener('click', () => this.closeFullInspector());
-
-        this.attachQuickInspectorEvents();
       });
     });
   }

@@ -77,7 +77,6 @@ export const strings: I18nStrings = {
   searchPlaceholder: 'Zoek element op naam, symbool of Z...',
   selectElementPrompt: 'Selecteer een element uit het periodiek systeem om details te bekijken en valentie-orbitalen te inspecteren.',
   btnView3DOrbital: '⚛️ 3D-Valentie-orbitalen Visualiseren',
-  elementDetails: 'Elementdetails',
   swipeToExplore: 'Veeg horizontaal om alle groepen te verkennen',
   viewFullDetails: 'Volledige details bekijken',
   atomicMass: 'Atoommassa',
@@ -106,8 +105,6 @@ export const strings: I18nStrings = {
   selectMolecule: 'Selecteer Molecuul',
   showLobes: 'Hybride Lobben Tonen',
   hideLobes: 'Hybride Lobben Verbergen',
-  toggleLobesShow: '👁️🗨️ Elektronenwolken Tonen',
-  toggleLobesHide: '👁️ Elektronenwolken Verbergen',
   exportGenerating: '⏳ HD-render wordt gegenereerd...',
   formatPng: 'PNG (Verliesvrij / Transparant)',
   formatJpeg: 'JPEG (Hoge Kwaliteit 95%)',
@@ -123,26 +120,20 @@ export const strings: I18nStrings = {
   bondAngle: 'Bindingshoek',
   showAngles: 'Hoeken Tonen',
   hideAngles: 'Hoeken Verbergen',
-  toggleAnglesShow: '📐 3D-hoeken Tonen',
-  toggleAnglesHide: '📐 3D-hoeken Verbergen',
-  bondAngles: 'Bindingshoeken',
   moleculeGallery: 'Moleculengalerij',
 
   // Language Switcher
   language: 'Taal',
-  langEs: 'Español',
-  langEn: 'English',
 
   // Info Modal & Help Labels
-  infoModalTitle: 'Gids voor Kwantummechanica & Atoomstructuur',
   infoModalClose: 'Sluiten',
   dontShowAgain: 'Niet meer tonen',
   analogyLabel: 'Intuïtieve Analogie',
   glossaryTitle: 'Wetenschappelijke Woordenlijst Kwantumfysica',
   glossarySubtitle: 'Ontdek kernbegrippen uit de atoomfysica, golffuncties en chemische theorie.',
   glossarySearchPlaceholder: 'Zoek termen in woordenlijst (bijv. Schrödinger, knooppunt, sp³)...',
+  glossaryEmpty: 'Geen overeenkomende termen gevonden in de woordenlijst.',
   btnGlossary: 'Wetenschappelijke Woordenlijst',
-  btnLearnMore: 'Meer Informatie',
   btnIntro: 'Wat is dit?',
 
   // Orbital Parameter Explanations
@@ -262,8 +253,6 @@ export const strings: I18nStrings = {
   blockFilterF: 'f-Blok',
   legendElectronegativity: 'Elektronegativiteit (Pauling)',
   legendAtomicRadius: 'Empirische Atoomstraal (pm)',
-  groupHeaderLabel: 'Groep',
-  periodHeaderLabel: 'Periode',
   explainAtomicNumber: {
     title: 'Atoomnummer (Z)',
     summary: 'Het aantal protonen in de kern van het atoom.',

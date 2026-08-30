@@ -77,7 +77,6 @@ export const strings: I18nStrings = {
   searchPlaceholder: 'Cerca elemento per nome, simbolo o Z...',
   selectElementPrompt: 'Seleziona un elemento dalla tavola periodica per visualizzarne i dettagli e ispezionare gli orbitali di valenza.',
   btnView3DOrbital: '⚛️ Visualizza Orbitali 3D di Valenza',
-  elementDetails: "Dettagli dell'Elemento",
   swipeToExplore: 'Scorri orizzontalmente per esplorare tutti i gruppi',
   viewFullDetails: 'Visualizza dettagli completi',
   atomicMass: 'Massa Atomica',
@@ -106,8 +105,6 @@ export const strings: I18nStrings = {
   selectMolecule: 'Seleziona Molecola',
   showLobes: 'Mostra Lobi Ibridi',
   hideLobes: 'Nascondi Lobi Ibridi',
-  toggleLobesShow: '👁️🗨️ Mostra Nuvole Elettroniche',
-  toggleLobesHide: '👁️ Nascondi Nuvole Elettroniche',
   exportGenerating: '⏳ Generazione Render HD in corso...',
   formatPng: 'PNG (Senza perdita / Trasparente)',
   formatJpeg: 'JPEG (Alta Qualità 95%)',
@@ -123,26 +120,20 @@ export const strings: I18nStrings = {
   bondAngle: 'Angolo di Legame',
   showAngles: 'Mostra Angoli',
   hideAngles: 'Nascondi Angoli',
-  toggleAnglesShow: '📐 Mostra Angoli 3D',
-  toggleAnglesHide: '📐 Nascondi Angoli 3D',
-  bondAngles: 'Angoli di Legame',
   moleculeGallery: 'Galleria delle Molecole',
 
   // Language Switcher
   language: 'Lingua',
-  langEs: 'Español',
-  langEn: 'English',
 
   // Info Modal & Help Labels
-  infoModalTitle: 'Guida alla Meccanica Quantistica & Struttura Atomica',
   infoModalClose: 'Chiudi',
   dontShowAgain: 'Non mostrare più',
   analogyLabel: 'Analogia Intuitiva',
   glossaryTitle: 'Glossario Scientifico di Fisica Quantistica',
   glossarySubtitle: "Esplora i concetti fondamentali della fisica atomica, delle funzioni d'onda e della teoria chimica.",
   glossarySearchPlaceholder: 'Cerca termini nel glossario (es. Schrödinger, nodale, sp³)...',
+  glossaryEmpty: 'Nessun termine del glossario corrispondente trovato.',
   btnGlossary: 'Glossario Scientifico',
-  btnLearnMore: 'Scopri di Più',
   btnIntro: "Cos'è questo?",
 
   // Orbital Parameter Explanations
@@ -262,8 +253,6 @@ export const strings: I18nStrings = {
   blockFilterF: 'Blocco f',
   legendElectronegativity: 'Elettronegatività (Pauling)',
   legendAtomicRadius: 'Raggio Atomico Empirico (pm)',
-  groupHeaderLabel: 'Gruppo',
-  periodHeaderLabel: 'Periodo',
   explainAtomicNumber: {
     title: 'Numero Atomico (Z)',
     summary: "Il numero di protoni presenti nel nucleo dell'atomo.",

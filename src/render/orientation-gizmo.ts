@@ -1,8 +1,8 @@
 import * as THREE from 'three';
 
-export type AxisId = '+x' | '-x' | '+y' | '-y' | '+z' | '-z';
+type AxisId = '+x' | '-x' | '+y' | '-y' | '+z' | '-z';
 
-export interface AxisInfo {
+interface AxisInfo {
   id: AxisId;
   dir: THREE.Vector3;
   up: THREE.Vector3;
@@ -11,7 +11,7 @@ export interface AxisInfo {
   isPositive: boolean;
 }
 
-export const AXES: AxisInfo[] = [
+const AXES: AxisInfo[] = [
   { id: '+x', dir: new THREE.Vector3(1, 0, 0), up: new THREE.Vector3(0, 1, 0), color: '#ef4444', label: 'X', isPositive: true },
   { id: '-x', dir: new THREE.Vector3(-1, 0, 0), up: new THREE.Vector3(0, 1, 0), color: '#ef4444', label: '-X', isPositive: false },
   { id: '+y', dir: new THREE.Vector3(0, 1, 0), up: new THREE.Vector3(0, 0, -1), color: '#22c55e', label: 'Y', isPositive: true },
@@ -31,6 +31,9 @@ export class OrientationGizmo {
   private radius: number = 32;
   private hoveredAxis: AxisId | null = null;
   private projectedAxes: Array<{ axis: AxisInfo; x: number; y: number; z: number; radius: number }> = [];
+
+  private tempMatrix = new THREE.Matrix4();
+  private tempVec = new THREE.Vector3();
 
   constructor(
     parent: HTMLElement,
@@ -94,14 +97,13 @@ export class OrientationGizmo {
     ctx.restore();
 
     // Compute view rotation matrix (camera rotation only)
-    const rotMatrix = new THREE.Matrix4().extractRotation(this.camera.matrixWorldInverse);
-    const tempVec = new THREE.Vector3();
+    this.tempMatrix.extractRotation(this.camera.matrixWorldInverse);
 
     this.projectedAxes = AXES.map((axis) => {
-      tempVec.copy(axis.dir).applyMatrix4(rotMatrix);
-      const x = center + tempVec.x * this.radius;
-      const y = center - tempVec.y * this.radius;
-      const z = tempVec.z;
+      this.tempVec.copy(axis.dir).applyMatrix4(this.tempMatrix);
+      const x = center + this.tempVec.x * this.radius;
+      const y = center - this.tempVec.y * this.radius;
+      const z = this.tempVec.z;
       const nodeRadius = axis.isPositive ? 10 : 5.5;
       return { axis, x, y, z, radius: nodeRadius };
     });
@@ -162,50 +164,50 @@ export class OrientationGizmo {
     }
   }
 
+  private handlePointerMove = (e: MouseEvent): void => {
+    const rect = this.canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    let found: AxisId | null = null;
+    for (let i = this.projectedAxes.length - 1; i >= 0; i--) {
+      const item = this.projectedAxes[i];
+      const dist = Math.hypot(mouseX - item.x, mouseY - item.y);
+      if (dist <= item.radius + 4) {
+        found = item.axis.id;
+        break;
+      }
+    }
+
+    if (this.hoveredAxis !== found) {
+      this.hoveredAxis = found;
+      this.canvas.style.cursor = found ? 'pointer' : 'default';
+      this.update();
+    }
+  };
+
+  private handlePointerLeave = (): void => {
+    if (this.hoveredAxis !== null) {
+      this.hoveredAxis = null;
+      this.canvas.style.cursor = 'default';
+      this.update();
+    }
+  };
+
+  private handlePointerDown = (e: MouseEvent): void => {
+    e.stopPropagation();
+    if (!this.hoveredAxis) return;
+
+    const selected = AXES.find((a) => a.id === this.hoveredAxis);
+    if (selected && this.onAlignCamera) {
+      this.onAlignCamera(selected.dir, selected.up);
+    }
+  };
+
   private attachEvents(): void {
-    const handlePointerMove = (e: MouseEvent) => {
-      const rect = this.canvas.getBoundingClientRect();
-      const mouseX = e.clientX - rect.left;
-      const mouseY = e.clientY - rect.top;
-
-      let found: AxisId | null = null;
-      for (let i = this.projectedAxes.length - 1; i >= 0; i--) {
-        const item = this.projectedAxes[i];
-        const dist = Math.hypot(mouseX - item.x, mouseY - item.y);
-        if (dist <= item.radius + 4) {
-          found = item.axis.id;
-          break;
-        }
-      }
-
-      if (this.hoveredAxis !== found) {
-        this.hoveredAxis = found;
-        this.canvas.style.cursor = found ? 'pointer' : 'default';
-        this.update();
-      }
-    };
-
-    const handlePointerLeave = () => {
-      if (this.hoveredAxis !== null) {
-        this.hoveredAxis = null;
-        this.canvas.style.cursor = 'default';
-        this.update();
-      }
-    };
-
-    const handlePointerDown = (e: MouseEvent) => {
-      e.stopPropagation();
-      if (!this.hoveredAxis) return;
-
-      const selected = AXES.find((a) => a.id === this.hoveredAxis);
-      if (selected && this.onAlignCamera) {
-        this.onAlignCamera(selected.dir, selected.up);
-      }
-    };
-
-    this.canvas.addEventListener('mousemove', handlePointerMove);
-    this.canvas.addEventListener('mouseleave', handlePointerLeave);
-    this.canvas.addEventListener('click', handlePointerDown);
+    this.canvas.addEventListener('mousemove', this.handlePointerMove);
+    this.canvas.addEventListener('mouseleave', this.handlePointerLeave);
+    this.canvas.addEventListener('click', this.handlePointerDown);
   }
 
   public setVisible(visible: boolean): void {
@@ -213,6 +215,9 @@ export class OrientationGizmo {
   }
 
   public destroy(): void {
+    this.canvas.removeEventListener('mousemove', this.handlePointerMove);
+    this.canvas.removeEventListener('mouseleave', this.handlePointerLeave);
+    this.canvas.removeEventListener('click', this.handlePointerDown);
     this.container.remove();
   }
 }

@@ -8,6 +8,7 @@ use atomic_math::{
     OrbitalMode, QuantumNumbers, RealOrbitalKind,
 };
 
+#[allow(clippy::too_many_arguments)]
 fn integrate_spherical_density(
     qn: &QuantumNumbers,
     mode: &OrbitalMode,
@@ -74,6 +75,42 @@ fn test_4f_normalization() {
     let integral = integrate_spherical_density(&qn, &mode, 1.0, 0.01, 35.0, 0.15, 0.05, 0.1);
 
     assert_relative_eq!(integral, 1.0, epsilon = 0.08);
+}
+
+#[test]
+fn test_2p_m1_pure_eigenstate_normalization() {
+    let qn = QuantumNumbers { n: 2, l: 1, m: 1 };
+    let mode = OrbitalMode::PureEigenstate;
+    let integral = integrate_spherical_density(&qn, &mode, 1.0, 0.01, 16.0, 0.05, 0.05, 0.1);
+
+    assert_relative_eq!(integral, 1.0, epsilon = 0.05);
+}
+
+#[test]
+fn test_2p_m_neg1_pure_eigenstate_normalization() {
+    let qn = QuantumNumbers { n: 2, l: 1, m: -1 };
+    let mode = OrbitalMode::PureEigenstate;
+    let integral = integrate_spherical_density(&qn, &mode, 1.0, 0.01, 16.0, 0.05, 0.05, 0.1);
+
+    assert_relative_eq!(integral, 1.0, epsilon = 0.05);
+}
+
+#[test]
+fn test_3d_m2_pure_eigenstate_normalization() {
+    let qn = QuantumNumbers { n: 3, l: 2, m: 2 };
+    let mode = OrbitalMode::PureEigenstate;
+    let integral = integrate_spherical_density(&qn, &mode, 1.0, 0.01, 25.0, 0.1, 0.05, 0.1);
+
+    assert_relative_eq!(integral, 1.0, epsilon = 0.05);
+}
+
+#[test]
+fn test_3d_m_neg2_pure_eigenstate_normalization() {
+    let qn = QuantumNumbers { n: 3, l: 2, m: -2 };
+    let mode = OrbitalMode::PureEigenstate;
+    let integral = integrate_spherical_density(&qn, &mode, 1.0, 0.01, 25.0, 0.1, 0.05, 0.1);
+
+    assert_relative_eq!(integral, 1.0, epsilon = 0.05);
 }
 
 #[test]
@@ -222,7 +259,7 @@ fn test_degeneracy() {
     let n = 4;
     let mut count = 0;
     for l in 0..n {
-        for _m in -(l as i32)..=(l as i32) {
+        for _m in -l..=l {
             count += 1;
         }
     }

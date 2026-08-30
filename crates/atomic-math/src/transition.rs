@@ -1,3 +1,6 @@
+use crate::math_utils::constants::*;
+use crate::wavefunctions::r_nl;
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct TransitionResult {
     pub energy_initial_ev: f64,
@@ -7,9 +10,6 @@ pub struct TransitionResult {
     pub series_name: String,
 }
 
-use crate::math_utils::constants::{RYDBERG_CONST_M1, RYDBERG_ENERGY_EV};
-
-pub const RYDBERG_EV: f64 = RYDBERG_ENERGY_EV;
 /// Reciprocal Rydberg constant in nm: 1 / (R_∞ * 1e-9) = 91.12670505824 nm
 pub const RYDBERG_NM_FACTOR: f64 = 1.0e9 / RYDBERG_CONST_M1;
 
@@ -22,7 +22,7 @@ pub fn calculate_energy_ev(z_eff: f64, n: u32) -> Result<f64, String> {
         return Err(format!("Effective nuclear charge Z_eff ({}) must be positive", z_eff));
     }
     let n_f = n as f64;
-    Ok(-RYDBERG_EV * z_eff * z_eff / (n_f * n_f))
+    Ok(-RYDBERG_ENERGY_EV * z_eff * z_eff / (n_f * n_f))
 }
 
 /// Identify the spectral series based on the lower principal quantum number n_lower.
@@ -87,8 +87,6 @@ pub fn radial_dipole_integral(
     l2: u32,
     z_eff: f64,
 ) -> Result<f64, String> {
-    use crate::wavefunctions::r_nl;
-
     if !is_dipole_allowed(l1, 0, l2, 0) {
         return Ok(0.0);
     }
@@ -126,8 +124,6 @@ pub fn spontaneous_emission_rate(
     n2: u32,
     l2: u32,
 ) -> Result<f64, String> {
-    use crate::math_utils::constants::*;
-
     if n2 <= n1 {
         return Err("Upper level n2 must be greater than lower level n1 for emission".into());
     }

@@ -103,15 +103,7 @@ pub fn wavefunction_value(
 
     let angular_part = match mode {
         OrbitalMode::PureEigenstate => {
-            let m_abs = qn.m.unsigned_abs();
-            let x = theta.cos();
-            let plm = math_utils::associated_legendre(qn.l, m_abs as i32, x)?;
-            let l_f = qn.l as f64;
-            let num_fact = math_utils::factorial(qn.l - m_abs)?;
-            let den_fact = math_utils::factorial(qn.l + m_abs)?;
-            let norm = (((2.0 * l_f + 1.0) / (4.0 * std::f64::consts::PI)) * (num_fact / den_fact)).sqrt();
-            let trig = if qn.m >= 0 { (qn.m as f64 * phi).cos() } else { (qn.m.abs() as f64 * phi).sin() };
-            norm * plm * trig
+            spherical_harmonics::y_lm_real(qn.l, qn.m, theta, phi)?
         }
         OrbitalMode::RealChemist(kind) => {
             spherical_harmonics::real_orbital_angular(kind, theta, phi)
