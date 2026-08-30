@@ -1,12 +1,16 @@
 import { ExtendedOrbitalParams } from './controls';
 import { getStrings, onLanguageChange } from '../i18n';
 import { ExplanationModal } from './info-modal';
+import { icon } from './icons';
+import { RadialDistributionChart } from './radial-distribution-chart';
 
 export class OrbitalPhysicsPanel {
   private container: HTMLElement;
   private currentParams: ExtendedOrbitalParams;
   private panelElement: HTMLElement | null = null;
+  private radialChart: RadialDistributionChart | null = null;
   private unsubscribeLang: (() => void) | null = null;
+  private isCollapsed: boolean = false;
 
   constructor(container: HTMLElement, params: ExtendedOrbitalParams) {
     this.container = container;
@@ -32,15 +36,25 @@ export class OrbitalPhysicsPanel {
     const rExpPm = rExpBohr * 52.917721;
     const energyEv = -13.605693 * (zEff * zEff) / (n * n);
 
+    if (this.radialChart) {
+      this.radialChart.update(n, l, zEff);
+      const peak = this.radialChart.getPeakRadius();
+      const peakVal = this.panelElement.querySelector('#val-peak-radius') as HTMLElement;
+      if (peakVal) {
+        peakVal.innerHTML = `${peak.rBohr.toFixed(2)} a₀ <small>(${peak.rPm.toFixed(1)} pm)</small>`;
+      }
+    }
+
+    const strings = getStrings();
     const seriesMap: Record<number, string> = {
-      1: 'Lyman (UV)',
-      2: 'Balmer (Visible/UV)',
-      3: 'Paschen (Near-IR)',
-      4: 'Brackett (IR)',
-      5: 'Pfund (Far-IR)',
-      6: 'Humphreys (Far-IR)',
+      1: strings.seriesLyman,
+      2: strings.seriesBalmer,
+      3: strings.seriesPaschen,
+      4: strings.seriesBrackett,
+      5: strings.seriesPfund,
+      6: strings.seriesHumphreys,
     };
-    const seriesName = seriesMap[n] || `Shell n=${n}`;
+    const seriesName = seriesMap[n] || `${strings.seriesShell}${n}`;
 
     const badgeVal = this.panelElement.querySelector('#val-active-state') as HTMLElement;
     const radialVal = this.panelElement.querySelector('#val-radial-nodes') as HTMLElement;
@@ -51,14 +65,14 @@ export class OrbitalPhysicsPanel {
     const seriesVal = this.panelElement.querySelector('#val-series') as HTMLElement;
     const zeffVal = this.panelElement.querySelector('#val-zeff') as HTMLElement;
 
-    badgeVal.textContent = `${notation} (n=${n}, l=${l}, m=${m})`;
-    radialVal.textContent = String(radialNodes);
-    angularVal.textContent = String(angularNodes);
-    totalVal.textContent = String(totalNodes);
-    radiusVal.innerHTML = `${rExpBohr.toFixed(2)} a₀ <small>(${rExpPm.toFixed(1)} pm)</small>`;
-    energyVal.textContent = `${energyEv.toFixed(2)} eV`;
-    seriesVal.textContent = seriesName;
-    zeffVal.textContent = zEff.toFixed(2);
+    if (badgeVal) badgeVal.textContent = `${notation} (n=${n}, l=${l}, m=${m})`;
+    if (radialVal) radialVal.textContent = String(radialNodes);
+    if (angularVal) angularVal.textContent = String(angularNodes);
+    if (totalVal) totalVal.textContent = String(totalNodes);
+    if (radiusVal) radiusVal.innerHTML = `${rExpBohr.toFixed(2)} a₀ <small>(${rExpPm.toFixed(1)} pm)</small>`;
+    if (energyVal) energyVal.textContent = `${energyEv.toFixed(2)} eV`;
+    if (seriesVal) seriesVal.textContent = seriesName;
+    if (zeffVal) zeffVal.textContent = zEff.toFixed(2);
   }
 
   private getOrbitalNotation(n: number, l: number, m: number, useRealOrbital: boolean): string {
@@ -109,199 +123,288 @@ export class OrbitalPhysicsPanel {
     const energyEv = -13.605693 * (zEff * zEff) / (n * n);
 
     const seriesMap: Record<number, string> = {
-      1: 'Lyman (UV)',
-      2: 'Balmer (Visible/UV)',
-      3: 'Paschen (Near-IR)',
-      4: 'Brackett (IR)',
-      5: 'Pfund (Far-IR)',
-      6: 'Humphreys (Far-IR)',
+      1: strings.seriesLyman,
+      2: strings.seriesBalmer,
+      3: strings.seriesPaschen,
+      4: strings.seriesBrackett,
+      5: strings.seriesPfund,
+      6: strings.seriesHumphreys,
     };
-    const seriesName = seriesMap[n] || `Shell n=${n}`;
+    const seriesName = seriesMap[n] || `${strings.seriesShell}${n}`;
 
-    if (this.panelElement && this.panelElement.parentNode) {
-      this.panelElement.parentNode.removeChild(this.panelElement);
-    }
+    this.container.innerHTML = `
+      <!-- Dock Handle / Expand Pill when Right Panel is Collapsed on Desktop -->
+      <button class="dock-tab-pill dock-right-pill ${this.isCollapsed ? 'visible' : ''}" id="btn-expand-physics" title="${strings.expandPanel}">
+        ${icon('chevron-left', 'pill-chevron')}
+        <span>${strings.physicsPanelTitle}</span>
+        ${icon('chart')}
+      </button>
 
-    const panel = document.createElement('div');
-    panel.className = 'orbital-physics-panel glass-panel';
-
-    panel.innerHTML = `
-      <div class="mobile-drawer-handle"></div>
-      <div class="physics-header">
-        <div class="physics-header-top">
-          <h3>${strings.physicsPanelTitle}</h3>
-          <button class="panel-close-btn" id="btn-close-physics" aria-label="Close">✕</button>
-        </div>
-        <div class="active-state-badge">
-          <span class="badge-label">${strings.activeState}:</span>
-          <span class="badge-value" id="val-active-state">${notation} (n=${n}, l=${l}, m=${m})</span>
-        </div>
-      </div>
-
-      <div class="physics-section nodes-section">
-        <h4>${strings.nodalBreakdown}</h4>
-        <div class="nodes-grid">
-          <div class="node-item">
-            <div class="node-header">
-              <span class="node-label">${strings.radialNodes}</span>
-              <button class="btn-info-icon" data-node="radial" aria-label="Info">ℹ️</button>
+      <div class="orbital-physics-panel glass-panel ${this.isCollapsed ? 'collapsed' : ''}">
+        <div class="mobile-drawer-handle"></div>
+        <div class="physics-header">
+          <div class="physics-header-top">
+            <div class="panel-title-group">
+              <span class="panel-header-icon">${icon('chart')}</span>
+              <h3>${strings.physicsPanelTitle}</h3>
             </div>
-            <span class="node-value" id="val-radial-nodes">${radialNodes}</span>
+            <div class="panel-header-actions">
+              <button class="panel-icon-btn panel-collapse-btn desktop-only" id="btn-collapse-physics" title="${strings.collapsePanel}" aria-label="${strings.collapsePanel}">
+                ${icon('chevron-right')}
+              </button>
+              <button class="panel-close-btn mobile-only" id="btn-close-physics" aria-label="Close">
+                ${icon('close')}
+              </button>
+            </div>
           </div>
-          <div class="node-item">
-            <div class="node-header">
-              <span class="node-label">${strings.angularNodes}</span>
-              <button class="btn-info-icon" data-node="angular" aria-label="Info">ℹ️</button>
-            </div>
-            <span class="node-value" id="val-angular-nodes">${angularNodes}</span>
-          </div>
-          <div class="node-item">
-            <div class="node-header">
-              <span class="node-label">${strings.totalNodes}</span>
-              <button class="btn-info-icon" data-node="total" aria-label="Info">ℹ️</button>
-            </div>
-            <span class="node-value" id="val-total-nodes">${totalNodes}</span>
+          <div class="active-state-badge">
+            <span class="badge-label">${strings.activeState}:</span>
+            <span class="badge-value" id="val-active-state">${notation} (n=${n}, l=${l}, m=${m})</span>
           </div>
         </div>
-      </div>
 
-      <div class="physics-section expectation-section">
-        <div class="expectation-grid">
-          <div class="expectation-item">
-            <div class="node-header">
-              <span class="node-label">${strings.expectationRadius}</span>
-              <button class="btn-info-icon" data-phys="radius" aria-label="Info">ℹ️</button>
-            </div>
-            <span class="node-value" id="val-exp-radius">${rExpBohr.toFixed(2)} a₀ <small>(${rExpPm.toFixed(1)} pm)</small></span>
+        <div class="physics-section radial-section">
+          <div class="radial-section-header">
+            <h4>${strings.radialDistributionTitle}</h4>
+            <button class="btn-info-icon" data-explain="explainRadialDistribution" aria-label="Info">${icon('info')}</button>
           </div>
-          <div class="expectation-item">
-            <div class="node-header">
-              <span class="node-label">${strings.hydrogenicEnergy}</span>
-              <button class="btn-info-icon" data-phys="energy" aria-label="Info">ℹ️</button>
+          <div class="radial-chart-wrapper" id="radial-chart-container"></div>
+          <div class="radial-stats-row">
+            <div class="radial-stat-badge">
+              <span class="stat-label">${strings.peakRadius}:</span>
+              <span class="stat-value" id="val-peak-radius">--</span>
             </div>
-            <span class="node-value" id="val-energy">${energyEv.toFixed(2)} eV</span>
           </div>
         </div>
-      </div>
 
-      <div class="physics-section formula-section">
-        <div class="formula-header">
-          <h4>${strings.wavefunctionFormula}</h4>
-          <button class="btn-info-icon" data-formula="wavefunction" aria-label="Info">ℹ️</button>
+        <div class="physics-section nodes-section">
+          <h4>${strings.nodalBreakdown}</h4>
+          <div class="nodes-grid">
+            <div class="node-item">
+              <div class="node-header">
+                <span class="node-label">${strings.radialNodes}</span>
+                <button class="btn-info-icon" data-node="radial" aria-label="Info">${icon('info')}</button>
+              </div>
+              <span class="node-value" id="val-radial-nodes">${radialNodes}</span>
+            </div>
+            <div class="node-item">
+              <div class="node-header">
+                <span class="node-label">${strings.angularNodes}</span>
+                <button class="btn-info-icon" data-node="angular" aria-label="Info">${icon('info')}</button>
+              </div>
+              <span class="node-value" id="val-angular-nodes">${angularNodes}</span>
+            </div>
+            <div class="node-item">
+              <div class="node-header">
+                <span class="node-label">${strings.totalNodes}</span>
+                <button class="btn-info-icon" data-node="total" aria-label="Info">${icon('info')}</button>
+              </div>
+              <span class="node-value" id="val-total-nodes">${totalNodes}</span>
+            </div>
+          </div>
         </div>
-        <div class="formula-display">
-          <code>&psi;_{n,l,m}(r,&theta;,&phi;) = R_{n,l}(r) &middot; Y_l^m(&theta;,&phi;)</code>
-        </div>
-        <div class="series-badge">
-          <span>${strings.spectralSeries}: <strong id="val-series">${seriesName}</strong></span>
-        </div>
-      </div>
 
-      <div class="physics-section shielding-section">
-        <div class="shielding-header">
-          <h4>${strings.shieldingTitle}</h4>
-          <button class="btn-info-icon" data-explain="explainZeff" aria-label="Info">ℹ️</button>
+        <div class="physics-section expectation-section">
+          <div class="expectation-grid">
+            <div class="expectation-item">
+              <div class="node-header">
+                <span class="node-label">${strings.expectationRadius}</span>
+                <button class="btn-info-icon" data-phys="radius" aria-label="Info">${icon('info')}</button>
+              </div>
+              <span class="node-value" id="val-exp-radius">${rExpBohr.toFixed(2)} a₀ <small>(${rExpPm.toFixed(1)} pm)</small></span>
+            </div>
+            <div class="expectation-item">
+              <div class="node-header">
+                <span class="node-label">${strings.hydrogenicEnergy}</span>
+                <button class="btn-info-icon" data-phys="energy" aria-label="Info">${icon('info')}</button>
+              </div>
+              <span class="node-value" id="val-energy">${energyEv.toFixed(2)} eV</span>
+            </div>
+          </div>
         </div>
-        <p class="shielding-note">
-          Z_eff = <strong id="val-zeff">${zEff.toFixed(2)}</strong> &mdash; ${strings.shieldingNoteDesc}
-        </p>
+
+        <div class="physics-section formula-section">
+          <div class="formula-header">
+            <h4>${strings.wavefunctionFormula}</h4>
+            <button class="btn-info-icon" data-formula="wavefunction" aria-label="Info">${icon('info')}</button>
+          </div>
+          <div class="formula-display">
+            <code>&psi;_{n,l,m}(r,&theta;,&phi;) = R_{n,l}(r) &middot; Y_l^m(&theta;,&phi;)</code>
+          </div>
+          <div class="series-badge">
+            <span>${strings.spectralSeries}: <strong id="val-series">${seriesName}</strong></span>
+          </div>
+        </div>
+
+        <div class="physics-section shielding-section">
+          <div class="shielding-header">
+            <h4>${strings.shieldingTitle}</h4>
+            <button class="btn-info-icon" data-explain="explainZeff" aria-label="Info">${icon('info')}</button>
+          </div>
+          <p class="shielding-note">
+            Z_eff = <strong id="val-zeff">${zEff.toFixed(2)}</strong> &mdash; ${strings.shieldingNoteDesc}
+          </p>
+        </div>
       </div>
     `;
 
-    this.container.appendChild(panel);
-    this.panelElement = panel;
+    this.panelElement = this.container.querySelector('.orbital-physics-panel');
+
+    const chartContainer = this.container.querySelector('#radial-chart-container') as HTMLElement;
+    if (this.radialChart) {
+      this.radialChart.destroy();
+    }
+    if (chartContainer) {
+      this.radialChart = new RadialDistributionChart(chartContainer);
+      this.radialChart.update(n, l, zEff);
+      const peak = this.radialChart.getPeakRadius();
+      const peakVal = this.container.querySelector('#val-peak-radius') as HTMLElement;
+      if (peakVal) {
+        peakVal.innerHTML = `${peak.rBohr.toFixed(2)} a₀ <small>(${peak.rPm.toFixed(1)} pm)</small>`;
+      }
+    }
+
     this.attachEventListeners();
   }
 
   private attachEventListeners(): void {
-    const closePhysicsBtn = this.panelElement!.querySelector('#btn-close-physics') as HTMLElement;
-    closePhysicsBtn.addEventListener('click', () => {
-      this.container.classList.remove('mobile-open');
-      const backdrop = document.querySelector('#controls-drawer-backdrop') as HTMLElement;
-      backdrop.classList.remove('active');
-      const btnShowPhysics = document.querySelector('#btn-show-physics') as HTMLElement;
-      btnShowPhysics.classList.remove('active');
-    });
+    const closePhysicsBtn = this.container.querySelector('#btn-close-physics') as HTMLElement;
+    const btnCollapse = this.container.querySelector('#btn-collapse-physics') as HTMLElement;
+    const btnExpand = this.container.querySelector('#btn-expand-physics') as HTMLElement;
+    const panel = this.panelElement;
+
+    if (btnCollapse) {
+      btnCollapse.addEventListener('click', () => {
+        this.isCollapsed = true;
+        if (panel) panel.classList.add('collapsed');
+        if (btnExpand) btnExpand.classList.add('visible');
+      });
+    }
+
+    if (btnExpand) {
+      btnExpand.addEventListener('click', () => {
+        this.isCollapsed = false;
+        if (panel) panel.classList.remove('collapsed');
+        btnExpand.classList.remove('visible');
+      });
+    }
+
+    if (closePhysicsBtn) {
+      closePhysicsBtn.addEventListener('click', () => {
+        this.container.classList.remove('mobile-open');
+        const backdrop = document.querySelector('#controls-drawer-backdrop') as HTMLElement;
+        if (backdrop) backdrop.classList.remove('active');
+        const btnShowPhysics = document.querySelector('#btn-show-physics') as HTMLElement;
+        if (btnShowPhysics) btnShowPhysics.classList.remove('active');
+      });
+    }
 
     const strings = getStrings();
 
-    const radialBtn = this.panelElement!.querySelector('[data-node="radial"]') as HTMLElement;
-    radialBtn.addEventListener('click', (e: Event) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const radialNodes = this.currentParams.n - this.currentParams.l - 1;
-      ExplanationModal.showSimple(
-        strings.radialNodes,
-        `${strings.radialNodes}: ${radialNodes}`,
-        strings.radialNodesDesc
-      );
-    });
+    const radialBtn = this.container.querySelector('[data-node="radial"]') as HTMLElement;
+    if (radialBtn) {
+      radialBtn.addEventListener('click', (e: Event) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const radialNodes = this.currentParams.n - this.currentParams.l - 1;
+        ExplanationModal.showSimple(
+          strings.radialNodes,
+          `${strings.radialNodes}: ${radialNodes}`,
+          strings.radialNodesDesc
+        );
+      });
+    }
 
-    const angularBtn = this.panelElement!.querySelector('[data-node="angular"]') as HTMLElement;
-    angularBtn.addEventListener('click', (e: Event) => {
-      e.preventDefault();
-      e.stopPropagation();
-      ExplanationModal.showSimple(
-        strings.angularNodes,
-        `${strings.angularNodes}: ${this.currentParams.l}`,
-        strings.angularNodesDesc
-      );
-    });
+    const angularBtn = this.container.querySelector('[data-node="angular"]') as HTMLElement;
+    if (angularBtn) {
+      angularBtn.addEventListener('click', (e: Event) => {
+        e.preventDefault();
+        e.stopPropagation();
+        ExplanationModal.showSimple(
+          strings.angularNodes,
+          `${strings.angularNodes}: ${this.currentParams.l}`,
+          strings.angularNodesDesc
+        );
+      });
+    }
 
-    const totalBtn = this.panelElement!.querySelector('[data-node="total"]') as HTMLElement;
-    totalBtn.addEventListener('click', (e: Event) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const totalNodes = this.currentParams.n - 1;
-      ExplanationModal.showSimple(
-        strings.totalNodes,
-        `${strings.totalNodes}: ${totalNodes}`,
-        strings.totalNodesDesc
-      );
-    });
+    const totalBtn = this.container.querySelector('[data-node="total"]') as HTMLElement;
+    if (totalBtn) {
+      totalBtn.addEventListener('click', (e: Event) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const totalNodes = this.currentParams.n - 1;
+        ExplanationModal.showSimple(
+          strings.totalNodes,
+          `${strings.totalNodes}: ${totalNodes}`,
+          strings.totalNodesDesc
+        );
+      });
+    }
 
-    const radiusBtn = this.panelElement!.querySelector('[data-phys="radius"]') as HTMLElement;
-    radiusBtn.addEventListener('click', (e: Event) => {
-      e.preventDefault();
-      e.stopPropagation();
-      ExplanationModal.showSimple(
-        strings.expectationRadius,
-        strings.expectationRadiusDesc,
-        strings.expectationRadiusDetail
-      );
-    });
+    const radiusBtn = this.container.querySelector('[data-phys="radius"]') as HTMLElement;
+    if (radiusBtn) {
+      radiusBtn.addEventListener('click', (e: Event) => {
+        e.preventDefault();
+        e.stopPropagation();
+        ExplanationModal.showSimple(
+          strings.expectationRadius,
+          strings.expectationRadiusDesc,
+          strings.expectationRadiusDetail
+        );
+      });
+    }
 
-    const energyBtn = this.panelElement!.querySelector('[data-phys="energy"]') as HTMLElement;
-    energyBtn.addEventListener('click', (e: Event) => {
-      e.preventDefault();
-      e.stopPropagation();
-      ExplanationModal.showSimple(
-        strings.hydrogenicEnergy,
-        strings.hydrogenicEnergyDesc,
-        strings.hydrogenicEnergyDetail
-      );
-    });
+    const energyBtn = this.container.querySelector('[data-phys="energy"]') as HTMLElement;
+    if (energyBtn) {
+      energyBtn.addEventListener('click', (e: Event) => {
+        e.preventDefault();
+        e.stopPropagation();
+        ExplanationModal.showSimple(
+          strings.hydrogenicEnergy,
+          strings.hydrogenicEnergyDesc,
+          strings.hydrogenicEnergyDetail
+        );
+      });
+    }
 
-    const formulaBtn = this.panelElement!.querySelector('[data-formula="wavefunction"]') as HTMLElement;
-    formulaBtn.addEventListener('click', (e: Event) => {
-      e.preventDefault();
-      e.stopPropagation();
-      ExplanationModal.showSimple(
-        strings.wavefunctionFormula,
-        strings.wavefunctionFormulaDesc,
-        strings.wavefunctionFormulaDetail
-      );
-    });
+    const formulaBtn = this.container.querySelector('[data-formula="wavefunction"]') as HTMLElement;
+    if (formulaBtn) {
+      formulaBtn.addEventListener('click', (e: Event) => {
+        e.preventDefault();
+        e.stopPropagation();
+        ExplanationModal.showSimple(
+          strings.wavefunctionFormula,
+          strings.wavefunctionFormulaDesc,
+          strings.wavefunctionFormulaDetail
+        );
+      });
+    }
 
-    const zeffBtn = this.panelElement!.querySelector('[data-explain="explainZeff"]') as HTMLElement;
-    zeffBtn.addEventListener('click', (e: Event) => {
-      e.preventDefault();
-      e.stopPropagation();
-      ExplanationModal.show(strings.explainZeff);
-    });
+    const zeffBtn = this.container.querySelector('[data-explain="explainZeff"]') as HTMLElement;
+    if (zeffBtn) {
+      zeffBtn.addEventListener('click', (e: Event) => {
+        e.preventDefault();
+        e.stopPropagation();
+        ExplanationModal.show(strings.explainZeff);
+      });
+    }
+
+    const radialExpBtn = this.container.querySelector('[data-explain="explainRadialDistribution"]') as HTMLElement;
+    if (radialExpBtn) {
+      radialExpBtn.addEventListener('click', (e: Event) => {
+        e.preventDefault();
+        e.stopPropagation();
+        ExplanationModal.show(strings.explainRadialDistribution);
+      });
+    }
   }
 
   public destroy(): void {
+    if (this.radialChart) {
+      this.radialChart.destroy();
+      this.radialChart = null;
+    }
     if (this.unsubscribeLang) {
       this.unsubscribeLang();
       this.unsubscribeLang = null;

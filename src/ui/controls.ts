@@ -3,6 +3,7 @@ import { RenderMode, QualityPreset, ColorPalette } from '../render/orbital-rende
 import { getStrings, onLanguageChange, I18nStrings, ConceptExplanation } from '../i18n';
 import { ExplanationModal } from './info-modal';
 import { OrbitalPhysicsPanel } from './orbital-physics-panel';
+import { icon } from './icons';
 
 export interface ExtendedOrbitalParams extends OrbitalParams {
   s: number;
@@ -20,6 +21,13 @@ export class ControlPanel {
   private onChange: (params: ExtendedOrbitalParams) => void;
   private onExportClick?: () => void;
   private physicsPanel: OrbitalPhysicsPanel | null = null;
+
+  private isCollapsed: boolean = false;
+  private openSections: Record<string, boolean> = {
+    quantum: true,
+    nuclear: true,
+    render: true,
+  };
 
   private currentParams: ExtendedOrbitalParams = {
     n: 1,
@@ -59,159 +67,220 @@ export class ControlPanel {
 
       <div class="mobile-floating-actions">
         <button class="mobile-float-btn" id="btn-show-controls" title="${strings.orbitalControls}">
-          <span class="btn-icon">🎛️</span>
-          <span class="btn-label">${strings.orbitalControls}</span>
+          <span class="btn-icon">${icon('sliders')}</span>
+          <span class="btn-label">${strings.quantumSection}</span>
         </button>
         <button class="mobile-float-btn" id="btn-show-physics" title="${strings.physicsPanelTitle}">
-          <span class="btn-icon">📊</span>
+          <span class="btn-icon">${icon('chart')}</span>
           <span class="btn-label">${strings.physicsPanelTitle}</span>
         </button>
       </div>
 
-      <div class="control-panel">
+      <!-- Dock Handle / Expand Pill when Left Panel is Collapsed on Desktop -->
+      <button class="dock-tab-pill dock-left-pill ${this.isCollapsed ? 'visible' : ''}" id="btn-expand-controls" title="${strings.expandPanel}">
+        ${icon('sliders')}
+        <span>${strings.quantumSection}</span>
+        ${icon('chevron-right', 'pill-chevron')}
+      </button>
+
+      <div class="control-panel ${this.isCollapsed ? 'collapsed' : ''}">
         <div class="mobile-drawer-handle"></div>
         <div class="panel-header">
-          <h3>${strings.orbitalControls}</h3>
+          <div class="panel-title-group">
+            <span class="panel-header-icon">${icon('atom')}</span>
+            <h3>${strings.orbitalControls}</h3>
+          </div>
           <div class="panel-header-actions">
             <button class="btn-export-hdr" id="btn-open-export" title="${strings.exportImage}">
-              ${strings.exportImage}
+              ${icon('camera')}
+              <span>${strings.exportImage}</span>
             </button>
-            <button class="panel-close-btn" id="btn-close-controls" aria-label="Close">✕</button>
+            <button class="panel-icon-btn panel-collapse-btn desktop-only" id="btn-collapse-controls" title="${strings.collapsePanel}" aria-label="${strings.collapsePanel}">
+              ${icon('chevron-left')}
+            </button>
+            <button class="panel-close-btn mobile-only" id="btn-close-controls" aria-label="Close">
+              ${icon('close')}
+            </button>
           </div>
         </div>
 
-        <div class="control-grid">
-          <!-- Quantum Number n -->
-          <div class="control-group">
-            <label for="n-select">
-              <span>${strings.principalQuantum}: <span id="n-val">${this.currentParams.n}</span></span>
-              <button class="btn-info-icon" data-explain="explainN" aria-label="Info">ℹ️</button>
-            </label>
-            <input type="range" id="n-select" min="1" max="7" value="${this.currentParams.n}" step="1" />
-          </div>
+        <div class="control-accordion-container">
+          <!-- SECTION 1: Quantum Parameters -->
+          <div class="control-accordion-section ${this.openSections.quantum ? 'open' : ''}" data-section="quantum">
+            <button type="button" class="accordion-header" data-toggle="quantum">
+              <span class="accordion-title">
+                ${icon('atom')}
+                <span>${strings.quantumSection}</span>
+              </span>
+              <span class="accordion-chevron">${icon('chevron-down')}</span>
+            </button>
 
-          <!-- Quantum Number l -->
-          <div class="control-group">
-            <label for="l-select">
-              <span>${strings.azimuthalQuantum}: <span id="l-val">${this.currentParams.l}</span></span>
-              <button class="btn-info-icon" data-explain="explainL" aria-label="Info">ℹ️</button>
-            </label>
-            <input type="range" id="l-select" min="0" max="${this.currentParams.n - 1}" value="${this.currentParams.l}" step="1" />
-          </div>
+            <div class="accordion-body">
+              <div class="control-grid">
+                <!-- Quantum Number n -->
+                <div class="control-group">
+                  <label for="n-select">
+                    <span>${strings.principalQuantum}: <span id="n-val" class="val-badge">${this.currentParams.n}</span></span>
+                    <button class="btn-info-icon" data-explain="explainN" aria-label="Info">${icon('info')}</button>
+                  </label>
+                  <input type="range" id="n-select" min="1" max="7" value="${this.currentParams.n}" step="1" />
+                </div>
 
-          <!-- Quantum Number m -->
-          <div class="control-group">
-            <label for="m-select">
-              <span>${strings.magneticQuantum}: <span id="m-val">${this.currentParams.m}</span></span>
-              <button class="btn-info-icon" data-explain="explainM" aria-label="Info">ℹ️</button>
-            </label>
-            <input type="range" id="m-select" min="${-this.currentParams.l}" max="${this.currentParams.l}" value="${this.currentParams.m}" step="1" />
-          </div>
+                <!-- Quantum Number l -->
+                <div class="control-group">
+                  <label for="l-select">
+                    <span>${strings.azimuthalQuantum}: <span id="l-val" class="val-badge">${this.currentParams.l}</span></span>
+                    <button class="btn-info-icon" data-explain="explainL" aria-label="Info">${icon('info')}</button>
+                  </label>
+                  <input type="range" id="l-select" min="0" max="${this.currentParams.n - 1}" value="${this.currentParams.l}" step="1" />
+                </div>
 
-          <!-- Spin s -->
-          <div class="control-group">
-            <label for="spin-select">
-              <span>${strings.spinQuantum}:</span>
-              <button class="btn-info-icon" data-explain="explainS" aria-label="Info">ℹ️</button>
-            </label>
-            <select id="spin-select">
-              <option value="0.5" ${this.currentParams.s === 0.5 ? 'selected' : ''}>+1/2 (↑)</option>
-              <option value="-0.5" ${this.currentParams.s === -0.5 ? 'selected' : ''}>-1/2 (↓)</option>
-            </select>
-          </div>
+                <!-- Quantum Number m -->
+                <div class="control-group">
+                  <label for="m-select">
+                    <span>${strings.magneticQuantum}: <span id="m-val" class="val-badge">${this.currentParams.m}</span></span>
+                    <button class="btn-info-icon" data-explain="explainM" aria-label="Info">${icon('info')}</button>
+                  </label>
+                  <input type="range" id="m-select" min="${-this.currentParams.l}" max="${this.currentParams.l}" value="${this.currentParams.m}" step="1" />
+                </div>
 
-          <!-- Render Mode -->
-          <div class="control-group">
-            <label for="mode-select">
-              <span>${strings.mode}:</span>
-              <button class="btn-info-icon" data-explain="explainMode" aria-label="Info">ℹ️</button>
-            </label>
-            <select id="mode-select">
-              <option value="points" ${this.currentParams.mode === 'points' ? 'selected' : ''}>${strings.modePoints}</option>
-              <option value="isosurface" ${this.currentParams.mode === 'isosurface' ? 'selected' : ''}>${strings.modeIsosurface}</option>
-              <option value="raymarching" ${this.currentParams.mode === 'raymarching' ? 'selected' : ''}>${strings.modeRaymarching}</option>
-            </select>
-          </div>
+                <!-- Spin s -->
+                <div class="control-group">
+                  <label for="spin-select">
+                    <span>${strings.spinQuantum}:</span>
+                    <button class="btn-info-icon" data-explain="explainS" aria-label="Info">${icon('info')}</button>
+                  </label>
+                  <select id="spin-select">
+                    <option value="0.5" ${this.currentParams.s === 0.5 ? 'selected' : ''}>+1/2 (↑)</option>
+                    <option value="-0.5" ${this.currentParams.s === -0.5 ? 'selected' : ''}>-1/2 (↓)</option>
+                  </select>
+                </div>
 
-          <!-- Orbital Type (Real vs Pure) -->
-          <div class="control-group">
-            <label for="type-select">
-              <span>${strings.orbitalType}:</span>
-              <button class="btn-info-icon" data-explain="explainOrbitalType" aria-label="Info">ℹ️</button>
-            </label>
-            <select id="type-select">
-              <option value="real" ${this.currentParams.useRealOrbital ? 'selected' : ''}>${strings.modeRealOrbital}</option>
-              <option value="eigen" ${!this.currentParams.useRealOrbital ? 'selected' : ''}>${strings.modeEigenstate}</option>
-            </select>
-          </div>
-
-          <!-- Quality Preset -->
-          <div class="control-group">
-            <label for="quality-select">
-              <span>${strings.quality}:</span>
-              <button class="btn-info-icon" data-explain="explainQuality" aria-label="Info">ℹ️</button>
-            </label>
-            <select id="quality-select">
-              <option value="low" ${this.currentParams.quality === 'low' ? 'selected' : ''}>${strings.qualityLow}</option>
-              <option value="medium" ${this.currentParams.quality === 'medium' ? 'selected' : ''}>${strings.qualityMedium}</option>
-              <option value="high" ${this.currentParams.quality === 'high' ? 'selected' : ''}>${strings.qualityHigh}</option>
-              <option value="ultra" ${this.currentParams.quality === 'ultra' ? 'selected' : ''}>${strings.qualityUltra}</option>
-              <option value="extreme" ${this.currentParams.quality === 'extreme' ? 'selected' : ''}>${strings.qualityExtreme}</option>
-              <option value="custom" ${isCustom ? 'selected' : ''}>${strings.qualityCustom}</option>
-            </select>
-          </div>
-
-          <!-- Color Palette -->
-          <div class="control-group">
-            <label for="palette-select">
-              <span>${strings.colorPalette}:</span>
-              <button class="btn-info-icon" data-explain="explainPalette" aria-label="Info">ℹ️</button>
-            </label>
-            <select id="palette-select">
-              <option value="default" ${this.currentParams.colorPalette === 'default' ? 'selected' : ''}>${strings.paletteDefault}</option>
-              <option value="fire" ${this.currentParams.colorPalette === 'fire' ? 'selected' : ''}>${strings.paletteFire}</option>
-              <option value="emerald" ${this.currentParams.colorPalette === 'emerald' ? 'selected' : ''}>${strings.paletteEmerald}</option>
-              <option value="spectrum" ${this.currentParams.colorPalette === 'spectrum' ? 'selected' : ''}>${strings.paletteSpectrum}</option>
-            </select>
-          </div>
-
-          <!-- Effective Nuclear Charge Z_eff -->
-          <div class="control-group">
-            <label for="zeff-input">
-              <span>${strings.zEffCharge}: <span id="zeff-val">${this.currentParams.zEff.toFixed(2)}</span></span>
-              <button class="btn-info-icon" data-explain="explainZeff" aria-label="Info">ℹ️</button>
-            </label>
-            <input type="range" id="zeff-input" min="0.1" max="118" value="${this.currentParams.zEff}" step="0.1" />
-          </div>
-
-          <!-- Diffuse Cloud Contrast -->
-          <div class="control-group">
-            <label for="contrast-input">
-              <span>${strings.contrastControl}: <span id="contrast-val">${this.currentParams.contrast}</span></span>
-              <button class="btn-info-icon" data-explain="explainContrast" aria-label="Info">ℹ️</button>
-            </label>
-            <input type="range" id="contrast-input" min="1" max="100" value="${this.currentParams.contrast}" step="1" />
-          </div>
-
-          <!-- Custom Fine-Tuning Controls (Visible when quality=custom) -->
-          <div class="custom-tuning-panel ${isCustom ? '' : 'hidden'}" id="custom-tuning">
-            <div class="control-group">
-              <label for="pts-input">${strings.pointCount}: <span id="pts-val">${this.currentParams.pointCount.toLocaleString()}</span></label>
-              <input type="range" id="pts-input" min="10000" max="2500000" value="${this.currentParams.pointCount}" step="10000" />
+                <!-- Orbital Type (Real vs Pure) -->
+                <div class="control-group">
+                  <label for="type-select">
+                    <span>${strings.orbitalType}:</span>
+                    <button class="btn-info-icon" data-explain="explainOrbitalType" aria-label="Info">${icon('info')}</button>
+                  </label>
+                  <select id="type-select">
+                    <option value="real" ${this.currentParams.useRealOrbital ? 'selected' : ''}>${strings.modeRealOrbital}</option>
+                    <option value="eigen" ${!this.currentParams.useRealOrbital ? 'selected' : ''}>${strings.modeEigenstate}</option>
+                  </select>
+                </div>
+              </div>
             </div>
+          </div>
 
-            <div class="control-group">
-              <label for="steps-input">${strings.raymarchingSteps}: <span id="steps-val">${this.currentParams.raymarchingSteps}</span></label>
-              <input type="range" id="steps-input" min="32" max="512" value="${this.currentParams.raymarchingSteps}" step="16" />
+          <!-- SECTION 2: Nuclear Physics & Atom -->
+          <div class="control-accordion-section ${this.openSections.nuclear ? 'open' : ''}" data-section="nuclear">
+            <button type="button" class="accordion-header" data-toggle="nuclear">
+              <span class="accordion-title">
+                ${icon('physics')}
+                <span>${strings.nuclearSection}</span>
+              </span>
+              <span class="accordion-chevron">${icon('chevron-down')}</span>
+            </button>
+
+            <div class="accordion-body">
+              <div class="control-grid">
+                <!-- Effective Nuclear Charge Z_eff -->
+                <div class="control-group">
+                  <label for="zeff-input">
+                    <span>${strings.zEffCharge}: <span id="zeff-val" class="val-badge">${this.currentParams.zEff.toFixed(2)}</span></span>
+                    <button class="btn-info-icon" data-explain="explainZeff" aria-label="Info">${icon('info')}</button>
+                  </label>
+                  <input type="range" id="zeff-input" min="0.1" max="118" value="${this.currentParams.zEff}" step="0.1" />
+                </div>
+              </div>
             </div>
+          </div>
 
-            <div class="control-group">
-              <label for="scale-select">${strings.superSampling}:</label>
-              <select id="scale-select">
-                <option value="1.0" ${this.currentParams.resolutionScale === 1.0 ? 'selected' : ''}>1.0x (Nativo)</option>
-                <option value="1.5" ${this.currentParams.resolutionScale === 1.5 ? 'selected' : ''}>1.5x (SuperSampling QHD)</option>
-                <option value="2.0" ${this.currentParams.resolutionScale === 2.0 ? 'selected' : ''}>2.0x (SuperSampling 4K)</option>
-              </select>
+          <!-- SECTION 3: Rendering & Quality -->
+          <div class="control-accordion-section ${this.openSections.render ? 'open' : ''}" data-section="render">
+            <button type="button" class="accordion-header" data-toggle="render">
+              <span class="accordion-title">
+                ${icon('sliders')}
+                <span>${strings.renderSection}</span>
+              </span>
+              <span class="accordion-chevron">${icon('chevron-down')}</span>
+            </button>
+
+            <div class="accordion-body">
+              <div class="control-grid">
+                <!-- Render Mode -->
+                <div class="control-group">
+                  <label for="mode-select">
+                    <span>${strings.mode}:</span>
+                    <button class="btn-info-icon" data-explain="explainMode" aria-label="Info">${icon('info')}</button>
+                  </label>
+                  <select id="mode-select">
+                    <option value="points" ${this.currentParams.mode === 'points' ? 'selected' : ''}>${strings.modePoints}</option>
+                    <option value="isosurface" ${this.currentParams.mode === 'isosurface' ? 'selected' : ''}>${strings.modeIsosurface}</option>
+                    <option value="raymarching" ${this.currentParams.mode === 'raymarching' ? 'selected' : ''}>${strings.modeRaymarching}</option>
+                  </select>
+                </div>
+
+                <!-- Quality Preset -->
+                <div class="control-group">
+                  <label for="quality-select">
+                    <span>${strings.quality}:</span>
+                    <button class="btn-info-icon" data-explain="explainQuality" aria-label="Info">${icon('info')}</button>
+                  </label>
+                  <select id="quality-select">
+                    <option value="low" ${this.currentParams.quality === 'low' ? 'selected' : ''}>${strings.qualityLow}</option>
+                    <option value="medium" ${this.currentParams.quality === 'medium' ? 'selected' : ''}>${strings.qualityMedium}</option>
+                    <option value="high" ${this.currentParams.quality === 'high' ? 'selected' : ''}>${strings.qualityHigh}</option>
+                    <option value="ultra" ${this.currentParams.quality === 'ultra' ? 'selected' : ''}>${strings.qualityUltra}</option>
+                    <option value="extreme" ${this.currentParams.quality === 'extreme' ? 'selected' : ''}>${strings.qualityExtreme}</option>
+                    <option value="custom" ${isCustom ? 'selected' : ''}>${strings.qualityCustom}</option>
+                  </select>
+                </div>
+
+                <!-- Color Palette -->
+                <div class="control-group">
+                  <label for="palette-select">
+                    <span>${strings.colorPalette}:</span>
+                    <button class="btn-info-icon" data-explain="explainPalette" aria-label="Info">${icon('info')}</button>
+                  </label>
+                  <select id="palette-select">
+                    <option value="default" ${this.currentParams.colorPalette === 'default' ? 'selected' : ''}>${strings.paletteDefault}</option>
+                    <option value="fire" ${this.currentParams.colorPalette === 'fire' ? 'selected' : ''}>${strings.paletteFire}</option>
+                    <option value="emerald" ${this.currentParams.colorPalette === 'emerald' ? 'selected' : ''}>${strings.paletteEmerald}</option>
+                    <option value="spectrum" ${this.currentParams.colorPalette === 'spectrum' ? 'selected' : ''}>${strings.paletteSpectrum}</option>
+                  </select>
+                </div>
+
+                <!-- Diffuse Cloud Contrast -->
+                <div class="control-group">
+                  <label for="contrast-input">
+                    <span>${strings.contrastControl}: <span id="contrast-val" class="val-badge">${this.currentParams.contrast}</span></span>
+                    <button class="btn-info-icon" data-explain="explainContrast" aria-label="Info">${icon('info')}</button>
+                  </label>
+                  <input type="range" id="contrast-input" min="1" max="100" value="${this.currentParams.contrast}" step="1" />
+                </div>
+
+                <!-- Custom Fine-Tuning Controls (Visible when quality=custom) -->
+                <div class="custom-tuning-panel ${isCustom ? '' : 'hidden'}" id="custom-tuning">
+                  <div class="control-group">
+                    <label for="pts-input">${strings.pointCount}: <span id="pts-val" class="val-badge">${this.currentParams.pointCount.toLocaleString()}</span></label>
+                    <input type="range" id="pts-input" min="10000" max="2500000" value="${this.currentParams.pointCount}" step="10000" />
+                  </div>
+
+                  <div class="control-group">
+                    <label for="steps-input">${strings.raymarchingSteps}: <span id="steps-val" class="val-badge">${this.currentParams.raymarchingSteps}</span></label>
+                    <input type="range" id="steps-input" min="32" max="512" value="${this.currentParams.raymarchingSteps}" step="16" />
+                  </div>
+
+                  <div class="control-group">
+                    <label for="scale-select">${strings.superSampling}:</label>
+                    <select id="scale-select">
+                      <option value="1.0" ${this.currentParams.resolutionScale === 1.0 ? 'selected' : ''}>${strings.scaleNative}</option>
+                      <option value="1.5" ${this.currentParams.resolutionScale === 1.5 ? 'selected' : ''}>${strings.scaleQHD}</option>
+                      <option value="2.0" ${this.currentParams.resolutionScale === 2.0 ? 'selected' : ''}>${strings.scale4K}</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -239,6 +308,39 @@ export class ControlPanel {
     const btnShowControls = this.container.querySelector('#btn-show-controls') as HTMLElement;
     const btnShowPhysics = this.container.querySelector('#btn-show-physics') as HTMLElement;
     const btnCloseControls = this.container.querySelector('#btn-close-controls') as HTMLElement;
+
+    const btnCollapse = this.container.querySelector('#btn-collapse-controls') as HTMLElement;
+    const btnExpand = this.container.querySelector('#btn-expand-controls') as HTMLElement;
+
+    if (btnCollapse) {
+      btnCollapse.addEventListener('click', () => {
+        this.isCollapsed = true;
+        controlPanel.classList.add('collapsed');
+        if (btnExpand) btnExpand.classList.add('visible');
+      });
+    }
+
+    if (btnExpand) {
+      btnExpand.addEventListener('click', () => {
+        this.isCollapsed = false;
+        controlPanel.classList.remove('collapsed');
+        btnExpand.classList.remove('visible');
+      });
+    }
+
+    // Accordion Toggle Listeners
+    const accordionHeaders = this.container.querySelectorAll('.accordion-header');
+    accordionHeaders.forEach((header) => {
+      header.addEventListener('click', () => {
+        const sectionName = header.getAttribute('data-toggle');
+        if (!sectionName) return;
+        const sectionEl = this.container.querySelector(`.control-accordion-section[data-section="${sectionName}"]`);
+        if (sectionEl) {
+          const isOpen = sectionEl.classList.toggle('open');
+          this.openSections[sectionName] = isOpen;
+        }
+      });
+    });
 
     const closeAllDrawers = () => {
       controlPanel.classList.remove('mobile-open');

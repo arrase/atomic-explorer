@@ -1,4 +1,5 @@
 import { ConceptExplanation, getStrings } from '../i18n';
+import { icon } from './icons';
 
 export class ExplanationModal {
   private static overlayElement: HTMLElement | null = null;
@@ -17,15 +18,18 @@ export class ExplanationModal {
 
     const analogyHtml = info.analogy
       ? `<div class="info-modal-analogy">
-           <div class="analogy-label">💡 ${strings.analogyLabel}:</div>
+           <div class="analogy-label">${icon('help')} <span>${strings.analogyLabel}:</span></div>
            <p>${info.analogy}</p>
          </div>`
       : '';
 
     card.innerHTML = `
       <div class="glass-modal-header">
-        <h3 class="glass-modal-title">${info.title}</h3>
-        <button class="btn-close-modal" aria-label="${strings.infoModalClose || 'Close'}">&times;</button>
+        <div class="panel-title-group">
+          <span class="panel-header-icon">${icon('info')}</span>
+          <h3 class="glass-modal-title">${info.title}</h3>
+        </div>
+        <button class="btn-close-modal" aria-label="${strings.infoModalClose || 'Close'}">${icon('close')}</button>
       </div>
       <div class="glass-modal-body">
         <p class="info-modal-summary">${info.summary}</p>
