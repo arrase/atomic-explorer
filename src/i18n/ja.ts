@@ -77,7 +77,6 @@ export const strings: I18nStrings = {
   searchPlaceholder: '元素名、元素記号、原子番号 Z で検索...',
   selectElementPrompt: '周期表から元素を選択すると、詳細情報と価電子軌道が表示されます。',
   btnView3DOrbital: '⚛️ 価電子の 3D 軌道を表示',
-  elementDetails: '元素の詳細情報',
   swipeToExplore: '左右にスワイプしてすべての族を確認',
   viewFullDetails: 'すべての詳細を表示',
   atomicMass: '原子量',
@@ -106,8 +105,6 @@ export const strings: I18nStrings = {
   selectMolecule: '分子を選択',
   showLobes: '混成軌道ローブを表示',
   hideLobes: '混成軌道ローブを非表示',
-  toggleLobesShow: '👁️🗨️ 電子雲を表示',
-  toggleLobesHide: '👁️ 電子雲を非表示',
   exportGenerating: '⏳ HD レンダリング生成中...',
   formatPng: 'PNG (可逆圧縮 / 背景透過)',
   formatJpeg: 'JPEG (高画質 95%)',
@@ -123,26 +120,20 @@ export const strings: I18nStrings = {
   bondAngle: '結合角',
   showAngles: '結合角を表示',
   hideAngles: '結合角を非表示',
-  toggleAnglesShow: '📐 3D 結合角を表示',
-  toggleAnglesHide: '📐 3D 結合角を非表示',
-  bondAngles: '結合角',
   moleculeGallery: '分子ギャラリー',
 
   // Language Switcher
   language: '言語',
-  langEs: 'Español',
-  langEn: 'English',
 
   // Info Modal & Help Labels
-  infoModalTitle: '量子力学と原子構造ガイド',
   infoModalClose: '閉じる',
   dontShowAgain: '次回から表示しない',
   analogyLabel: '直感的なアナロジー',
   glossaryTitle: '量子物理・科学用語集',
   glossarySubtitle: '原子物理学、波動関数、化学結合論の重要概念を探求します。',
   glossarySearchPlaceholder: '用語を検索（例: シュレーディンガー、節面、sp³、波動関数）...',
+  glossaryEmpty: '一致する用語が見つかりませんでした。',
   btnGlossary: '科学用語集',
-  btnLearnMore: '詳細を見る',
   btnIntro: '概要・説明',
 
   // Orbital Parameter Explanations
@@ -262,8 +253,6 @@ export const strings: I18nStrings = {
   blockFilterF: 'f ブロック',
   legendElectronegativity: '電気陰性度 (ポーリング尺度)',
   legendAtomicRadius: '実験的原子半径 (pm)',
-  groupHeaderLabel: '族 (Group)',
-  periodHeaderLabel: '周期 (Period)',
   explainAtomicNumber: {
     title: '原子番号 (Z)',
     summary: '原子核内に存在する陽子の数。',

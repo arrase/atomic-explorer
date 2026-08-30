@@ -77,7 +77,6 @@ export const strings: I18nStrings = {
   searchPlaceholder: 'Buscar elemento por nombre, símbolo o Z...',
   selectElementPrompt: 'Selecciona un elemento de la tabla periódica para ver sus detalles e inspeccionar sus orbitales de valencia.',
   btnView3DOrbital: '⚛️ Visualizar Orbitales 3D de Valencia',
-  elementDetails: 'Detalles del elemento',
   swipeToExplore: 'Desliza horizontalmente para ver más grupos',
   viewFullDetails: 'Ver detalles completos',
   atomicMass: 'Masa Atómica',
@@ -106,8 +105,6 @@ export const strings: I18nStrings = {
   selectMolecule: 'Seleccionar Molécula',
   showLobes: 'Mostrar Lóbulos Híbridos',
   hideLobes: 'Ocultar Lóbulos Híbridos',
-  toggleLobesShow: '👁️🗨️ Mostrar Nubes Electrónicas',
-  toggleLobesHide: '👁️ Ocultar Nubes Electrónicas',
   exportGenerating: '⏳ Generando Render HD...',
   formatPng: 'PNG (Sin pérdida / Transparente)',
   formatJpeg: 'JPEG (Alta Calidad 95%)',
@@ -123,26 +120,20 @@ export const strings: I18nStrings = {
   bondAngle: 'Ángulo de Enlace',
   showAngles: 'Mostrar Ángulos',
   hideAngles: 'Ocultar Ángulos',
-  toggleAnglesShow: '📐 Mostrar Ángulos 3D',
-  toggleAnglesHide: '📐 Ocultar Ángulos 3D',
-  bondAngles: 'Ángulos de Enlace',
   moleculeGallery: 'Galería de Moléculas',
 
   // Language Switcher
   language: 'Idioma',
-  langEs: 'Español',
-  langEn: 'English',
 
   // Info Modal & Help Labels
-  infoModalTitle: 'Guía de Mecánica Cuántica y Estructura Atómica',
   infoModalClose: 'Cerrar',
   dontShowAgain: 'No volver a mostrar',
   analogyLabel: 'Analogía Intuitiva',
   glossaryTitle: 'Glosario Científico de Física Cuántica',
   glossarySubtitle: 'Explora los términos fundamentales de la física atómica, orbitales y teoría química.',
   glossarySearchPlaceholder: 'Buscar términos en el glosario (ej. Schrödinger, nodales, sp³)...',
+  glossaryEmpty: 'No se encontraron términos que coincidan con la búsqueda.',
   btnGlossary: 'Glosario Científico',
-  btnLearnMore: 'Aprender más',
   btnIntro: '¿Qué es esto?',
 
   // Orbital Parameter Explanations
@@ -262,8 +253,6 @@ export const strings: I18nStrings = {
   blockFilterF: 'Bloque f',
   legendElectronegativity: 'Electronegatividad (Pauling)',
   legendAtomicRadius: 'Radio Atómico Empírico (pm)',
-  groupHeaderLabel: 'Grupo',
-  periodHeaderLabel: 'Periodo',
   explainAtomicNumber: {
     title: 'Número Atómico (Z)',
     summary: 'La cantidad de protones en el centro del átomo.',

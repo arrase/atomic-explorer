@@ -77,7 +77,6 @@ export const strings: I18nStrings = {
   searchPlaceholder: 'Rechercher un élément par nom, symbole ou Z...',
   selectElementPrompt: 'Sélectionnez un élément dans le tableau périodique pour afficher ses détails et examiner ses orbitales de valence.',
   btnView3DOrbital: '⚛️ Visualiser les Orbitales 3D de Valence',
-  elementDetails: "Détails de l'Élément",
   swipeToExplore: 'Faites glisser horizontalement pour explorer tous les groupes',
   viewFullDetails: 'Voir tous les détails',
   atomicMass: 'Masse Atomique',
@@ -106,8 +105,6 @@ export const strings: I18nStrings = {
   selectMolecule: 'Sélectionner une Molécule',
   showLobes: 'Afficher les Lobes Hybrides',
   hideLobes: 'Masquer les Lobes Hybrides',
-  toggleLobesShow: '👁️🗨️ Afficher les Nuages Électroniques',
-  toggleLobesHide: '👁️ Masquer les Nuages Électroniques',
   exportGenerating: '⏳ Génération du Rendu HD...',
   formatPng: 'PNG (Sans perte / Transparent)',
   formatJpeg: 'JPEG (Haute Qualité 95%)',
@@ -123,26 +120,20 @@ export const strings: I18nStrings = {
   bondAngle: 'Angle de Liaison',
   showAngles: 'Afficher les Angles',
   hideAngles: 'Masquer les Angles',
-  toggleAnglesShow: '📐 Afficher les Angles 3D',
-  toggleAnglesHide: '📐 Masquer les Angles 3D',
-  bondAngles: 'Angles de Liaison',
   moleculeGallery: 'Galerie de Molécules',
 
   // Language Switcher
   language: 'Langue',
-  langEs: 'Español',
-  langEn: 'English',
 
   // Info Modal & Help Labels
-  infoModalTitle: 'Guide de Mécanique Quantique & Structure Atomique',
   infoModalClose: 'Fermer',
   dontShowAgain: 'Ne plus afficher',
   analogyLabel: 'Analogie Intuitive',
   glossaryTitle: 'Glossaire Scientifique de Physique Quantique',
   glossarySubtitle: "Explorez les termes fondamentaux de la physique atomique, des fonctions d'onde et de la théorie chimique.",
   glossarySearchPlaceholder: 'Rechercher un terme (ex. Schrödinger, nodal, sp³)...',
+  glossaryEmpty: 'Aucun terme du glossaire ne correspond à votre recherche.',
   btnGlossary: 'Glossaire Scientifique',
-  btnLearnMore: 'En Savoir Plus',
   btnIntro: "Qu'est-ce que c'est ?",
 
   // Orbital Parameter Explanations
@@ -262,8 +253,6 @@ export const strings: I18nStrings = {
   blockFilterF: 'Bloc f',
   legendElectronegativity: 'Électronégativité (Pauling)',
   legendAtomicRadius: 'Rayon Atomique Empirique (pm)',
-  groupHeaderLabel: 'Groupe',
-  periodHeaderLabel: 'Période',
   explainAtomicNumber: {
     title: 'Numéro Atomique (Z)',
     summary: "Le nombre de protons présents dans le noyau de l'atome.",

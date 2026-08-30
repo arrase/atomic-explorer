@@ -13,7 +13,6 @@ export interface ExtendedOrbitalParams extends OrbitalParams {
   resolutionScale: number;
   colorPalette: ColorPalette;
   contrast: number;
-  elementZ?: number;
 }
 
 export class ControlPanel {
@@ -43,7 +42,6 @@ export class ControlPanel {
     resolutionScale: 1.0,
     colorPalette: 'default',
     contrast: 25.0,
-    elementZ: 1,
   };
 
   constructor(
@@ -175,7 +173,7 @@ export class ControlPanel {
           <div class="control-accordion-section ${this.openSections.nuclear ? 'open' : ''}" data-section="nuclear">
             <button type="button" class="accordion-header" data-toggle="nuclear">
               <span class="accordion-title">
-                ${icon('physics')}
+                ${icon('chart')}
                 <span>${strings.nuclearSection}</span>
               </span>
               <span class="accordion-chevron">${icon('chevron-down')}</span>
@@ -549,9 +547,5 @@ export class ControlPanel {
 
   public getParams(): ExtendedOrbitalParams {
     return this.currentParams;
-  }
-
-  public getPhysicsPanel(): OrbitalPhysicsPanel | null {
-    return this.physicsPanel;
   }
 }

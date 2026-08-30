@@ -29,7 +29,7 @@ export class ExplanationModal {
           <span class="panel-header-icon">${icon('info')}</span>
           <h3 class="glass-modal-title">${info.title}</h3>
         </div>
-        <button class="btn-close-modal" aria-label="${strings.infoModalClose || 'Close'}">${icon('close')}</button>
+        <button class="btn-close-modal" aria-label="${strings.infoModalClose}">${icon('close')}</button>
       </div>
       <div class="glass-modal-body">
         <p class="info-modal-summary">${info.summary}</p>
@@ -40,10 +40,10 @@ export class ExplanationModal {
         ${options?.showDontShowAgain ? `
           <label class="info-modal-dont-show-again">
             <input type="checkbox" id="dont-show-again-checkbox">
-            ${strings.dontShowAgain || "Don't show again"}
+            ${strings.dontShowAgain}
           </label>
         ` : ''}
-        <button class="btn-primary info-modal-close-btn">${strings.infoModalClose || 'Close'}</button>
+        <button class="btn-primary info-modal-close-btn">${strings.infoModalClose}</button>
       </div>
     `;
 

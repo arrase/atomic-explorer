@@ -30,13 +30,13 @@ export function captureWebGLSnapshot(
   camera.updateProjectionMatrix();
 
   if (options.background === 'black') {
-    renderer.setClearColor(new THREE.Color(0x000000), 1.0);
+    renderer.setClearColor(0x000000, 1.0);
   } else if (options.background === 'white') {
-    renderer.setClearColor(new THREE.Color(0xffffff), 1.0);
+    renderer.setClearColor(0xffffff, 1.0);
   } else if (options.background === 'transparent') {
-    renderer.setClearColor(new THREE.Color(0x000000), 0.0);
+    renderer.setClearColor(0x000000, 0.0);
   } else {
-    renderer.setClearColor(new THREE.Color('#0a0a1a'), 1.0);
+    renderer.setClearColor(0x0a0a1a, 1.0);
   }
 
   renderer.render(scene, camera);

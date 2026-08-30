@@ -23,6 +23,16 @@ export class NavigationBar {
     this.glossaryModal = new GlossaryModal();
     this.render();
     onLanguageChange(() => this.render());
+
+    document.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      if (!this.container.contains(target)) {
+        const navTabsMenu = this.container.querySelector('#nav-tabs-menu');
+        const mobileMenuToggle = this.container.querySelector('#mobile-menu-toggle');
+        if (navTabsMenu) navTabsMenu.classList.remove('mobile-open');
+        if (mobileMenuToggle) mobileMenuToggle.classList.remove('active');
+      }
+    });
   }
 
   private render(): void {
@@ -102,14 +112,6 @@ export class NavigationBar {
       e.stopPropagation();
       navTabsMenu.classList.toggle('mobile-open');
       mobileMenuToggle.classList.toggle('active');
-    });
-
-    document.addEventListener('click', (e) => {
-      const target = e.target as HTMLElement;
-      if (!this.container.contains(target)) {
-        navTabsMenu.classList.remove('mobile-open');
-        mobileMenuToggle.classList.remove('active');
-      }
     });
 
     const buttons = this.container.querySelectorAll('.nav-tab[data-tab]');

@@ -88,10 +88,7 @@ body {
 .glass-panel,
 .control-panel,
 .periodic-table-wrapper,
-.spectrum-overlay-panel,
-.molecule-overlay-panel,
-.lessons-overlay-panel,
-.timeline-overlay-panel {
+.molecule-overlay-panel {
   pointer-events: auto;
   background: var(--panel-bg);
   backdrop-filter: blur(16px);
@@ -1124,18 +1121,7 @@ select:focus {
   color: #ffffff;
 }
 
-/* Spectrum & Molecule Panels */
-.spectrum-overlay-panel {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 360px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
+/* Molecule Panel */
 .molecule-overlay-panel {
   position: absolute;
   top: 0;
@@ -1158,47 +1144,6 @@ select:focus {
   opacity: 0;
 }
 
-.spectral-bar-container {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.spectral-bar {
-  display: flex;
-  height: 48px;
-  border-radius: 8px;
-  overflow: hidden;
-  background: #000000;
-  padding: 4px;
-  gap: 6px;
-  align-items: center;
-}
-
-.spectral-line {
-  flex: 1;
-  height: 100%;
-  border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-  cursor: pointer;
-}
-
-.spectral-line.active {
-  transform: scaleY(1.1);
-  border: 1px solid white;
-}
-
-.line-label {
-  font-size: 0.65rem;
-  font-weight: bold;
-  color: white;
-  text-shadow: 0 1px 3px black;
-}
-
-.transition-info-card,
 .molecule-info-card {
   background: rgba(0, 0, 0, 0.3);
   padding: 14px;
@@ -1206,240 +1151,6 @@ select:focus {
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-/* Lessons & Quiz Panel */
-.lessons-overlay-panel {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  width: 420px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.subtab-header {
-  display: flex;
-  gap: 8px;
-  border-bottom: 1px solid var(--panel-border);
-  padding-bottom: 10px;
-}
-
-.subtab-btn {
-  background: transparent;
-  border: none;
-  color: #8080a0;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.subtab-btn.active {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-}
-
-.lesson-player,
-.quiz-runner {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.step-badge {
-  font-size: 0.75rem;
-  color: #40c0ff;
-  font-weight: 600;
-}
-
-.step-title {
-  font-size: 1.15rem;
-  margin-top: 4px;
-}
-
-.step-text {
-  font-size: 0.88rem;
-  line-height: 1.45;
-  color: #d0d0e0;
-  margin-top: 8px;
-}
-
-.step-actions {
-  margin-top: 14px;
-}
-
-.lesson-nav-buttons {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.step-dots {
-  display: flex;
-  gap: 6px;
-}
-
-.step-dots .dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.step-dots .dot.active {
-  background: var(--accent);
-}
-
-.quiz-options {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.quiz-option {
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid var(--panel-border);
-  color: white;
-  padding: 10px 14px;
-  border-radius: 8px;
-  text-align: left;
-  font-size: 0.88rem;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.quiz-option:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.quiz-option.selected {
-  border-color: var(--accent);
-  background: var(--accent-glow);
-}
-
-.quiz-option.correct {
-  border-color: var(--success);
-  background: rgba(34, 197, 94, 0.2);
-}
-
-.quiz-option.wrong {
-  border-color: var(--danger);
-  background: rgba(239, 68, 68, 0.2);
-}
-
-.quiz-explanation {
-  margin-top: 12px;
-  padding: 10px 14px;
-  border-radius: 8px;
-  font-size: 0.85rem;
-}
-
-.quiz-explanation.success {
-  background: rgba(34, 197, 94, 0.15);
-  border: 1px solid var(--success);
-}
-
-.quiz-explanation.failure {
-  background: rgba(239, 68, 68, 0.15);
-  border: 1px solid var(--danger);
-}
-
-/* Timeline Panel */
-.timeline-overlay-panel {
-  position: absolute;
-  top: 16px;
-  left: 16px;
-  right: 16px;
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.timeline-track {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  position: relative;
-  padding: 10px 20px;
-}
-
-.timeline-track::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 40px;
-  right: 40px;
-  height: 2px;
-  background: var(--panel-border);
-  z-index: 1;
-}
-
-.timeline-node {
-  position: relative;
-  z-index: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-}
-
-.node-year {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #40c0ff;
-}
-
-.node-dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: #1a1a2e;
-  border: 2px solid #8080a0;
-  transition: all 0.2s;
-}
-
-.timeline-node:hover .node-dot {
-  border-color: #ffffff;
-  transform: scale(1.2);
-}
-
-.timeline-node.active .node-dot {
-  background: var(--accent);
-  border-color: #ffffff;
-  box-shadow: 0 0 10px var(--accent);
-  transform: scale(1.3);
-}
-
-.node-scientist {
-  font-size: 0.75rem;
-  color: #a0a0c0;
-}
-
-.model-detail-card {
-  background: rgba(0, 0, 0, 0.3);
-  padding: 18px;
-  border-radius: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.info-block {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  font-size: 0.88rem;
-}
-
-.info-block ul {
-  padding-left: 20px;
 }
 
 #fps-counter {
@@ -1495,21 +1206,6 @@ select:focus {
   background: rgba(0, 0, 0, 0.25);
   border: 1px dashed var(--panel-border);
   border-radius: 10px;
-}
-
-.checkbox-group label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 0.85rem;
-  cursor: pointer;
-}
-
-.checkbox-group input[type="checkbox"] {
-  accent-color: var(--accent);
-  width: 16px;
-  height: 16px;
-  cursor: pointer;
 }
 
 .hidden {
@@ -2947,31 +2643,6 @@ select:focus {
   .export-modal-footer .btn-secondary {
     width: 100%;
     text-align: center;
-    padding: 10px;
-  }
-
-  /* Overlay Panels Responsiveness */
-  .lessons-overlay-panel,
-  .spectrum-overlay-panel {
-    top: 60px;
-    left: 8px;
-    right: 8px;
-    width: auto;
-    padding: 14px;
-    max-height: calc(100vh - 70px);
-    overflow-y: auto;
-  }
-
-  .timeline-overlay-panel {
-    top: 60px;
-    left: 8px;
-    right: 8px;
-    padding: 12px;
-  }
-
-  .timeline-track {
-    padding: 10px 5px;
-    overflow-x: auto;
   }
 }
 
@@ -3184,9 +2855,6 @@ select:focus {
 .zen-mode #fps-counter,
 .zen-mode .periodic-table-wrapper,
 .zen-mode .molecule-overlay-panel,
-.zen-mode .lessons-overlay-panel,
-.zen-mode .spectrum-overlay-panel,
-.zen-mode .timeline-overlay-panel,
 .zen-mode .orientation-gizmo,
 .zen-mode .viewport-hud {
   opacity: 0 !important;

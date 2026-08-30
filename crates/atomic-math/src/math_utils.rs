@@ -54,6 +54,7 @@ pub fn associated_laguerre(p: u32, q: u32, x: f64) -> f64 {
     lp
 }
 
+#[allow(clippy::excessive_precision)]
 pub fn gamma(z: f64) -> f64 {
     if z <= 0.0 && z.fract() == 0.0 {
         return f64::NAN;
@@ -74,8 +75,8 @@ pub fn gamma(z: f64) -> f64 {
     ];
     let zm1 = z - 1.0;
     let mut x = p[0];
-    for i in 1..p.len() {
-        x += p[i] / (zm1 + i as f64);
+    for (i, &pi) in p.iter().enumerate().skip(1) {
+        x += pi / (zm1 + i as f64);
     }
     let t = zm1 + (p.len() as f64) - 1.5;
     (2.0 * std::f64::consts::PI).sqrt() * t.powf(zm1 + 0.5) * (-t).exp() * x
@@ -88,9 +89,6 @@ pub fn associated_legendre(l: u32, m: i32, x: f64) -> Result<f64, String> {
             "Associated legendre order m ({}) cannot exceed degree l ({})",
             m_abs, l
         ));
-    }
-    if !(-1.000001..=1.000001).contains(&x) {
-        return Err(format!("Domain error: x ({}) must be in [-1.0, 1.0]", x));
     }
     let x_clamped = x.clamp(-1.0, 1.0);
 

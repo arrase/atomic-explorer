@@ -11,8 +11,6 @@ export interface QuantumExplanation extends ConceptExplanation {
   analogy: string;
 }
 
-export interface PropertyExplanation extends ConceptExplanation {}
-
 export interface GlossaryItem {
   id: string;
   term: string;
@@ -98,7 +96,6 @@ export interface I18nStrings {
   searchPlaceholder: string;
   selectElementPrompt: string;
   btnView3DOrbital: string;
-  elementDetails: string;
   swipeToExplore: string;
   viewFullDetails: string;
   atomicMass: string;
@@ -127,8 +124,6 @@ export interface I18nStrings {
   selectMolecule: string;
   showLobes: string;
   hideLobes: string;
-  toggleLobesShow: string;
-  toggleLobesHide: string;
   exportGenerating: string;
   formatPng: string;
   formatJpeg: string;
@@ -144,26 +139,20 @@ export interface I18nStrings {
   bondAngle: string;
   showAngles: string;
   hideAngles: string;
-  toggleAnglesShow: string;
-  toggleAnglesHide: string;
-  bondAngles: string;
   moleculeGallery: string;
 
   // Language Switcher
   language: string;
-  langEs: string;
-  langEn: string;
 
   // Info Modal & Help Labels
-  infoModalTitle: string;
   infoModalClose: string;
   dontShowAgain: string;
   analogyLabel: string;
   glossaryTitle: string;
   glossarySubtitle: string;
   glossarySearchPlaceholder: string;
+  glossaryEmpty: string;
   btnGlossary: string;
-  btnLearnMore: string;
   btnIntro: string;
 
   // Orbital Parameter Explanations
@@ -177,8 +166,8 @@ export interface I18nStrings {
   explainOrbitalType: QuantumExplanation;
   explainPalette: QuantumExplanation;
   explainQuality: QuantumExplanation;
-  explainContrast: QuantumExplanation;
   contrastControl: string;
+  explainContrast: QuantumExplanation;
 
   // Physics Panel Labels & Node Explanations
   physicsPanelTitle: string;
@@ -187,7 +176,7 @@ export interface I18nStrings {
   peakRadius: string;
   chartRadiusAxis: string;
   chartProbAxis: string;
-  explainRadialDistribution: PropertyExplanation;
+  explainRadialDistribution: ConceptExplanation;
   shieldingTitle: string;
   shieldingNoteDesc: string;
   activeState: string;
@@ -224,23 +213,21 @@ export interface I18nStrings {
   blockFilterF: string;
   legendElectronegativity: string;
   legendAtomicRadius: string;
-  groupHeaderLabel: string;
-  periodHeaderLabel: string;
-  explainAtomicNumber: PropertyExplanation;
-  explainAtomicMass: PropertyExplanation;
-  explainElectronConfig: PropertyExplanation;
-  explainAtomicRadius: PropertyExplanation;
-  explainElectronegativity: PropertyExplanation;
-  explainIonizationEnergy: PropertyExplanation;
+  explainAtomicNumber: ConceptExplanation;
+  explainAtomicMass: ConceptExplanation;
+  explainElectronConfig: ConceptExplanation;
+  explainAtomicRadius: ConceptExplanation;
+  explainElectronegativity: ConceptExplanation;
+  explainIonizationEnergy: ConceptExplanation;
   periodicTrendsGuideTitle: string;
   periodicTrendsGuideText: string;
 
   // VSEPR & Molecule Explanations
-  explainVsepr: PropertyExplanation;
-  explainHybridization: PropertyExplanation;
-  explainBondAngle: PropertyExplanation;
-  explainBondingLobe: PropertyExplanation;
-  explainLonePairLobe: PropertyExplanation;
+  explainVsepr: ConceptExplanation;
+  explainHybridization: ConceptExplanation;
+  explainBondAngle: ConceptExplanation;
+  explainBondingLobe: ConceptExplanation;
+  explainLonePairLobe: ConceptExplanation;
   vseprGuideTitle: string;
   vseprGuideText: string;
 

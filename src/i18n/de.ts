@@ -77,7 +77,6 @@ export const strings: I18nStrings = {
   searchPlaceholder: 'Element nach Name, Symbol oder Z suchen...',
   selectElementPrompt: 'Wählen Sie ein Element aus dem Periodensystem, um Details anzuzeigen und Valenzorbitale zu untersuchen.',
   btnView3DOrbital: '⚛️ 3D-Valenzorbitale visualisieren',
-  elementDetails: 'Elementdetails',
   swipeToExplore: 'Horizontal wischen, um alle Gruppen zu erkunden',
   viewFullDetails: 'Vollständige Details anzeigen',
   atomicMass: 'Atommasse',
@@ -106,8 +105,6 @@ export const strings: I18nStrings = {
   selectMolecule: 'Molekül auswählen',
   showLobes: 'Hybridkeulen anzeigen',
   hideLobes: 'Hybridkeulen ausblenden',
-  toggleLobesShow: '👁️🗨️ Elektronenwolken anzeigen',
-  toggleLobesHide: '👁️ Elektronenwolken ausblenden',
   exportGenerating: '⏳ HD-Rendering wird erstellt...',
   formatPng: 'PNG (Verlustfrei / Transparent)',
   formatJpeg: 'JPEG (Hohe Qualität 95%)',
@@ -123,26 +120,20 @@ export const strings: I18nStrings = {
   bondAngle: 'Bindungswinkel',
   showAngles: 'Winkel anzeigen',
   hideAngles: 'Winkel ausblenden',
-  toggleAnglesShow: '📐 3D-Winkel anzeigen',
-  toggleAnglesHide: '📐 3D-Winkel ausblenden',
-  bondAngles: 'Bindungswinkel',
   moleculeGallery: 'Molekülgalerie',
 
   // Language Switcher
   language: 'Sprache',
-  langEs: 'Español',
-  langEn: 'English',
 
   // Info Modal & Help Labels
-  infoModalTitle: 'Leitfaden zur Quantenmechanik & Atomstruktur',
   infoModalClose: 'Schließen',
   dontShowAgain: 'Nicht mehr anzeigen',
   analogyLabel: 'Intuitive Analogie',
   glossaryTitle: 'Wissenschaftliches Glossar der Quantenphysik',
   glossarySubtitle: 'Erkunden Sie Schlüsselbegriffe der Atomphysik, Wellenfunktionen und chemischen Theorie.',
   glossarySearchPlaceholder: 'Glossarbegriffe suchen (z. B. Schrödinger, nodal, sp³)...',
+  glossaryEmpty: 'Keine passenden Glossarbegriffe gefunden.',
   btnGlossary: 'Wissenschaftliches Glossar',
-  btnLearnMore: 'Mehr erfahren',
   btnIntro: 'Was ist das?',
 
   // Orbital Parameter Explanations
@@ -262,8 +253,6 @@ export const strings: I18nStrings = {
   blockFilterF: 'f-Block',
   legendElectronegativity: 'Elektronegativität (Pauling)',
   legendAtomicRadius: 'Empirischer Atomradius (pm)',
-  groupHeaderLabel: 'Gruppe',
-  periodHeaderLabel: 'Periode',
   explainAtomicNumber: {
     title: 'Ordnungszahl (Z)',
     summary: 'Die Anzahl der Protonen im Kern des Atoms.',

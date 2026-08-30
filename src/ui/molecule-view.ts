@@ -34,7 +34,7 @@ export class MoleculeView {
     };
     this.renderer.onAtomClick = (symbol) => {
       const element = (elementsData as ElementData[]).find((e) => e.symbol === symbol);
-      const elementName = element ? (getLanguage() === 'es' ? element.name_es : (element.name_en || element.name_es)) : symbol;
+      const elementName = element ? (getLanguage() === 'es' ? element.name_es : element.name_en) : symbol;
       const strings = getStrings();
       const title = `${strings.atomClickTitle}: ${elementName} (${symbol})`;
       ExplanationModal.showSimple(title, strings.atomClickSummary, strings.atomClickDetail);
@@ -44,15 +44,15 @@ export class MoleculeView {
   }
 
   private getMoleculeName(m: LocalizedMoleculeData): string {
-    return getLanguage() === 'es' ? m.name_es : (m.name_en || m.name_es);
+    return getLanguage() === 'es' ? m.name_es : m.name_en;
   }
 
   private getMoleculeGeometry(m: LocalizedMoleculeData): string {
-    return getLanguage() === 'es' ? m.geometry_es : (m.geometry_en || m.geometry_es);
+    return getLanguage() === 'es' ? m.geometry_es : m.geometry_en;
   }
 
   private getMoleculeDescription(m: LocalizedMoleculeData): string {
-    return getLanguage() === 'es' ? m.description_es : (m.description_en || m.description_es);
+    return getLanguage() === 'es' ? m.description_es : m.description_en;
   }
 
   private render(): void {
@@ -308,14 +308,6 @@ export class MoleculeView {
         }
       });
     });
-  }
-
-  public setMoleculeById(id: string): void {
-    const selected = this.molecules.find((m) => m.id === id);
-    if (selected) {
-      this.currentMolecule = selected;
-      this.render();
-    }
   }
 }
 

@@ -1,4 +1,4 @@
-import { Language, I18nStrings, GlossaryItem, QuantumExplanation, PropertyExplanation, ConceptExplanation } from './types';
+import { Language, I18nStrings, GlossaryItem, QuantumExplanation, ConceptExplanation } from './types';
 import { strings as esStrings } from './es';
 import { strings as enStrings } from './en';
 import { strings as frStrings } from './fr';
@@ -15,7 +15,7 @@ import { strings as trStrings } from './tr';
 import { strings as hiStrings } from './hi';
 import { strings as arStrings } from './ar';
 
-export type { Language, I18nStrings, GlossaryItem, QuantumExplanation, PropertyExplanation, ConceptExplanation };
+export type { Language, I18nStrings, GlossaryItem, QuantumExplanation, ConceptExplanation };
 
 const STORAGE_KEY = 'atomic_explorer_lang';
 
@@ -37,9 +37,7 @@ export const TRANSLATIONS: Record<Language, I18nStrings> = {
   ar: arStrings,
 };
 
-const SUPPORTED_LANGUAGES: Language[] = [
-  'es', 'en', 'fr', 'de', 'pt', 'it', 'nl', 'pl', 'ru', 'zh', 'ja', 'ko', 'tr', 'hi', 'ar'
-];
+const SUPPORTED_LANGUAGES: Language[] = Object.keys(TRANSLATIONS) as Language[];
 
 function detectSystemLanguage(): Language {
   const savedLang = localStorage.getItem(STORAGE_KEY) as Language | null;
@@ -76,6 +74,7 @@ export function setLanguage(lang: Language): void {
   localStorage.setItem(STORAGE_KEY, lang);
   document.documentElement.lang = lang;
   document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr';
+  document.title = TRANSLATIONS[currentLang].title;
 
   listeners.forEach((listener) => listener(currentLang));
 }
@@ -94,3 +93,4 @@ export function onLanguageChange(listener: (lang: Language) => void): () => void
 // Initial document lang and dir update
 document.documentElement.lang = currentLang;
 document.documentElement.dir = currentLang === 'ar' ? 'rtl' : 'ltr';
+document.title = TRANSLATIONS[currentLang].title;

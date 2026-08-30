@@ -26,6 +26,38 @@ export class OrbitalPhysicsPanel {
       return;
     }
 
+    const { radialNodes, angularNodes, totalNodes, notation, rExpBohr, rExpPm, energyEv, seriesName } =
+      this.calculatePhysics(params);
+
+    if (this.radialChart) {
+      this.radialChart.update(params.n, params.l, params.zEff);
+      const peak = this.radialChart.getPeakRadius();
+      const peakVal = this.panelElement.querySelector('#val-peak-radius') as HTMLElement;
+      if (peakVal) {
+        peakVal.innerHTML = `${peak.rBohr.toFixed(2)} a₀ <small>(${peak.rPm.toFixed(1)} pm)</small>`;
+      }
+    }
+
+    const badgeVal = this.panelElement.querySelector('#val-active-state') as HTMLElement;
+    const radialVal = this.panelElement.querySelector('#val-radial-nodes') as HTMLElement;
+    const angularVal = this.panelElement.querySelector('#val-angular-nodes') as HTMLElement;
+    const totalVal = this.panelElement.querySelector('#val-total-nodes') as HTMLElement;
+    const radiusVal = this.panelElement.querySelector('#val-exp-radius') as HTMLElement;
+    const energyVal = this.panelElement.querySelector('#val-energy') as HTMLElement;
+    const seriesVal = this.panelElement.querySelector('#val-series') as HTMLElement;
+    const zeffVal = this.panelElement.querySelector('#val-zeff') as HTMLElement;
+
+    if (badgeVal) badgeVal.textContent = `${notation} (n=${params.n}, l=${params.l}, m=${params.m})`;
+    if (radialVal) radialVal.textContent = String(radialNodes);
+    if (angularVal) angularVal.textContent = String(angularNodes);
+    if (totalVal) totalVal.textContent = String(totalNodes);
+    if (radiusVal) radiusVal.innerHTML = `${rExpBohr.toFixed(2)} a₀ <small>(${rExpPm.toFixed(1)} pm)</small>`;
+    if (energyVal) energyVal.textContent = `${energyEv.toFixed(2)} eV`;
+    if (seriesVal) seriesVal.textContent = seriesName;
+    if (zeffVal) zeffVal.textContent = params.zEff.toFixed(2);
+  }
+
+  private calculatePhysics(params: ExtendedOrbitalParams) {
     const { n, l, m, useRealOrbital, zEff } = params;
     const radialNodes = n - l - 1;
     const angularNodes = l;
@@ -34,16 +66,7 @@ export class OrbitalPhysicsPanel {
 
     const rExpBohr = (0.5 / zEff) * (3 * n * n - l * (l + 1));
     const rExpPm = rExpBohr * 52.917721;
-    const energyEv = -13.605693 * (zEff * zEff) / (n * n);
-
-    if (this.radialChart) {
-      this.radialChart.update(n, l, zEff);
-      const peak = this.radialChart.getPeakRadius();
-      const peakVal = this.panelElement.querySelector('#val-peak-radius') as HTMLElement;
-      if (peakVal) {
-        peakVal.innerHTML = `${peak.rBohr.toFixed(2)} a₀ <small>(${peak.rPm.toFixed(1)} pm)</small>`;
-      }
-    }
+    const energyEv = (-13.605693 * (zEff * zEff)) / (n * n);
 
     const strings = getStrings();
     const seriesMap: Record<number, string> = {
@@ -56,23 +79,16 @@ export class OrbitalPhysicsPanel {
     };
     const seriesName = seriesMap[n] || `${strings.seriesShell}${n}`;
 
-    const badgeVal = this.panelElement.querySelector('#val-active-state') as HTMLElement;
-    const radialVal = this.panelElement.querySelector('#val-radial-nodes') as HTMLElement;
-    const angularVal = this.panelElement.querySelector('#val-angular-nodes') as HTMLElement;
-    const totalVal = this.panelElement.querySelector('#val-total-nodes') as HTMLElement;
-    const radiusVal = this.panelElement.querySelector('#val-exp-radius') as HTMLElement;
-    const energyVal = this.panelElement.querySelector('#val-energy') as HTMLElement;
-    const seriesVal = this.panelElement.querySelector('#val-series') as HTMLElement;
-    const zeffVal = this.panelElement.querySelector('#val-zeff') as HTMLElement;
-
-    if (badgeVal) badgeVal.textContent = `${notation} (n=${n}, l=${l}, m=${m})`;
-    if (radialVal) radialVal.textContent = String(radialNodes);
-    if (angularVal) angularVal.textContent = String(angularNodes);
-    if (totalVal) totalVal.textContent = String(totalNodes);
-    if (radiusVal) radiusVal.innerHTML = `${rExpBohr.toFixed(2)} a₀ <small>(${rExpPm.toFixed(1)} pm)</small>`;
-    if (energyVal) energyVal.textContent = `${energyEv.toFixed(2)} eV`;
-    if (seriesVal) seriesVal.textContent = seriesName;
-    if (zeffVal) zeffVal.textContent = zEff.toFixed(2);
+    return {
+      radialNodes,
+      angularNodes,
+      totalNodes,
+      notation,
+      rExpBohr,
+      rExpPm,
+      energyEv,
+      seriesName,
+    };
   }
 
   private getOrbitalNotation(n: number, l: number, m: number, useRealOrbital: boolean): string {
@@ -94,8 +110,8 @@ export class OrbitalPhysicsPanel {
       if (m === 0) return `${n}d_{z^2}`;
       if (m === 1) return `${n}d_{xz}`;
       if (m === -1) return `${n}d_{yz}`;
-      if (m === 2) return `${n}d_{xy}`;
-      if (m === -2) return `${n}d_{x^2-y^2}`;
+      if (m === 2) return `${n}d_{x^2-y^2}`;
+      if (m === -2) return `${n}d_{xy}`;
     } else if (l === 3) {
       if (m === 0) return `${n}f_{z^3}`;
       if (m === 1) return `${n}f_{xz^2}`;
@@ -111,26 +127,9 @@ export class OrbitalPhysicsPanel {
 
   private render(): void {
     const strings = getStrings();
-    const { n, l, m, useRealOrbital, zEff } = this.currentParams;
-
-    const radialNodes = n - l - 1;
-    const angularNodes = l;
-    const totalNodes = n - 1;
-    const notation = this.getOrbitalNotation(n, l, m, useRealOrbital);
-
-    const rExpBohr = (0.5 / zEff) * (3 * n * n - l * (l + 1));
-    const rExpPm = rExpBohr * 52.917721;
-    const energyEv = -13.605693 * (zEff * zEff) / (n * n);
-
-    const seriesMap: Record<number, string> = {
-      1: strings.seriesLyman,
-      2: strings.seriesBalmer,
-      3: strings.seriesPaschen,
-      4: strings.seriesBrackett,
-      5: strings.seriesPfund,
-      6: strings.seriesHumphreys,
-    };
-    const seriesName = seriesMap[n] || `${strings.seriesShell}${n}`;
+    const { n, l, m, zEff } = this.currentParams;
+    const { radialNodes, angularNodes, totalNodes, notation, rExpBohr, rExpPm, energyEv, seriesName } =
+      this.calculatePhysics(this.currentParams);
 
     this.container.innerHTML = `
       <!-- Dock Handle / Expand Pill when Right Panel is Collapsed on Desktop -->
@@ -301,103 +300,75 @@ export class OrbitalPhysicsPanel {
 
     const strings = getStrings();
 
-    const radialBtn = this.container.querySelector('[data-node="radial"]') as HTMLElement;
-    if (radialBtn) {
-      radialBtn.addEventListener('click', (e: Event) => {
+    const infoBtns = this.container.querySelectorAll<HTMLElement>('.btn-info-icon');
+    infoBtns.forEach((btn) => {
+      btn.addEventListener('click', (e: Event) => {
         e.preventDefault();
         e.stopPropagation();
-        const radialNodes = this.currentParams.n - this.currentParams.l - 1;
-        ExplanationModal.showSimple(
-          strings.radialNodes,
-          `${strings.radialNodes}: ${radialNodes}`,
-          strings.radialNodesDesc
-        );
-      });
-    }
 
-    const angularBtn = this.container.querySelector('[data-node="angular"]') as HTMLElement;
-    if (angularBtn) {
-      angularBtn.addEventListener('click', (e: Event) => {
-        e.preventDefault();
-        e.stopPropagation();
-        ExplanationModal.showSimple(
-          strings.angularNodes,
-          `${strings.angularNodes}: ${this.currentParams.l}`,
-          strings.angularNodesDesc
-        );
-      });
-    }
+        const explainKey = btn.dataset.explain;
+        if (explainKey === 'explainZeff') {
+          ExplanationModal.show(strings.explainZeff);
+          return;
+        }
+        if (explainKey === 'explainRadialDistribution') {
+          ExplanationModal.show(strings.explainRadialDistribution);
+          return;
+        }
 
-    const totalBtn = this.container.querySelector('[data-node="total"]') as HTMLElement;
-    if (totalBtn) {
-      totalBtn.addEventListener('click', (e: Event) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const totalNodes = this.currentParams.n - 1;
-        ExplanationModal.showSimple(
-          strings.totalNodes,
-          `${strings.totalNodes}: ${totalNodes}`,
-          strings.totalNodesDesc
-        );
-      });
-    }
+        const nodeType = btn.dataset.node;
+        if (nodeType === 'radial') {
+          ExplanationModal.showSimple(
+            strings.radialNodes,
+            `${strings.radialNodes}: ${this.currentParams.n - this.currentParams.l - 1}`,
+            strings.radialNodesDesc
+          );
+          return;
+        }
+        if (nodeType === 'angular') {
+          ExplanationModal.showSimple(
+            strings.angularNodes,
+            `${strings.angularNodes}: ${this.currentParams.l}`,
+            strings.angularNodesDesc
+          );
+          return;
+        }
+        if (nodeType === 'total') {
+          ExplanationModal.showSimple(
+            strings.totalNodes,
+            `${strings.totalNodes}: ${this.currentParams.n - 1}`,
+            strings.totalNodesDesc
+          );
+          return;
+        }
 
-    const radiusBtn = this.container.querySelector('[data-phys="radius"]') as HTMLElement;
-    if (radiusBtn) {
-      radiusBtn.addEventListener('click', (e: Event) => {
-        e.preventDefault();
-        e.stopPropagation();
-        ExplanationModal.showSimple(
-          strings.expectationRadius,
-          strings.expectationRadiusDesc,
-          strings.expectationRadiusDetail
-        );
-      });
-    }
+        const physType = btn.dataset.phys;
+        if (physType === 'radius') {
+          ExplanationModal.showSimple(
+            strings.expectationRadius,
+            strings.expectationRadiusDesc,
+            strings.expectationRadiusDetail
+          );
+          return;
+        }
+        if (physType === 'energy') {
+          ExplanationModal.showSimple(
+            strings.hydrogenicEnergy,
+            strings.hydrogenicEnergyDesc,
+            strings.hydrogenicEnergyDetail
+          );
+          return;
+        }
 
-    const energyBtn = this.container.querySelector('[data-phys="energy"]') as HTMLElement;
-    if (energyBtn) {
-      energyBtn.addEventListener('click', (e: Event) => {
-        e.preventDefault();
-        e.stopPropagation();
-        ExplanationModal.showSimple(
-          strings.hydrogenicEnergy,
-          strings.hydrogenicEnergyDesc,
-          strings.hydrogenicEnergyDetail
-        );
+        if (btn.dataset.formula === 'wavefunction') {
+          ExplanationModal.showSimple(
+            strings.wavefunctionFormula,
+            strings.wavefunctionFormulaDesc,
+            strings.wavefunctionFormulaDetail
+          );
+        }
       });
-    }
-
-    const formulaBtn = this.container.querySelector('[data-formula="wavefunction"]') as HTMLElement;
-    if (formulaBtn) {
-      formulaBtn.addEventListener('click', (e: Event) => {
-        e.preventDefault();
-        e.stopPropagation();
-        ExplanationModal.showSimple(
-          strings.wavefunctionFormula,
-          strings.wavefunctionFormulaDesc,
-          strings.wavefunctionFormulaDetail
-        );
-      });
-    }
-
-    const zeffBtn = this.container.querySelector('[data-explain="explainZeff"]') as HTMLElement;
-    if (zeffBtn) {
-      zeffBtn.addEventListener('click', (e: Event) => {
-        e.preventDefault();
-        e.stopPropagation();
-        ExplanationModal.show(strings.explainZeff);
-      });
-    }
-
-    const radialExpBtn = this.container.querySelector('[data-explain="explainRadialDistribution"]') as HTMLElement;
-    if (radialExpBtn) {
-      radialExpBtn.addEventListener('click', (e: Event) => {
-        e.preventDefault();
-        e.stopPropagation();
-        ExplanationModal.show(strings.explainRadialDistribution);
-      });
-    }
+    });
   }
 
   public destroy(): void {
