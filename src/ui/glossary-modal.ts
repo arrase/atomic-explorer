@@ -1,4 +1,5 @@
 import { getStrings, getLanguage, onLanguageChange, GlossaryItem } from '../i18n';
+import { icon } from './icons';
 
 export class GlossaryModal {
   private overlayElement: HTMLElement | null = null;
@@ -90,7 +91,7 @@ export class GlossaryModal {
     const items = strings.glossaryItems || [];
 
     const rawCategories = Array.from(new Set(items.map((item) => item.category)));
-    const allLabel = currentLang === 'es' ? 'Todos' : 'All';
+    const allLabel = strings.blockFilterAll;
     const filteredItems = this.getFilteredItems();
 
     if (!this.overlayElement) {
@@ -103,15 +104,18 @@ export class GlossaryModal {
       <div class="glass-modal-card glossary-modal-card">
         <div class="glass-modal-header">
           <div class="glossary-modal-header-title">
-            <h2 class="glass-modal-title">📖 ${strings.glossaryTitle}</h2>
+            <div class="panel-title-group">
+              <span class="panel-header-icon">${icon('book')}</span>
+              <h2 class="glass-modal-title">${strings.glossaryTitle}</h2>
+            </div>
             <p class="glossary-subtitle">${strings.glossarySubtitle}</p>
           </div>
-          <button class="btn-close-modal" aria-label="${strings.infoModalClose || 'Close'}">&times;</button>
+          <button class="btn-close-modal" aria-label="${strings.infoModalClose || 'Close'}">${icon('close')}</button>
         </div>
 
         <div class="glossary-controls">
           <div class="glossary-search-wrapper">
-            <span class="search-icon">🔍</span>
+            <span class="search-icon">${icon('search')}</span>
             <input
               type="text"
               id="glossary-search-input"
@@ -121,7 +125,7 @@ export class GlossaryModal {
             />
             ${
               this.searchQuery
-                ? `<button type="button" class="btn-clear-search" id="btn-clear-search">&times;</button>`
+                ? `<button type="button" class="btn-clear-search" id="btn-clear-search">${icon('close')}</button>`
                 : ''
             }
           </div>
@@ -240,7 +244,7 @@ export class GlossaryModal {
       const emptyMsg = lang === 'es'
         ? 'No se encontraron términos que coincidan con la búsqueda.'
         : 'No matching glossary terms found.';
-      return `<div class="glossary-empty"><p>🔍 ${emptyMsg}</p></div>`;
+      return `<div class="glossary-empty"><p>${icon('search')} ${emptyMsg}</p></div>`;
     }
     return items.map((item) => this.renderGlossaryCardHtml(item, this.expandedItemIds.has(item.id))).join('');
   }
@@ -253,7 +257,7 @@ export class GlossaryModal {
             <h3 class="glossary-item-term">${this.escapeHtml(item.term)}</h3>
             <span class="glossary-item-badge">${this.escapeHtml(item.category)}</span>
           </div>
-          <span class="glossary-item-toggle">${isExpanded ? '▲' : '▼'}</span>
+          <span class="glossary-item-toggle">${isExpanded ? icon('chevron-up') : icon('chevron-down')}</span>
         </div>
         <p class="glossary-item-definition">${this.escapeHtml(item.definition)}</p>
         ${isExpanded ? `<div class="glossary-item-details"><p>${this.escapeHtml(item.details)}</p></div>` : ''}

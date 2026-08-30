@@ -1,4 +1,4 @@
-export type Language = 'es' | 'en';
+export type Language = 'es' | 'en' | 'fr' | 'de' | 'pt' | 'it' | 'nl' | 'pl' | 'ru' | 'zh' | 'ja' | 'ko' | 'tr' | 'hi' | 'ar';
 
 export interface ConceptExplanation {
   title: string;
@@ -29,6 +29,17 @@ export interface I18nStrings {
 
   orbital: string;
   orbitalControls: string;
+  quantumSection: string;
+  nuclearSection: string;
+  renderSection: string;
+  zenMode: string;
+  exitZenMode: string;
+  hudResetCamera: string;
+  hudTurntable: string;
+  hudZenMode: string;
+  hudScale: string;
+  collapsePanel: string;
+  expandPanel: string;
   principalQuantum: string;
   azimuthalQuantum: string;
   magneticQuantum: string;
@@ -45,6 +56,9 @@ export interface I18nStrings {
   raymarchingSteps: string;
   pointCount: string;
   superSampling: string;
+  scaleNative: string;
+  scaleQHD: string;
+  scale4K: string;
   colorPalette: string;
   paletteDefault: string;
   paletteFire: string;
@@ -128,6 +142,12 @@ export interface I18nStrings {
   vseprGeometry: string;
   hybridization: string;
   bondAngle: string;
+  showAngles: string;
+  hideAngles: string;
+  toggleAnglesShow: string;
+  toggleAnglesHide: string;
+  bondAngles: string;
+  moleculeGallery: string;
 
   // Language Switcher
   language: string;
@@ -163,6 +183,11 @@ export interface I18nStrings {
   // Physics Panel Labels & Node Explanations
   physicsPanelTitle: string;
   nodalBreakdown: string;
+  radialDistributionTitle: string;
+  peakRadius: string;
+  chartRadiusAxis: string;
+  chartProbAxis: string;
+  explainRadialDistribution: PropertyExplanation;
   shieldingTitle: string;
   shieldingNoteDesc: string;
   activeState: string;
@@ -182,8 +207,25 @@ export interface I18nStrings {
   hydrogenicEnergyDesc: string;
   hydrogenicEnergyDetail: string;
   spectralSeries: string;
+  seriesLyman: string;
+  seriesBalmer: string;
+  seriesPaschen: string;
+  seriesBrackett: string;
+  seriesPfund: string;
+  seriesHumphreys: string;
+  seriesShell: string;
+  chartNodeLabel: string;
 
-  // Periodic Table Property Explanations
+  // Periodic Table Property Explanations & Filters
+  blockFilterAll: string;
+  blockFilterS: string;
+  blockFilterP: string;
+  blockFilterD: string;
+  blockFilterF: string;
+  legendElectronegativity: string;
+  legendAtomicRadius: string;
+  groupHeaderLabel: string;
+  periodHeaderLabel: string;
   explainAtomicNumber: PropertyExplanation;
   explainAtomicMass: PropertyExplanation;
   explainElectronConfig: PropertyExplanation;

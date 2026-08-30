@@ -1,4 +1,5 @@
 import { getStrings } from '../i18n';
+import { icon } from './icons';
 
 export interface ExportOptions {
   width: number;
@@ -35,8 +36,11 @@ export class ImageExporterModal {
     this.overlay.innerHTML = `
       <div class="export-modal">
         <div class="export-modal-header">
-          <h3>${strings.exportTitle}</h3>
-          <button class="btn-close-modal" id="btn-close-export">&times;</button>
+          <div class="panel-title-group">
+            <span class="panel-header-icon">${icon('camera')}</span>
+            <h3>${strings.exportTitle}</h3>
+          </div>
+          <button class="btn-close-modal" id="btn-close-export" aria-label="Close">${icon('close')}</button>
         </div>
 
         <div class="export-modal-body">

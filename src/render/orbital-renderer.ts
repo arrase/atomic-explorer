@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { MarchingCubes } from 'three/addons/objects/MarchingCubes.js';
 import { captureWebGLSnapshot, SnapshotOptions } from './render-utils';
+import { OrientationGizmo } from './orientation-gizmo';
 
 export type RenderMode = 'points' | 'isosurface' | 'raymarching';
 export type QualityPreset = 'low' | 'medium' | 'high' | 'ultra' | 'extreme' | 'custom';
@@ -304,7 +305,10 @@ export class OrbitalRenderer {
   private camera: THREE.PerspectiveCamera;
   private controls: OrbitControls;
   private animationId: number = 0;
-
+  private cameraTransitionId: number = 0;
+  private autoRotate: boolean = false;
+  private gizmo: OrientationGizmo | null = null;
+  private defaultCameraPos = new THREE.Vector3(16, 16, 16);
 
   private pointsMesh: THREE.Points | null = null;
   private marchingCubesGroup: THREE.Group | null = null;
@@ -734,6 +738,81 @@ export class OrbitalRenderer {
     return captureWebGLSnapshot(this.renderer, this.scene, this.camera, options, this.onWindowResize);
   }
 
+  public setGizmo(gizmo: OrientationGizmo | null): void {
+    this.gizmo = gizmo;
+    if (gizmo) {
+      gizmo.setCamera(this.camera, (dir, up) => this.alignCameraTo(dir, up));
+    }
+  }
+
+  public toggleAutoRotate(enabled?: boolean): boolean {
+    this.autoRotate = enabled === undefined ? !this.autoRotate : enabled;
+    this.controls.autoRotate = this.autoRotate;
+    this.controls.autoRotateSpeed = 1.5;
+    return this.autoRotate;
+  }
+
+  public isAutoRotating(): boolean {
+    return this.autoRotate;
+  }
+
+  public resetCamera(smooth: boolean = true): void {
+    if (smooth) {
+      this.animateCameraTo(this.defaultCameraPos.clone(), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0), 450);
+    } else {
+      this.camera.position.copy(this.defaultCameraPos);
+      this.camera.up.set(0, 1, 0);
+      this.controls.target.set(0, 0, 0);
+      this.controls.update();
+      if (this.gizmo) this.gizmo.update();
+    }
+  }
+
+  public alignCameraTo(dir: THREE.Vector3, up: THREE.Vector3, smooth: boolean = true): void {
+    const dist = this.camera.position.distanceTo(this.controls.target);
+    const targetPos = this.controls.target.clone().addScaledVector(dir, Math.max(dist, 5.0));
+    if (smooth) {
+      this.animateCameraTo(targetPos, up, this.controls.target.clone(), 400);
+    } else {
+      this.camera.position.copy(targetPos);
+      this.camera.up.copy(up);
+      this.camera.lookAt(this.controls.target);
+      this.controls.update();
+      if (this.gizmo) this.gizmo.update();
+    }
+  }
+
+  public animateCameraTo(targetPos: THREE.Vector3, targetUp: THREE.Vector3 = new THREE.Vector3(0, 1, 0), targetLookAt?: THREE.Vector3, duration: number = 400): void {
+    cancelAnimationFrame(this.cameraTransitionId);
+    const startPos = this.camera.position.clone();
+    const startUp = this.camera.up.clone();
+    const startTarget = this.controls.target.clone();
+    const endTarget = targetLookAt ? targetLookAt.clone() : startTarget.clone();
+    const startTime = performance.now();
+
+    const step = (now: number) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1.0);
+      const ease = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+
+      this.camera.position.lerpVectors(startPos, targetPos, ease);
+      this.camera.up.lerpVectors(startUp, targetUp, ease);
+      this.controls.target.lerpVectors(startTarget, endTarget, ease);
+      this.camera.lookAt(this.controls.target);
+      this.controls.update();
+
+      if (this.gizmo) {
+        this.gizmo.update();
+      }
+
+      if (progress < 1.0) {
+        this.cameraTransitionId = requestAnimationFrame(step);
+      }
+    };
+
+    this.cameraTransitionId = requestAnimationFrame(step);
+  }
+
   private isAnimating: boolean = false;
 
   public start(): void {
@@ -754,12 +833,8 @@ export class OrbitalRenderer {
     this.animationId = requestAnimationFrame(this.animate);
     this.controls.update();
 
-    if (this.pointsMesh) {
-      this.pointsMesh.rotation.y += 0.001;
-    } else if (this.marchingCubesGroup) {
-      this.marchingCubesGroup.rotation.y += 0.001;
-    } else if (this.raymarchingMesh) {
-      this.raymarchingMesh.rotation.y += 0.001;
+    if (this.gizmo) {
+      this.gizmo.update();
     }
 
     this.renderer.render(this.scene, this.camera);
@@ -767,6 +842,7 @@ export class OrbitalRenderer {
 
   public dispose(): void {
     cancelAnimationFrame(this.animationId);
+    cancelAnimationFrame(this.cameraTransitionId);
     window.removeEventListener('resize', this.onWindowResize);
     this.clearCurrentMesh();
     this.controls.dispose();
