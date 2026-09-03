@@ -84,66 +84,15 @@ pub fn evaluate_isosurface_grid_internal(
     }
     qn.validate()?;
 
-    // 1. Peak density calculation for normalization
-    let r_max_scan = (4.0 * (qn.n * qn.n) as f64) / z_eff.max(0.5);
-    let r_steps = 300;
-    let mut max_r_sq = 0.0;
-    for i in 1..=r_steps {
-        let r = (i as f64 / r_steps as f64) * r_max_scan;
-        let r_val = crate::wavefunctions::r_nl(qn.n, qn.l, z_eff, r)?;
-        let r_sq = r_val * r_val;
-        if r_sq > max_r_sq {
-            max_r_sq = r_sq;
-        }
-    }
-
-    let max_y_sq = match mode {
-        OrbitalMode::RealChemist(kind) => {
-            let mut my = 0.0;
-            let theta_steps = 60;
-            let phi_steps = 60;
-            for j in 0..=theta_steps {
-                let theta = (j as f64 / theta_steps as f64) * std::f64::consts::PI;
-                for k in 0..=phi_steps {
-                    let phi = (k as f64 / phi_steps as f64) * 2.0 * std::f64::consts::PI;
-                    let y = crate::spherical_harmonics::real_orbital_angular(kind, theta, phi);
-                    let y_sq = y * y;
-                    if y_sq > my {
-                        my = y_sq;
-                    }
-                }
-            }
-            my
-        }
-        OrbitalMode::PureEigenstate => {
-            let mut my = 0.0;
-            let theta_steps = 100;
-            for j in 0..=theta_steps {
-                let theta = (j as f64 / theta_steps as f64) * std::f64::consts::PI;
-                let y_dens = crate::spherical_harmonics::y_lm_density(qn.l, qn.m, theta)?;
-                if y_dens > my {
-                    my = y_dens;
-                }
-            }
-            my
-        }
-    };
-
-    let peak_density = (max_r_sq * max_y_sq).max(1e-12);
-    let contrast_f64 = contrast as f64;
-    let log_contrast_denom = if contrast_f64 > 0.0 {
-        1.0 / (1.0 + contrast_f64).ln()
-    } else {
-        1.0
-    };
-
-    let mut data = vec![0.0f32; grid_size * grid_size * grid_size];
     let bounds_f64 = bounds as f64;
     let step = if grid_size > 1 {
         (2.0 * bounds_f64) / ((grid_size - 1) as f64)
     } else {
         0.0
     };
+
+    let mut data = vec![0.0f32; grid_size * grid_size * grid_size];
+    let mut max_density = 0.0f64;
 
     for iz in 0..grid_size {
         let z = -bounds_f64 + (iz as f64) * step;
@@ -185,16 +134,34 @@ pub fn evaluate_isosurface_grid_internal(
                     }
                 };
 
-                let norm_density = (raw_density / peak_density).min(1.0);
-                let enhanced_density = if contrast_f64 > 0.0 {
-                    (1.0 + contrast_f64 * norm_density).ln() * log_contrast_denom
-                } else {
-                    norm_density
-                };
+                if raw_density > max_density {
+                    max_density = raw_density;
+                }
 
                 let idx = (iz * grid_size + iy) * grid_size + ix;
-                data[idx] = (sign * enhanced_density) as f32;
+                data[idx] = (sign * raw_density) as f32;
             }
+        }
+    }
+
+    let peak = max_density.max(1e-12);
+    let contrast_f64 = contrast as f64;
+    let log_contrast_denom = if contrast_f64 > 0.0 {
+        1.0 / (1.0 + contrast_f64).ln()
+    } else {
+        1.0
+    };
+
+    for val in data.iter_mut() {
+        if *val != 0.0 {
+            let s = if *val >= 0.0 { 1.0 } else { -1.0 };
+            let norm_density = (val.abs() as f64 / peak).min(1.0);
+            let enhanced_density = if contrast_f64 > 0.0 {
+                (1.0 + contrast_f64 * norm_density).ln() * log_contrast_denom
+            } else {
+                norm_density
+            };
+            *val = (s * enhanced_density) as f32;
         }
     }
 
