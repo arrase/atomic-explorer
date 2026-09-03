@@ -133,13 +133,13 @@ export class OrbitalPhysicsPanel {
 
     this.container.innerHTML = `
       <!-- Dock Handle / Expand Pill when Right Panel is Collapsed on Desktop -->
-      <button class="dock-tab-pill dock-right-pill ${this.isCollapsed ? 'visible' : ''}" id="btn-expand-physics" title="${strings.expandPanel}">
+      <button class="dock-tab-pill dock-right-pill ${this.isCollapsed ? 'visible' : ''}" id="btn-expand-physics" title="${strings.expandPanel}" aria-label="${strings.expandPanel}" aria-expanded="${!this.isCollapsed}" aria-controls="orbital-physics-panel">
         ${icon('chevron-left', 'pill-chevron')}
         <span>${strings.physicsPanelTitle}</span>
         ${icon('chart')}
       </button>
 
-      <div class="orbital-physics-panel glass-panel ${this.isCollapsed ? 'collapsed' : ''}">
+      <div class="orbital-physics-panel glass-panel ${this.isCollapsed ? 'collapsed' : ''}" id="orbital-physics-panel">
         <div class="mobile-drawer-handle"></div>
         <div class="physics-header">
           <div class="physics-header-top">
@@ -148,7 +148,7 @@ export class OrbitalPhysicsPanel {
               <h3>${strings.physicsPanelTitle}</h3>
             </div>
             <div class="panel-header-actions">
-              <button class="panel-icon-btn panel-collapse-btn desktop-only" id="btn-collapse-physics" title="${strings.collapsePanel}" aria-label="${strings.collapsePanel}">
+              <button class="panel-icon-btn panel-collapse-btn desktop-only" id="btn-collapse-physics" title="${strings.collapsePanel}" aria-label="${strings.collapsePanel}" aria-expanded="${!this.isCollapsed}" aria-controls="orbital-physics-panel">
                 ${icon('chevron-right')}
               </button>
               <button class="panel-close-btn mobile-only" id="btn-close-physics" aria-label="Close">
@@ -276,7 +276,11 @@ export class OrbitalPhysicsPanel {
       btnCollapse.addEventListener('click', () => {
         this.isCollapsed = true;
         if (panel) panel.classList.add('collapsed');
-        if (btnExpand) btnExpand.classList.add('visible');
+        btnCollapse.setAttribute('aria-expanded', 'false');
+        if (btnExpand) {
+          btnExpand.classList.add('visible');
+          btnExpand.setAttribute('aria-expanded', 'false');
+        }
       });
     }
 
@@ -284,7 +288,9 @@ export class OrbitalPhysicsPanel {
       btnExpand.addEventListener('click', () => {
         this.isCollapsed = false;
         if (panel) panel.classList.remove('collapsed');
+        btnCollapse?.setAttribute('aria-expanded', 'true');
         btnExpand.classList.remove('visible');
+        btnExpand.setAttribute('aria-expanded', 'true');
       });
     }
 

@@ -1,4 +1,6 @@
-use crate::{wavefunction_value, OrbitalMode, QuantumNumbers};
+use crate::{OrbitalMode, QuantumNumbers};
+use crate::spherical_harmonics::{angular_density_max, real_orbital_angular, y_lm_density, y_lm_theta_component};
+use crate::wavefunctions::{r_nl, radial_density_max};
 
 struct Lcg {
     state: u64,
@@ -38,48 +40,17 @@ pub fn sample_points_internal(
 
     let r_max = 5.0 * (qn.n * qn.n) as f64 / z_eff;
 
-    let mut p_max = 0.0;
+    // Strict, unbiased precomputation of p_max:
+    // Decoupled into radial maximum A_max and angular maximum B_max:
+    // P(r, theta, phi) = (r^2 * |R_nl(r)|^2) * (|Y(theta, phi)|^2 * sin(theta)) <= A_max * B_max
+    let a_max = radial_density_max(qn.n, qn.l, z_eff, r_max)?;
+    let real_kind = match mode {
+        OrbitalMode::RealChemist(kind) => Some(kind),
+        OrbitalMode::PureEigenstate => None,
+    };
+    let b_max = angular_density_max(qn.l, qn.m, real_kind)?;
 
-    // 1. Deterministic peak scan around expected radial maximum r ≈ n^2 / Z_eff
-    let r_peak_approx = (qn.n * qn.n) as f64 / z_eff;
-    let grid_radii = [
-        0.1 * r_peak_approx,
-        0.5 * r_peak_approx,
-        1.0 * r_peak_approx,
-        1.5 * r_peak_approx,
-        2.0 * r_peak_approx,
-    ];
-    let grid_thetas = [0.0, 0.25 * std::f64::consts::PI, 0.5 * std::f64::consts::PI, 0.75 * std::f64::consts::PI, std::f64::consts::PI];
-    let grid_phis = [0.0, 0.25 * std::f64::consts::PI, 0.5 * std::f64::consts::PI, 0.75 * std::f64::consts::PI];
-
-    for &r in &grid_radii {
-        for &theta in &grid_thetas {
-            for &phi in &grid_phis {
-                let psi = wavefunction_value(qn, mode, z_eff, r, theta, phi)?;
-                let weight = r * r * theta.sin();
-                let density = psi * psi * weight;
-                if density > p_max {
-                    p_max = density;
-                }
-            }
-        }
-    }
-
-    // 2. Uniform random stochastic scan
-    for _ in 0..1000 {
-        let r = rng.next_f64() * r_max;
-        let theta = rng.next_f64() * std::f64::consts::PI;
-        let phi = rng.next_f64() * 2.0 * std::f64::consts::PI;
-
-        let psi = wavefunction_value(qn, mode, z_eff, r, theta, phi)?;
-        let weight = r * r * theta.sin();
-        let density = psi * psi * weight;
-        if density > p_max {
-            p_max = density;
-        }
-    }
-
-    p_max *= 1.25;
+    let p_max = (a_max * b_max * 1.05).max(1e-12);
     if p_max <= 1e-12 {
         return Err("Sample domain density maximum is zero or negligible".into());
     }
@@ -87,30 +58,79 @@ pub fn sample_points_internal(
     let max_iterations = n_points.saturating_mul(100_000).max(1_000_000);
     let mut iterations = 0;
 
-    while points.len() < n_points {
-        iterations += 1;
-        if iterations > max_iterations {
-            return Err("Rejection sampling exceeded maximum iteration safety threshold".into());
+    match mode {
+        OrbitalMode::PureEigenstate => {
+            // In quantum mechanics, pure eigenstates |n, l, m> have probability density
+            // |psi|^2 = |R_nl(r)|^2 * |Y_l^m(theta, phi)|^2 = |R_nl(r)|^2 * |Theta_lm(theta)|^2 / (2*pi).
+            // This is strictly independent of phi (cylindrical/toroidal symmetry around Z).
+            // We sample (r, theta) via rejection against p_max, and assign phi uniformly in [0, 2*pi).
+            while points.len() < n_points {
+                iterations += 1;
+                if iterations > max_iterations {
+                    return Err("Rejection sampling exceeded maximum iteration safety threshold".into());
+                }
+
+                let r = rng.next_f64() * r_max;
+                let theta = rng.next_f64() * std::f64::consts::PI;
+
+                let r_part = r_nl(qn.n, qn.l, z_eff, r)?;
+                let y_dens = y_lm_density(qn.l, qn.m, theta)?;
+                let density = (r * r * r_part * r_part) * (y_dens * theta.sin());
+
+                let threshold = rng.next_f64() * p_max;
+                if density > threshold {
+                    // Continuous uniform azimuthal distribution in [0, 2*pi)
+                    let phi = rng.next_f64() * 2.0 * std::f64::consts::PI;
+
+                    let sin_t = theta.sin();
+                    let cos_t = theta.cos();
+                    let x = r * sin_t * phi.cos();
+                    let y = r * sin_t * phi.sin();
+                    let z = r * cos_t;
+
+                    // Complex quantum phase: Arg(psi) = Arg(R_nl(r) * Theta_lm(theta) * exp(i * m * phi))
+                    let theta_comp = y_lm_theta_component(qn.l, qn.m, theta)?;
+                    let spatial_sign = r_part * theta_comp;
+                    let base_phase = (qn.m as f64) * phi;
+                    let phase = if spatial_sign < 0.0 {
+                        base_phase + std::f64::consts::PI
+                    } else {
+                        base_phase
+                    };
+                    let phase_arg = phase.sin().atan2(phase.cos()) as f32;
+
+                    points.push(([x as f32, y as f32, z as f32], phase_arg));
+                }
+            }
         }
+        OrbitalMode::RealChemist(kind) => {
+            // Real chemist orbital representations with real lobes
+            while points.len() < n_points {
+                iterations += 1;
+                if iterations > max_iterations {
+                    return Err("Rejection sampling exceeded maximum iteration safety threshold".into());
+                }
 
-        let r = rng.next_f64() * r_max;
-        let theta = rng.next_f64() * std::f64::consts::PI;
-        let phi = rng.next_f64() * 2.0 * std::f64::consts::PI;
+                let r = rng.next_f64() * r_max;
+                let theta = rng.next_f64() * std::f64::consts::PI;
+                let phi = rng.next_f64() * 2.0 * std::f64::consts::PI;
 
-        let psi = wavefunction_value(qn, mode, z_eff, r, theta, phi)?;
-        let weight = r * r * theta.sin();
-        let density = psi * psi * weight;
-        if density > p_max {
-            p_max = density * 1.2;
-        }
+                let r_part = r_nl(qn.n, qn.l, z_eff, r)?;
+                let y_real = real_orbital_angular(kind, theta, phi);
+                let psi = r_part * y_real;
+                let density = psi * psi * (r * r * theta.sin());
 
-        let threshold = rng.next_f64() * p_max;
-        if density > threshold {
-            let x = r * theta.sin() * phi.cos();
-            let y = r * theta.sin() * phi.sin();
-            let z = r * theta.cos();
-            let sign = if psi >= 0.0 { 1.0f32 } else { -1.0f32 };
-            points.push(([x as f32, y as f32, z as f32], sign));
+                let threshold = rng.next_f64() * p_max;
+                if density > threshold {
+                    let sin_t = theta.sin();
+                    let cos_t = theta.cos();
+                    let x = r * sin_t * phi.cos();
+                    let y = r * sin_t * phi.sin();
+                    let z = r * cos_t;
+                    let sign = if psi >= 0.0 { 1.0f32 } else { -1.0f32 };
+                    points.push(([x as f32, y as f32, z as f32], sign));
+                }
+            }
         }
     }
 

@@ -4,17 +4,22 @@ import { icon } from './icons';
 export class ExplanationModal {
   private static overlayElement: HTMLElement | null = null;
   private static keydownHandler: ((e: KeyboardEvent) => void) | null = null;
+  private static previousActiveElement: HTMLElement | null = null;
 
   public static show(info: ConceptExplanation, options?: { showDontShowAgain?: boolean, storageKey?: string }): void {
+    ExplanationModal.previousActiveElement = document.activeElement as HTMLElement | null;
     ExplanationModal.close();
 
     const strings = getStrings();
 
     const overlay = document.createElement('div');
-    overlay.className = 'glass-modal-overlay info-modal-overlay';
+    overlay.className = 'glass-modal-overlay modal-backdrop info-modal-overlay';
 
     const card = document.createElement('div');
     card.className = 'glass-modal-card info-modal-card';
+    card.setAttribute('role', 'dialog');
+    card.setAttribute('aria-modal', 'true');
+    card.setAttribute('aria-labelledby', 'info-modal-title');
 
     const analogyHtml = info.analogy
       ? `<div class="info-modal-analogy">
@@ -27,7 +32,7 @@ export class ExplanationModal {
       <div class="glass-modal-header">
         <div class="panel-title-group">
           <span class="panel-header-icon">${icon('info')}</span>
-          <h3 class="glass-modal-title">${info.title}</h3>
+          <h3 class="glass-modal-title" id="info-modal-title">${info.title}</h3>
         </div>
         <button class="btn-close-modal" aria-label="${strings.infoModalClose}">${icon('close')}</button>
       </div>
@@ -76,9 +81,26 @@ export class ExplanationModal {
     ExplanationModal.keydownHandler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         handleClose();
+      } else if (e.key === 'Tab') {
+        const focusable = Array.from(card.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )).filter((el) => !el.hasAttribute('disabled'));
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     };
     document.addEventListener('keydown', ExplanationModal.keydownHandler);
+
+    closeBtn.focus();
   }
 
   public static showSimple(title: string, summary: string, detail: string): void {
@@ -89,6 +111,11 @@ export class ExplanationModal {
     if (ExplanationModal.keydownHandler) {
       document.removeEventListener('keydown', ExplanationModal.keydownHandler);
       ExplanationModal.keydownHandler = null;
+    }
+
+    if (ExplanationModal.previousActiveElement) {
+      ExplanationModal.previousActiveElement.focus();
+      ExplanationModal.previousActiveElement = null;
     }
 
     if (ExplanationModal.overlayElement) {

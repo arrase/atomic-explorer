@@ -12,33 +12,85 @@ export interface ExportOptions {
 export class ImageExporterModal {
   private overlay: HTMLElement;
   private onExport: (options: ExportOptions) => Promise<string>;
+  private previousActiveElement: HTMLElement | null = null;
+  private keydownHandler: ((e: KeyboardEvent) => void) | null = null;
 
   constructor(onExport: (options: ExportOptions) => Promise<string>) {
     this.onExport = onExport;
     this.overlay = document.createElement('div');
-    this.overlay.className = 'export-modal-overlay hidden';
+    this.overlay.className = 'export-modal-overlay modal-backdrop hidden';
     document.body.appendChild(this.overlay);
     this.render();
   }
 
   public open(): void {
+    this.previousActiveElement = document.activeElement as HTMLElement | null;
     this.render();
     this.overlay.classList.remove('hidden');
+    this.attachKeyHandler();
+
+    const resSelect = this.overlay.querySelector('#export-res-select') as HTMLSelectElement | null;
+    const closeBtn = this.overlay.querySelector('#btn-close-export') as HTMLElement | null;
+    if (resSelect) {
+      resSelect.focus();
+    } else if (closeBtn) {
+      closeBtn.focus();
+    }
   }
 
   public close(): void {
     this.overlay.classList.add('hidden');
+    this.detachKeyHandler();
+
+    if (this.previousActiveElement) {
+      this.previousActiveElement.focus();
+      this.previousActiveElement = null;
+    }
+  }
+
+  private attachKeyHandler(): void {
+    this.detachKeyHandler();
+    this.keydownHandler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        this.close();
+      } else if (e.key === 'Tab') {
+        const modal = this.overlay.querySelector('.export-modal');
+        if (!modal) return;
+        const focusable = Array.from(modal.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )).filter((el) => !el.hasAttribute('disabled'));
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    document.addEventListener('keydown', this.keydownHandler);
+  }
+
+  private detachKeyHandler(): void {
+    if (this.keydownHandler) {
+      document.removeEventListener('keydown', this.keydownHandler);
+      this.keydownHandler = null;
+    }
   }
 
   private render(): void {
     const strings = getStrings();
 
     this.overlay.innerHTML = `
-      <div class="export-modal">
+      <div class="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-modal-title">
         <div class="export-modal-header">
           <div class="panel-title-group">
             <span class="panel-header-icon">${icon('camera')}</span>
-            <h3>${strings.exportTitle}</h3>
+            <h3 id="export-modal-title">${strings.exportTitle}</h3>
           </div>
           <button class="btn-close-modal" id="btn-close-export" aria-label="Close">${icon('close')}</button>
         </div>
@@ -105,6 +157,12 @@ export class ImageExporterModal {
 
     closeBtn.addEventListener('click', () => this.close());
     cancelBtn.addEventListener('click', () => this.close());
+
+    this.overlay.addEventListener('click', (e: MouseEvent) => {
+      if (e.target === this.overlay) {
+        this.close();
+      }
+    });
 
     exportBtn.addEventListener('click', async () => {
       const resSelect = this.overlay.querySelector('#export-res-select') as HTMLSelectElement;

@@ -51,11 +51,19 @@ export class NavigationBar {
           <span class="nav-logo">${icon('atom', 'nav-logo-icon')}</span>
           <span class="nav-title">${strings.title}</span>
         </div>
-        <div class="nav-tabs" id="nav-tabs-menu">
+        <div class="nav-tabs" id="nav-tabs-menu" role="tablist" aria-label="${strings.title}">
           ${tabs
             .map(
               (tab) => `
-            <button class="nav-tab ${tab.id === this.activeTab ? 'active' : ''}" data-tab="${tab.id}">
+            <button
+              class="nav-tab ${tab.id === this.activeTab ? 'active' : ''}"
+              id="nav-tab-${tab.id}"
+              data-tab="${tab.id}"
+              role="tab"
+              aria-selected="${tab.id === this.activeTab ? 'true' : 'false'}"
+              aria-controls="${tab.id}-layer"
+              tabindex="${tab.id === this.activeTab ? '0' : '-1'}"
+            >
               <span class="tab-icon">${tab.icon}</span>
               <span class="tab-label">${tab.label}</span>
             </button>
@@ -94,7 +102,7 @@ export class NavigationBar {
               <option value="ar" ${currentLang === 'ar' ? 'selected' : ''}>🇸🇦 AR - العربية</option>
             </select>
           </div>
-          <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Menu">
+          <button class="mobile-menu-toggle" id="mobile-menu-toggle" aria-label="Menu" aria-expanded="false" aria-controls="nav-tabs-menu">
             <span class="hamburger-icon">${icon('sliders')}</span>
           </button>
         </div>
@@ -110,16 +118,18 @@ export class NavigationBar {
 
     mobileMenuToggle.addEventListener('click', (e) => {
       e.stopPropagation();
-      navTabsMenu.classList.toggle('mobile-open');
-      mobileMenuToggle.classList.toggle('active');
+      const isOpen = navTabsMenu.classList.toggle('mobile-open');
+      mobileMenuToggle.classList.toggle('active', isOpen);
+      mobileMenuToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
     });
 
-    const buttons = this.container.querySelectorAll('.nav-tab[data-tab]');
+    const buttons = this.container.querySelectorAll<HTMLButtonElement>('.nav-tab[data-tab]');
     buttons.forEach((btn) => {
       btn.addEventListener('click', (e) => {
         const target = (e.currentTarget as HTMLElement).getAttribute('data-tab') as TabId;
         navTabsMenu.classList.remove('mobile-open');
         mobileMenuToggle.classList.remove('active');
+        mobileMenuToggle.setAttribute('aria-expanded', 'false');
         if (target && target !== this.activeTab) {
           this.setActiveTab(target);
           this.onTabChange(target);
@@ -127,10 +137,32 @@ export class NavigationBar {
       });
     });
 
+    navTabsMenu.addEventListener('keydown', (e: KeyboardEvent) => {
+      const tabButtons = Array.from(this.container.querySelectorAll<HTMLButtonElement>('.nav-tab[data-tab]'));
+      const currentIndex = tabButtons.findIndex((b) => b.getAttribute('data-tab') === this.activeTab);
+      let nextIndex = -1;
+
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+        nextIndex = (currentIndex + 1) % tabButtons.length;
+      } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+        nextIndex = (currentIndex - 1 + tabButtons.length) % tabButtons.length;
+      }
+
+      if (nextIndex !== -1) {
+        e.preventDefault();
+        const nextBtn = tabButtons[nextIndex];
+        const nextTab = nextBtn.getAttribute('data-tab') as TabId;
+        this.setActiveTab(nextTab);
+        this.onTabChange(nextTab);
+        nextBtn.focus();
+      }
+    });
+
     const glossaryBtn = this.container.querySelector('#nav-glossary-btn') as HTMLElement;
     glossaryBtn.addEventListener('click', () => {
       navTabsMenu.classList.remove('mobile-open');
       mobileMenuToggle.classList.remove('active');
+      mobileMenuToggle.setAttribute('aria-expanded', 'false');
       this.glossaryModal.open();
     });
 
@@ -138,6 +170,7 @@ export class NavigationBar {
     introBtn.addEventListener('click', () => {
       navTabsMenu.classList.remove('mobile-open');
       mobileMenuToggle.classList.remove('active');
+      mobileMenuToggle.setAttribute('aria-expanded', 'false');
       ExplanationModal.show(getStrings().explainIntro);
     });
 
@@ -157,12 +190,17 @@ export class NavigationBar {
 
   public setActiveTab(tab: TabId): void {
     this.activeTab = tab;
-    const buttons = this.container.querySelectorAll('.nav-tab[data-tab]');
+    const buttons = this.container.querySelectorAll<HTMLButtonElement>('.nav-tab[data-tab]');
     buttons.forEach((btn) => {
-      if (btn.getAttribute('data-tab') === tab) {
+      const isTarget = btn.getAttribute('data-tab') === tab;
+      if (isTarget) {
         btn.classList.add('active');
+        btn.setAttribute('aria-selected', 'true');
+        btn.setAttribute('tabindex', '0');
       } else {
         btn.classList.remove('active');
+        btn.setAttribute('aria-selected', 'false');
+        btn.setAttribute('tabindex', '-1');
       }
     });
   }

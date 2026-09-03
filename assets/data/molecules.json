@@ -3,7 +3,7 @@
     "id": "H2",
     "formula": "H₂",
     "hybridization": "1s-1s",
-    "bond_angle": "180°",
+    "bond_angle": "—",
     "atoms": [
       {
         "symbol": "H",
@@ -86,7 +86,7 @@
           0
         ],
         "color": "#ff3333",
-        "radius": 0.7
+        "radius": 0.68
       },
       {
         "symbol": "H",
@@ -214,7 +214,7 @@
           0
         ],
         "color": "#ff3333",
-        "radius": 0.75
+        "radius": 0.68
       },
       {
         "symbol": "O",
@@ -224,7 +224,7 @@
           0
         ],
         "color": "#ff3333",
-        "radius": 0.75
+        "radius": 0.68
       }
     ],
     "bonds": [
@@ -671,7 +671,7 @@
           0
         ],
         "color": "#77ee77",
-        "radius": 0.75
+        "radius": 0.6
       },
       {
         "symbol": "F",
@@ -681,7 +681,7 @@
           0
         ],
         "color": "#77ee77",
-        "radius": 0.75
+        "radius": 0.6
       },
       {
         "symbol": "F",
@@ -691,7 +691,7 @@
           0
         ],
         "color": "#77ee77",
-        "radius": 0.75
+        "radius": 0.6
       }
     ],
     "bonds": [
@@ -967,7 +967,7 @@
           0
         ],
         "color": "#77ee77",
-        "radius": 0.75
+        "radius": 0.6
       },
       {
         "symbol": "F",
@@ -977,7 +977,7 @@
           0
         ],
         "color": "#77ee77",
-        "radius": 0.75
+        "radius": 0.6
       },
       {
         "symbol": "F",
@@ -987,7 +987,7 @@
           0
         ],
         "color": "#77ee77",
-        "radius": 0.75
+        "radius": 0.6
       },
       {
         "symbol": "F",
@@ -997,7 +997,7 @@
           0
         ],
         "color": "#77ee77",
-        "radius": 0.75
+        "radius": 0.6
       },
       {
         "symbol": "F",
@@ -1007,7 +1007,7 @@
           1.561
         ],
         "color": "#77ee77",
-        "radius": 0.75
+        "radius": 0.6
       },
       {
         "symbol": "F",
@@ -1017,7 +1017,7 @@
           -1.561
         ],
         "color": "#77ee77",
-        "radius": 0.75
+        "radius": 0.6
       }
     ],
     "bonds": [
@@ -1175,7 +1175,7 @@
           0
         ],
         "color": "#ff3333",
-        "radius": 0.75
+        "radius": 0.68
       },
       {
         "symbol": "O",
@@ -1185,7 +1185,7 @@
           0
         ],
         "color": "#ff3333",
-        "radius": 0.75
+        "radius": 0.68
       }
     ],
     "bonds": [
@@ -1278,7 +1278,7 @@
           0
         ],
         "color": "#77ee77",
-        "radius": 0.75
+        "radius": 0.6
       },
       {
         "symbol": "F",
@@ -1288,7 +1288,7 @@
           0
         ],
         "color": "#77ee77",
-        "radius": 0.75
+        "radius": 0.6
       },
       {
         "symbol": "F",
@@ -1298,7 +1298,7 @@
           1.197
         ],
         "color": "#77ee77",
-        "radius": 0.75
+        "radius": 0.6
       },
       {
         "symbol": "F",
@@ -1308,7 +1308,7 @@
           -1.197
         ],
         "color": "#77ee77",
-        "radius": 0.75
+        "radius": 0.6
       }
     ],
     "bonds": [
@@ -1441,7 +1441,7 @@
           0
         ],
         "color": "#77ee77",
-        "radius": 0.75
+        "radius": 0.6
       },
       {
         "symbol": "F",
@@ -1451,7 +1451,7 @@
           0
         ],
         "color": "#77ee77",
-        "radius": 0.75
+        "radius": 0.6
       },
       {
         "symbol": "F",
@@ -1461,7 +1461,7 @@
           0
         ],
         "color": "#77ee77",
-        "radius": 0.75
+        "radius": 0.6
       }
     ],
     "bonds": [
@@ -1579,7 +1579,7 @@
           0
         ],
         "color": "#9933ff",
-        "radius": 0.85
+        "radius": 1.05
       },
       {
         "symbol": "F",
@@ -1589,7 +1589,7 @@
           0
         ],
         "color": "#77ee77",
-        "radius": 0.75
+        "radius": 0.6
       },
       {
         "symbol": "F",
@@ -1599,7 +1599,7 @@
           0
         ],
         "color": "#77ee77",
-        "radius": 0.75
+        "radius": 0.6
       },
       {
         "symbol": "F",
@@ -1609,7 +1609,7 @@
           1.95
         ],
         "color": "#77ee77",
-        "radius": 0.75
+        "radius": 0.6
       },
       {
         "symbol": "F",
@@ -1619,7 +1619,7 @@
           -1.95
         ],
         "color": "#77ee77",
-        "radius": 0.75
+        "radius": 0.6
       }
     ],
     "bonds": [
@@ -1747,7 +1747,7 @@
     "id": "C2H4",
     "formula": "C₂H₄",
     "hybridization": "sp²",
-    "bond_angle": "120°",
+    "bond_angle": "117.4° / 121.3°",
     "atoms": [
       {
         "symbol": "C",

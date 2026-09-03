@@ -352,4 +352,95 @@ fn test_spontaneous_emission_lyman_alpha() {
     assert_relative_eq!(a21, 6.268e8, epsilon = 0.05 * 6.268e8);
 }
 
+#[test]
+fn test_pure_eigenstate_phi_invariance() {
+    let qn_2p = QuantumNumbers { n: 2, l: 1, m: 1 };
+    let mode = OrbitalMode::PureEigenstate;
+
+    let r = 2.0;
+    let theta = 0.7;
+    let d1 = probability_density(&qn_2p, &mode, 1.0, r, theta, 0.0).unwrap();
+    let d2 = probability_density(&qn_2p, &mode, 1.0, r, theta, 1.23).unwrap();
+    let d3 = probability_density(&qn_2p, &mode, 1.0, r, theta, 4.56).unwrap();
+
+    assert_relative_eq!(d1, d2, epsilon = 1e-12);
+    assert_relative_eq!(d2, d3, epsilon = 1e-12);
+
+    let qn_3d = QuantumNumbers { n: 3, l: 2, m: 2 };
+    let d3d_1 = probability_density(&qn_3d, &mode, 1.0, r, theta, 0.5).unwrap();
+    let d3d_2 = probability_density(&qn_3d, &mode, 1.0, r, theta, 2.5).unwrap();
+    assert_relative_eq!(d3d_1, d3d_2, epsilon = 1e-12);
+}
+
+#[test]
+fn test_pure_eigenstate_azimuthal_sampling_symmetry() {
+    let qn = QuantumNumbers { n: 2, l: 1, m: 1 };
+    let mode = OrbitalMode::PureEigenstate;
+
+    let n_pts = 2000;
+    let pts = sample_points(&qn, &mode, 1.0, n_pts, 42).unwrap();
+    assert_eq!(pts.len(), n_pts);
+
+    let mut sum_cos = 0.0;
+    let mut sum_sin = 0.0;
+    for (pos, _phase) in &pts {
+        let phi = (pos[1] as f64).atan2(pos[0] as f64);
+        sum_cos += phi.cos();
+        sum_sin += phi.sin();
+    }
+
+    let mean_cos = sum_cos / (n_pts as f64);
+    let mean_sin = sum_sin / (n_pts as f64);
+
+    // Azimuthal symmetry means points are evenly distributed in phi, mean cos and sin close to 0
+    assert!(mean_cos.abs() < 0.1, "mean_cos={}", mean_cos);
+    assert!(mean_sin.abs() < 0.1, "mean_sin={}", mean_sin);
+}
+
+#[test]
+fn test_isosurface_grid_generation() {
+    use atomic_math::grid::evaluate_isosurface_grid_internal;
+
+    let qn = QuantumNumbers { n: 2, l: 1, m: 0 };
+    let mode = OrbitalMode::RealChemist(RealOrbitalKind::Pz);
+    let grid_size = 16;
+    let bounds = 6.0;
+    let grid = evaluate_isosurface_grid_internal(&qn, &mode, 1.0, grid_size, bounds, 2.0).unwrap();
+
+    assert_eq!(grid.len(), grid_size * grid_size * grid_size);
+
+    let mut has_positive = false;
+    let mut has_negative = false;
+    for &val in &grid {
+        if val > 0.05 {
+            has_positive = true;
+        }
+        if val < -0.05 {
+            has_negative = true;
+        }
+    }
+    assert!(has_positive, "2pz isosurface should have positive lobe");
+    assert!(has_negative, "2pz isosurface should have negative lobe");
+}
+
+#[test]
+fn test_angular_momentum_safety() {
+    use atomic_math::spherical_harmonics::y_lm_density;
+
+    // |m| > l must return Err
+    assert!(y_lm_density(1, 2, 0.5).is_err());
+    assert!(y_lm_density(2, -3, 0.5).is_err());
+    assert!(y_lm_density(3, 4, 0.5).is_err());
+
+    // Valid l in 0..=3 and m in -l..=l must succeed
+    assert!(y_lm_density(0, 0, 0.5).is_ok());
+    assert!(y_lm_density(1, 1, 0.5).is_ok());
+    assert!(y_lm_density(2, -2, 0.5).is_ok());
+    assert!(y_lm_density(3, 3, 0.5).is_ok());
+
+    // real_orbital_kind_from_lm for l > 3 returns None
+    assert_eq!(real_orbital_kind_from_lm(4, 0), None);
+    assert_eq!(real_orbital_kind_from_lm(4, 4), None);
+}
+
 

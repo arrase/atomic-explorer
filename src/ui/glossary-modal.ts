@@ -8,6 +8,7 @@ export class GlossaryModal {
   private activeCategory: string = 'all';
   private expandedItemIds: Set<string> = new Set();
   private keydownHandler: ((e: KeyboardEvent) => void) | null = null;
+  private previousActiveElement: HTMLElement | null = null;
 
   constructor() {
     onLanguageChange(() => {
@@ -22,9 +23,18 @@ export class GlossaryModal {
    */
   public open(): void {
     if (this.isOpen) return;
+    this.previousActiveElement = document.activeElement as HTMLElement | null;
     this.isOpen = true;
     this.render();
     this.attachGlobalListeners();
+
+    const searchInput = this.overlayElement?.querySelector('#glossary-search-input') as HTMLInputElement | null;
+    const closeBtn = this.overlayElement?.querySelector('.btn-close-modal') as HTMLElement | null;
+    if (searchInput) {
+      searchInput.focus();
+    } else if (closeBtn) {
+      closeBtn.focus();
+    }
   }
 
   /**
@@ -34,6 +44,11 @@ export class GlossaryModal {
     if (!this.isOpen) return;
     this.isOpen = false;
     this.detachGlobalListeners();
+
+    if (this.previousActiveElement) {
+      this.previousActiveElement.focus();
+      this.previousActiveElement = null;
+    }
 
     if (this.overlayElement) {
       const overlay = this.overlayElement;
@@ -57,6 +72,23 @@ export class GlossaryModal {
     this.keydownHandler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         this.close();
+      } else if (e.key === 'Tab' && this.overlayElement) {
+        const card = this.overlayElement.querySelector('.glass-modal-card');
+        if (!card) return;
+        const focusable = Array.from(card.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        )).filter((el) => !el.hasAttribute('disabled'));
+        if (focusable.length === 0) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     };
     document.addEventListener('keydown', this.keydownHandler);
@@ -95,17 +127,17 @@ export class GlossaryModal {
 
     if (!this.overlayElement) {
       this.overlayElement = document.createElement('div');
-      this.overlayElement.className = 'glass-modal-overlay glossary-modal-overlay';
+      this.overlayElement.className = 'glass-modal-overlay modal-backdrop glossary-modal-overlay';
       document.body.appendChild(this.overlayElement);
     }
 
     this.overlayElement.innerHTML = `
-      <div class="glass-modal-card glossary-modal-card">
+      <div class="glass-modal-card glossary-modal-card" role="dialog" aria-modal="true" aria-labelledby="glossary-modal-title">
         <div class="glass-modal-header">
           <div class="glossary-modal-header-title">
             <div class="panel-title-group">
               <span class="panel-header-icon">${icon('book')}</span>
-              <h2 class="glass-modal-title">${strings.glossaryTitle}</h2>
+              <h2 class="glass-modal-title" id="glossary-modal-title">${strings.glossaryTitle}</h2>
             </div>
             <p class="glossary-subtitle">${strings.glossarySubtitle}</p>
           </div>

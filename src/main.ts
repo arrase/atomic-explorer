@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { sampleOrbitalPoints, getSlaterZEff } from './core/wasm-bridge';
 import { OrbitalRenderer } from './render/orbital-renderer';
 import { MoleculeRenderer } from './render/molecule-renderer';
@@ -33,8 +34,20 @@ async function init() {
   const uiOverlay = document.getElementById('ui-overlay') as HTMLElement;
   const fpsCounter = document.getElementById('fps-counter') as HTMLElement;
 
-  const orbitalRenderer = new OrbitalRenderer(canvas);
-  const moleculeRenderer = new MoleculeRenderer(canvas);
+  const renderer = new THREE.WebGLRenderer({
+    canvas,
+    antialias: true,
+    alpha: true,
+    powerPreference: 'high-performance',
+    precision: 'highp',
+    preserveDrawingBuffer: true,
+  });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setClearColor(new THREE.Color('#0a0a1a'));
+
+  const orbitalRenderer = new OrbitalRenderer({ canvas, renderer });
+  const moleculeRenderer = new MoleculeRenderer({ canvas, renderer });
+  moleculeRenderer.stop();
 
   let activeTab: TabId = 'orbitals';
 
@@ -90,7 +103,7 @@ async function init() {
         }
       } else if (params.mode === 'isosurface') {
         if (requestId === currentLoadRequestId) {
-          orbitalRenderer.updateIsosurface(params);
+          await orbitalRenderer.updateIsosurface(params);
         }
       } else if (params.mode === 'raymarching') {
         if (requestId === currentLoadRequestId) {
@@ -179,6 +192,7 @@ async function init() {
       orientationGizmo.setVisible(true);
       viewportHud.setVisible(true);
       viewportHud.setAutoRotateState(orbitalRenderer.isAutoRotating());
+      orbitalRenderer.onWindowResize();
       orbitalRenderer.start();
       loadOrbital(controlPanel.getParams());
     } else if (newTab === 'molecules') {
@@ -189,6 +203,7 @@ async function init() {
       orientationGizmo.setVisible(true);
       viewportHud.setVisible(true);
       viewportHud.setAutoRotateState(moleculeRenderer.isAutoRotating());
+      moleculeRenderer.onWindowResize();
       moleculeRenderer.start();
       updatePhysicalScaleText();
     } else if (newTab === 'periodic-table') {
@@ -201,6 +216,12 @@ async function init() {
       viewportHud.setVisible(false);
     }
   };
+
+  window.addEventListener('resize', () => {
+    if (activeTab !== 'periodic-table') {
+      getActiveRenderer().onWindowResize();
+    }
+  });
 
   const navBar = new NavigationBar(navContainer, switchTab, toggleZenMode);
 
