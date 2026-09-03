@@ -343,14 +343,14 @@ export class OrbitalRenderer {
   private raymarchingMaterial: THREE.ShaderMaterial | null = null;
 
   private isShared: boolean;
-  private currentMode: RenderMode = 'raymarching';
+  private currentMode: RenderMode = 'points';
   private currentParams: OrbitalRenderParams = {
     n: 1,
     l: 0,
     m: 0,
     useRealOrbital: true,
     zEff: 1.0,
-    mode: 'raymarching',
+    mode: 'points',
     quality: 'medium',
     raymarchingSteps: 128,
     colorPalette: 'default',
@@ -518,9 +518,7 @@ export class OrbitalRenderer {
     const isolevel = params.isolevel ?? 0.05;
     const contrast = params.contrast ?? 0.0;
     mcPos.reset();
-    mcPos.isolation = isolevel;
     mcNeg.reset();
-    mcNeg.isolation = isolevel;
 
     // Fast grid evaluation via WASM engine
     const gridData = await evaluateIsosurfaceGrid(
@@ -533,6 +531,16 @@ export class OrbitalRenderer {
       boxExtent,
       contrast,
     );
+
+    let maxAbs = 0;
+    for (let i = 0; i < gridData.length; i++) {
+      const a = Math.abs(gridData[i]);
+      if (a > maxAbs) maxAbs = a;
+    }
+
+    const effectiveIsolevel = isolevel * (maxAbs > 0 ? maxAbs : 1.0);
+    mcPos.isolation = effectiveIsolevel;
+    mcNeg.isolation = effectiveIsolevel;
 
     mcPos.field.set(gridData);
     const negField = mcNeg.field;
