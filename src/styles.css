@@ -104,7 +104,7 @@ body {
   top: 16px;
   left: 16px;
   right: 16px;
-  z-index: 50;
+  z-index: 60;
   pointer-events: auto;
   transition: opacity 0.35s ease, transform 0.35s ease;
 }
@@ -403,6 +403,7 @@ body {
 }
 
 /* Orbital Controls Panel */
+#controls-panel,
 .control-panel {
   position: absolute;
   top: 0;
@@ -410,12 +411,14 @@ body {
   width: 330px;
   max-height: 100%;
   overflow-y: auto;
+  scrollbar-width: thin;
   padding: 18px;
   pointer-events: auto;
   z-index: 15;
   transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
 }
 
+#controls-panel.collapsed,
 .control-panel.collapsed {
   transform: translateX(calc(-100% - 30px));
   pointer-events: none;
@@ -2227,11 +2230,71 @@ select:focus {
 /* Comprehensive Responsive Media Queries */
 
 @media (max-width: 1024px) {
+  /* Controls Panel & Physics Panel tablet adjustments */
+  #controls-panel,
+  .control-panel {
+    width: 290px;
+    max-height: calc(100% - 60px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .physics-panel-container {
+    width: 290px;
+    max-height: calc(100% - 60px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .molecule-overlay-panel {
+    width: 300px;
+    max-height: calc(100% - 60px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  /* Compact HUD to avoid collision with side panels */
+  .viewport-hud {
+    bottom: 16px;
+    max-width: calc(100vw - 32px);
+    gap: 5px;
+    padding: 5px 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  /* Compact Top Nav */
+  .top-nav {
+    padding: 8px 14px;
+  }
+
+  .nav-tabs {
+    gap: 4px;
+  }
+
+  .nav-tab {
+    padding: 6px 10px;
+    font-size: 0.82rem;
+  }
+
+  .nav-tab.nav-glossary-btn .tab-label,
+  .nav-tab.nav-intro-btn .tab-label {
+    display: none;
+  }
+
   .periodic-table-wrapper {
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto;
+    grid-template-rows: auto auto 1fr;
     overflow-y: auto;
     max-height: 100%;
+    padding: 12px;
+    min-width: 0;
+  }
+
+  .periodic-grid-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
   }
 
   .element-inspector-panel {
@@ -2340,6 +2403,7 @@ select:focus {
   }
 
   /* Control Panels & Inspector Bottom Sheet Drawers */
+  #controls-panel,
   .control-panel,
   .physics-panel-container,
   .molecule-overlay-panel,
@@ -2367,6 +2431,7 @@ select:focus {
     -webkit-backdrop-filter: blur(24px);
   }
 
+  #controls-panel.mobile-open,
   .control-panel.mobile-open,
   .physics-panel-container.mobile-open,
   .molecule-overlay-panel.mobile-open,
@@ -2662,7 +2727,7 @@ select:focus {
   position: absolute;
   top: 76px;
   right: 20px;
-  z-index: 40;
+  z-index: 25;
   pointer-events: auto;
   user-select: none;
   transition: right 0.35s cubic-bezier(0.16, 1, 0.3, 1), top 0.3s ease, opacity 0.3s ease, transform 0.3s ease;
@@ -2696,7 +2761,7 @@ select:focus {
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 40;
+  z-index: 30;
   pointer-events: auto;
   display: inline-flex;
   align-items: center;
@@ -2785,12 +2850,33 @@ select:focus {
   opacity: 0;
   transition: opacity 0.2s ease, transform 0.2s ease;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
-  z-index: 100;
+  z-index: 70;
 }
 
 .hud-btn[data-tooltip]:hover::after {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
+}
+
+/* Modal Backdrop & Periodic Tooltip Base Styles */
+.modal-backdrop {
+  z-index: 100 !important;
+}
+
+.periodic-tooltip {
+  position: absolute;
+  z-index: 70;
+  pointer-events: none;
+  background: rgba(14, 14, 28, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--panel-border);
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.78rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  white-space: nowrap;
 }
 
 /* Physical Scale Badge */
@@ -2826,7 +2912,7 @@ select:focus {
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%) translateY(30px);
-  z-index: 99;
+  z-index: 90;
   pointer-events: none;
   opacity: 0;
   display: none;
@@ -2903,9 +2989,13 @@ select:focus {
     transform-origin: top right;
   }
   .viewport-hud {
-    bottom: 82px;
-    padding: 4px 8px;
-    gap: 4px;
+    bottom: 80px;
+    padding: 4px 10px;
+    gap: 5px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: calc(100vw - 20px);
+    box-sizing: border-box;
   }
   .hud-btn {
     width: 32px;
@@ -2914,5 +3004,33 @@ select:focus {
   .hud-scale-badge {
     padding: 3px 8px;
     font-size: 0.72rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .viewport-hud {
+    bottom: 74px;
+    padding: 3px 8px;
+    gap: 4px;
+  }
+  .hud-divider {
+    display: none;
+  }
+  .hud-btn {
+    width: 30px;
+    height: 30px;
+  }
+  .hud-scale-badge {
+    padding: 2px 7px;
+    font-size: 0.70rem;
+  }
+  .mobile-floating-actions {
+    bottom: 16px;
+    gap: 6px;
+    max-width: calc(100vw - 16px);
+  }
+  .mobile-float-btn {
+    padding: 8px 12px;
+    font-size: 0.78rem;
   }
 }

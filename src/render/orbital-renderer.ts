@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { MarchingCubes } from 'three/addons/objects/MarchingCubes.js';
 import { captureWebGLSnapshot, SnapshotOptions } from './render-utils';
 import { OrientationGizmo } from './orientation-gizmo';
+import { evaluateIsosurfaceGrid } from '../core/wasm-bridge';
 
 export type RenderMode = 'points' | 'isosurface' | 'raymarching';
 export type QualityPreset = 'low' | 'medium' | 'high' | 'ultra' | 'extreme' | 'custom';
@@ -20,9 +21,14 @@ export interface OrbitalRenderParams {
   raymarchingSteps?: number;
   pointCount?: number;
   resolutionScale?: number;
-  colorPalette?: ColorPalette;
+  colorPalette: ColorPalette;
   contrast?: number;
 }
+
+export type RendererTarget =
+  | HTMLCanvasElement
+  | THREE.WebGLRenderer
+  | { canvas?: HTMLCanvasElement; renderer: THREE.WebGLRenderer };
 
 export const PALETTE_CONFIG: Record<ColorPalette, { id: number; posColor: number; negColor: number }> = {
   default: { id: 0, posColor: 0x00ccff, negColor: 0xff6611 },
@@ -53,9 +59,33 @@ const pointFragmentShader = `
   varying float vDistance;
   varying float vSign;
   uniform int u_palette;
+  uniform bool u_useReal;
 
-  vec3 getPointPaletteColor(float dist, float signVal, int paletteId) {
+  #define PI 3.14159265359
+
+  vec3 hsv2rgb(vec3 c) {
+    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+  }
+
+  vec3 getPointPaletteColor(float dist, float signVal, int paletteId, bool useReal) {
     float t = clamp(dist / 15.0, 0.0, 1.0);
+
+    // For pure eigenstates: signVal carries the continuous quantum phase Arg(psi) in [-PI, PI]
+    if (!useReal) {
+      float hue = fract((signVal + PI) / (2.0 * PI));
+      if (paletteId == 3) { // Spectrum: full chromatic phase wheel
+        return hsv2rgb(vec3(hue, 0.85, 1.0));
+      } else if (paletteId == 1) { // Fire
+        return mix(vec3(1.0, 0.2, 0.0), vec3(1.0, 0.9, 0.3), 0.5 + 0.5 * sin(signVal));
+      } else if (paletteId == 2) { // Emerald
+        return mix(vec3(0.0, 0.7, 0.6), vec3(0.6, 1.0, 0.2), 0.5 + 0.5 * sin(signVal));
+      }
+      // Default: smooth phase progression around the color wheel
+      return hsv2rgb(vec3(fract(hue * 0.75 + 0.5), 0.85, 1.0));
+    }
+
     if (paletteId == 1) { // Fire
       if (signVal > 0.0) return mix(vec3(1.0, 0.7, 0.1), vec3(1.0, 0.9, 0.3), t);
       return mix(vec3(0.9, 0.1, 0.1), vec3(0.5, 0.0, 0.5), t);
@@ -77,7 +107,7 @@ const pointFragmentShader = `
     if (dist > 0.5) discard;
 
     float alpha = pow(1.0 - (dist * 2.0), 1.2);
-    vec3 finalColor = getPointPaletteColor(vDistance, vSign, u_palette);
+    vec3 finalColor = getPointPaletteColor(vDistance, vSign, u_palette, u_useReal);
     gl_FragColor = vec4(finalColor, alpha * 0.92);
   }
 `;
@@ -312,6 +342,7 @@ export class OrbitalRenderer {
   private raymarchingMesh: THREE.Mesh | null = null;
   private raymarchingMaterial: THREE.ShaderMaterial | null = null;
 
+  private isShared: boolean;
   private currentMode: RenderMode = 'raymarching';
   private currentParams: OrbitalRenderParams = {
     n: 1,
@@ -327,17 +358,24 @@ export class OrbitalRenderer {
     contrast: 0.0,
   };
 
-  constructor(canvas: HTMLCanvasElement) {
-    this.renderer = new THREE.WebGLRenderer({
-      canvas,
-      antialias: true,
-      alpha: true,
-      powerPreference: 'high-performance',
-      precision: 'highp',
-      preserveDrawingBuffer: true,
-    });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.setClearColor(new THREE.Color('#0a0a1a'));
+  constructor(target: RendererTarget) {
+    this.isShared = target instanceof THREE.WebGLRenderer || 'renderer' in target;
+    if (target instanceof THREE.WebGLRenderer) {
+      this.renderer = target;
+    } else if ('renderer' in target) {
+      this.renderer = target.renderer;
+    } else {
+      this.renderer = new THREE.WebGLRenderer({
+        canvas: target,
+        antialias: true,
+        alpha: true,
+        powerPreference: 'high-performance',
+        precision: 'highp',
+        preserveDrawingBuffer: true,
+      });
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      this.renderer.setClearColor(new THREE.Color('#0a0a1a'));
+    }
 
     this.scene = new THREE.Scene();
 
@@ -350,7 +388,9 @@ export class OrbitalRenderer {
 
     this.setupLighting();
 
-    window.addEventListener('resize', this.onWindowResize);
+    if (!this.isShared) {
+      window.addEventListener('resize', this.onWindowResize);
+    }
     this.onWindowResize();
   }
 
@@ -406,7 +446,7 @@ export class OrbitalRenderer {
     geometry.setAttribute('position', new THREE.InterleavedBufferAttribute(interleavedBuffer, 3, 0));
     geometry.setAttribute('a_sign', new THREE.InterleavedBufferAttribute(interleavedBuffer, 1, 3));
 
-    const palette = PALETTE_CONFIG[this.currentParams.colorPalette || 'default'];
+    const palette = PALETTE_CONFIG[this.currentParams.colorPalette];
     const spatialScale = Math.sqrt((this.currentParams.n * this.currentParams.n) / this.currentParams.zEff);
 
     const material = new THREE.ShaderMaterial({
@@ -416,6 +456,7 @@ export class OrbitalRenderer {
         u_pointSizeScale: { value: 18.0 },
         u_spatialScale: { value: spatialScale },
         u_palette: { value: palette.id },
+        u_useReal: { value: this.currentParams.useRealOrbital },
       },
       transparent: true,
       blending: THREE.AdditiveBlending,
@@ -426,7 +467,7 @@ export class OrbitalRenderer {
     this.scene.add(this.pointsMesh);
   }
 
-  public updateIsosurface(params: OrbitalRenderParams): void {
+  public async updateIsosurface(params: OrbitalRenderParams): Promise<void> {
     this.clearCurrentMesh();
     this.currentMode = 'isosurface';
     this.currentParams = { ...params };
@@ -435,16 +476,16 @@ export class OrbitalRenderer {
       params.quality === 'low'
         ? 32
         : params.quality === 'medium'
-        ? 48
+        ? 40
         : params.quality === 'high'
-        ? 64
+        ? 48
         : params.quality === 'ultra'
-        ? 96
+        ? 64
         : params.quality === 'extreme'
-        ? 128
-        : 64;
+        ? 80
+        : 48;
 
-    const palette = PALETTE_CONFIG[params.colorPalette || 'default'];
+    const palette = PALETTE_CONFIG[params.colorPalette];
     const baseColorPos = palette.posColor;
     const baseColorNeg = palette.negColor;
 
@@ -468,14 +509,37 @@ export class OrbitalRenderer {
       side: THREE.DoubleSide,
     });
 
-    const mcPos = new MarchingCubes(gridRes, materialPos, false, false, 200000);
-    const mcNeg = new MarchingCubes(gridRes, materialNeg, false, false, 200000);
+    const mcPos = new MarchingCubes(gridRes, materialPos, false, false, 150000);
+    const mcNeg = new MarchingCubes(gridRes, materialNeg, false, false, 150000);
     const boxExtent = (4.0 * (params.n * params.n)) / Math.max(params.zEff, 0.5);
     mcPos.scale.set(boxExtent, boxExtent, boxExtent);
     mcNeg.scale.set(boxExtent, boxExtent, boxExtent);
 
-    // Compute grid values
-    this.fillMarchingCubesGrids(mcPos, mcNeg, gridRes, params);
+    const isolevel = params.isolevel ?? 0.05;
+    const contrast = params.contrast ?? 0.0;
+    mcPos.reset();
+    mcPos.isolation = isolevel;
+    mcNeg.reset();
+    mcNeg.isolation = isolevel;
+
+    // Fast grid evaluation via WASM engine
+    const gridData = await evaluateIsosurfaceGrid(
+      params.n,
+      params.l,
+      params.m,
+      params.useRealOrbital,
+      params.zEff,
+      gridRes,
+      boxExtent,
+      contrast,
+    );
+
+    mcPos.field.set(gridData);
+    const negField = mcNeg.field;
+    for (let i = 0; i < gridData.length; i++) {
+      negField[i] = -gridData[i];
+    }
+
     mcPos.update();
     mcNeg.update();
 
@@ -483,51 +547,6 @@ export class OrbitalRenderer {
     this.marchingCubesGroup.add(mcPos);
     this.marchingCubesGroup.add(mcNeg);
     this.scene.add(this.marchingCubesGroup);
-  }
-
-  private fillMarchingCubesGrids(mcPos: MarchingCubes, mcNeg: MarchingCubes, resolution: number, params: OrbitalRenderParams): void {
-    const { n, l, m, useRealOrbital, zEff } = params;
-    
-    const isolevel = params.isolevel ?? 0.05;
-    const contrast = params.contrast ?? 0.0;
-    const peakDensity = this.calculatePeakDensity(n, l, m, zEff, useRealOrbital);
-
-    mcPos.reset();
-    mcPos.isolation = isolevel;
-    
-    mcNeg.reset();
-    mcNeg.isolation = isolevel;
-
-    const rMax = (4.0 * (n * n)) / Math.max(zEff, 0.5);
-
-    for (let x = 0; x < resolution; x++) {
-      for (let y = 0; y < resolution; y++) {
-        for (let z = 0; z < resolution; z++) {
-          const px = (x / (resolution - 1) - 0.5) * 2.0 * rMax;
-          const py = (y / (resolution - 1) - 0.5) * 2.0 * rMax;
-          const pz = (z / (resolution - 1) - 0.5) * 2.0 * rMax;
-
-          const r = Math.hypot(px, py, pz);
-          let signedDensity = 0;
-          if (r > 1e-4) {
-            const theta = Math.acos(Math.max(-1, Math.min(1, pz / r)));
-            const phi = Math.atan2(py, px);
-
-            const R = this.evalRadial(n, l, zEff, r);
-            const Y = this.evalAngular(l, m, useRealOrbital, theta, phi);
-            const psi = R * Y;
-            const rawDensity = psi * psi;
-            
-            const normDensity = Math.min(1.0, rawDensity / Math.max(peakDensity, 1e-12));
-            const enhancedDensity = contrast > 0 ? Math.log(1.0 + contrast * normDensity) / Math.log(1.0 + contrast) : normDensity;
-            signedDensity = psi >= 0 ? enhancedDensity : -enhancedDensity;
-          }
-
-          mcPos.setCell(x, y, z, signedDensity);
-          mcNeg.setCell(x, y, z, -signedDensity);
-        }
-      }
-    }
   }
 
   public updateRaymarching(params: OrbitalRenderParams): void {
@@ -546,7 +565,7 @@ export class OrbitalRenderer {
       params.quality === 'extreme' ? 512 : 128
     );
 
-    const palette = PALETTE_CONFIG[params.colorPalette || 'default'];
+    const palette = PALETTE_CONFIG[params.colorPalette];
     const peakDensity = this.calculatePeakDensity(params.n, params.l, params.m, params.zEff, params.useRealOrbital);
     const contrast = params.contrast ?? 0.0;
 
@@ -691,7 +710,7 @@ export class OrbitalRenderer {
     this.currentParams = mergedParams;
 
     if (mode === 'isosurface') {
-      this.updateIsosurface(mergedParams);
+      void this.updateIsosurface(mergedParams);
     } else if (mode === 'raymarching') {
       this.updateRaymarching(mergedParams);
     } else {
@@ -707,7 +726,7 @@ export class OrbitalRenderer {
     }
   }
 
-  private onWindowResize = (): void => {
+  public onWindowResize = (): void => {
     const resScale = this.currentParams.resolutionScale ?? 1.0;
     const pixelRatio = Math.min(window.devicePixelRatio * resScale, 2.0);
 
@@ -801,6 +820,7 @@ export class OrbitalRenderer {
   private isAnimating: boolean = false;
 
   public start(): void {
+    this.controls.enabled = true;
     if (!this.isAnimating) {
       this.isAnimating = true;
       cancelAnimationFrame(this.animationId);
@@ -809,6 +829,7 @@ export class OrbitalRenderer {
   }
 
   public stop(): void {
+    this.controls.enabled = false;
     this.isAnimating = false;
     cancelAnimationFrame(this.animationId);
   }
@@ -831,7 +852,9 @@ export class OrbitalRenderer {
     window.removeEventListener('resize', this.onWindowResize);
     this.clearCurrentMesh();
     this.controls.dispose();
-    this.renderer.dispose();
+    if (!this.isShared) {
+      this.renderer.dispose();
+    }
   }
 }
 

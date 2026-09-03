@@ -64,24 +64,24 @@ export class ControlPanel {
       <div class="mobile-drawer-backdrop" id="controls-drawer-backdrop"></div>
 
       <div class="mobile-floating-actions">
-        <button class="mobile-float-btn" id="btn-show-controls" title="${strings.orbitalControls}">
+        <button class="mobile-float-btn" id="btn-show-controls" title="${strings.orbitalControls}" aria-label="${strings.orbitalControls}" aria-expanded="false" aria-controls="controls-panel">
           <span class="btn-icon">${icon('sliders')}</span>
           <span class="btn-label">${strings.quantumSection}</span>
         </button>
-        <button class="mobile-float-btn" id="btn-show-physics" title="${strings.physicsPanelTitle}">
+        <button class="mobile-float-btn" id="btn-show-physics" title="${strings.physicsPanelTitle}" aria-label="${strings.physicsPanelTitle}" aria-expanded="false" aria-controls="orbital-physics-panel">
           <span class="btn-icon">${icon('chart')}</span>
           <span class="btn-label">${strings.physicsPanelTitle}</span>
         </button>
       </div>
 
       <!-- Dock Handle / Expand Pill when Left Panel is Collapsed on Desktop -->
-      <button class="dock-tab-pill dock-left-pill ${this.isCollapsed ? 'visible' : ''}" id="btn-expand-controls" title="${strings.expandPanel}">
+      <button class="dock-tab-pill dock-left-pill ${this.isCollapsed ? 'visible' : ''}" id="btn-expand-controls" title="${strings.expandPanel}" aria-label="${strings.expandPanel}" aria-expanded="${!this.isCollapsed}" aria-controls="controls-panel">
         ${icon('sliders')}
         <span>${strings.quantumSection}</span>
         ${icon('chevron-right', 'pill-chevron')}
       </button>
 
-      <div class="control-panel ${this.isCollapsed ? 'collapsed' : ''}">
+      <div class="control-panel ${this.isCollapsed ? 'collapsed' : ''}" id="controls-panel">
         <div class="mobile-drawer-handle"></div>
         <div class="panel-header">
           <div class="panel-title-group">
@@ -93,7 +93,7 @@ export class ControlPanel {
               ${icon('camera')}
               <span>${strings.exportImage}</span>
             </button>
-            <button class="panel-icon-btn panel-collapse-btn desktop-only" id="btn-collapse-controls" title="${strings.collapsePanel}" aria-label="${strings.collapsePanel}">
+            <button class="panel-icon-btn panel-collapse-btn desktop-only" id="btn-collapse-controls" title="${strings.collapsePanel}" aria-label="${strings.collapsePanel}" aria-expanded="${!this.isCollapsed}" aria-controls="controls-panel">
               ${icon('chevron-left')}
             </button>
             <button class="panel-close-btn mobile-only" id="btn-close-controls" aria-label="Close">
@@ -105,7 +105,7 @@ export class ControlPanel {
         <div class="control-accordion-container">
           <!-- SECTION 1: Quantum Parameters -->
           <div class="control-accordion-section ${this.openSections.quantum ? 'open' : ''}" data-section="quantum">
-            <button type="button" class="accordion-header" data-toggle="quantum">
+            <button type="button" class="accordion-header" id="accordion-header-quantum" data-toggle="quantum" aria-expanded="${this.openSections.quantum ? 'true' : 'false'}" aria-controls="accordion-body-quantum">
               <span class="accordion-title">
                 ${icon('atom')}
                 <span>${strings.quantumSection}</span>
@@ -113,7 +113,7 @@ export class ControlPanel {
               <span class="accordion-chevron">${icon('chevron-down')}</span>
             </button>
 
-            <div class="accordion-body">
+            <div class="accordion-body" id="accordion-body-quantum" role="region" aria-labelledby="accordion-header-quantum">
               <div class="control-grid">
                 <!-- Quantum Number n -->
                 <div class="control-group">
@@ -171,7 +171,7 @@ export class ControlPanel {
 
           <!-- SECTION 2: Nuclear Physics & Atom -->
           <div class="control-accordion-section ${this.openSections.nuclear ? 'open' : ''}" data-section="nuclear">
-            <button type="button" class="accordion-header" data-toggle="nuclear">
+            <button type="button" class="accordion-header" id="accordion-header-nuclear" data-toggle="nuclear" aria-expanded="${this.openSections.nuclear ? 'true' : 'false'}" aria-controls="accordion-body-nuclear">
               <span class="accordion-title">
                 ${icon('chart')}
                 <span>${strings.nuclearSection}</span>
@@ -179,7 +179,7 @@ export class ControlPanel {
               <span class="accordion-chevron">${icon('chevron-down')}</span>
             </button>
 
-            <div class="accordion-body">
+            <div class="accordion-body" id="accordion-body-nuclear" role="region" aria-labelledby="accordion-header-nuclear">
               <div class="control-grid">
                 <!-- Effective Nuclear Charge Z_eff -->
                 <div class="control-group">
@@ -195,7 +195,7 @@ export class ControlPanel {
 
           <!-- SECTION 3: Rendering & Quality -->
           <div class="control-accordion-section ${this.openSections.render ? 'open' : ''}" data-section="render">
-            <button type="button" class="accordion-header" data-toggle="render">
+            <button type="button" class="accordion-header" id="accordion-header-render" data-toggle="render" aria-expanded="${this.openSections.render ? 'true' : 'false'}" aria-controls="accordion-body-render">
               <span class="accordion-title">
                 ${icon('sliders')}
                 <span>${strings.renderSection}</span>
@@ -203,7 +203,7 @@ export class ControlPanel {
               <span class="accordion-chevron">${icon('chevron-down')}</span>
             </button>
 
-            <div class="accordion-body">
+            <div class="accordion-body" id="accordion-body-render" role="region" aria-labelledby="accordion-header-render">
               <div class="control-grid">
                 <!-- Render Mode -->
                 <div class="control-group">
@@ -314,7 +314,11 @@ export class ControlPanel {
       btnCollapse.addEventListener('click', () => {
         this.isCollapsed = true;
         controlPanel.classList.add('collapsed');
-        if (btnExpand) btnExpand.classList.add('visible');
+        btnCollapse.setAttribute('aria-expanded', 'false');
+        if (btnExpand) {
+          btnExpand.classList.add('visible');
+          btnExpand.setAttribute('aria-expanded', 'false');
+        }
       });
     }
 
@@ -322,7 +326,9 @@ export class ControlPanel {
       btnExpand.addEventListener('click', () => {
         this.isCollapsed = false;
         controlPanel.classList.remove('collapsed');
+        btnCollapse?.setAttribute('aria-expanded', 'true');
         btnExpand.classList.remove('visible');
+        btnExpand.setAttribute('aria-expanded', 'true');
       });
     }
 
@@ -336,6 +342,7 @@ export class ControlPanel {
         if (sectionEl) {
           const isOpen = sectionEl.classList.toggle('open');
           this.openSections[sectionName] = isOpen;
+          header.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
         }
       });
     });
@@ -346,6 +353,8 @@ export class ControlPanel {
       backdrop.classList.remove('active');
       btnShowControls.classList.remove('active');
       btnShowPhysics.classList.remove('active');
+      btnShowControls.setAttribute('aria-expanded', 'false');
+      btnShowPhysics.setAttribute('aria-expanded', 'false');
     };
 
     btnShowControls.addEventListener('click', () => {
@@ -355,6 +364,7 @@ export class ControlPanel {
         controlPanel.classList.add('mobile-open');
         backdrop.classList.add('active');
         btnShowControls.classList.add('active');
+        btnShowControls.setAttribute('aria-expanded', 'true');
       }
     });
 
@@ -365,6 +375,7 @@ export class ControlPanel {
         physicsContainer.classList.add('mobile-open');
         backdrop.classList.add('active');
         btnShowPhysics.classList.add('active');
+        btnShowPhysics.setAttribute('aria-expanded', 'true');
       }
     });
 

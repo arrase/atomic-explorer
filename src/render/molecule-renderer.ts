@@ -34,6 +34,11 @@ export interface MoleculeData {
   hybrid_lobes: HybridLobe[];
 }
 
+export type MoleculeRendererTarget =
+  | HTMLCanvasElement
+  | THREE.WebGLRenderer
+  | { canvas?: HTMLCanvasElement; renderer: THREE.WebGLRenderer };
+
 export class MoleculeRenderer {
   private renderer: THREE.WebGLRenderer;
   private scene: THREE.Scene;
@@ -43,7 +48,9 @@ export class MoleculeRenderer {
   private cameraTransitionId: number = 0;
   private autoRotate: boolean = false;
   private gizmo: OrientationGizmo | null = null;
+  private centroid = new THREE.Vector3(0, 0, 0);
   private defaultCameraPos = new THREE.Vector3(0, 0, 10);
+  private isShared: boolean;
 
   private moleculeGroup: THREE.Group;
   private lobesGroup: THREE.Group;
@@ -57,17 +64,24 @@ export class MoleculeRenderer {
   private showLobes: boolean = true;
   private showAngles: boolean = true;
 
-  constructor(canvas: HTMLCanvasElement) {
-    this.renderer = new THREE.WebGLRenderer({
-      canvas,
-      antialias: true,
-      alpha: true,
-      powerPreference: 'high-performance',
-      precision: 'highp',
-      preserveDrawingBuffer: true,
-    });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    this.renderer.setClearColor(new THREE.Color('#0a0a1a'));
+  constructor(target: MoleculeRendererTarget) {
+    this.isShared = target instanceof THREE.WebGLRenderer || 'renderer' in target;
+    if (target instanceof THREE.WebGLRenderer) {
+      this.renderer = target;
+    } else if ('renderer' in target) {
+      this.renderer = target.renderer;
+    } else {
+      this.renderer = new THREE.WebGLRenderer({
+        canvas: target,
+        antialias: true,
+        alpha: true,
+        powerPreference: 'high-performance',
+        precision: 'highp',
+        preserveDrawingBuffer: true,
+      });
+      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      this.renderer.setClearColor(new THREE.Color('#0a0a1a'));
+    }
 
     this.scene = new THREE.Scene();
 
@@ -91,8 +105,11 @@ export class MoleculeRenderer {
     this.scene.add(this.anglesGroup);
 
     this.setupLighting();
-    window.addEventListener('resize', this.onWindowResize);
+    if (!this.isShared) {
+      window.addEventListener('resize', this.onWindowResize);
+    }
     this.onWindowResize();
+    this.stop();
   }
 
   private setupLighting(): void {
@@ -132,13 +149,13 @@ export class MoleculeRenderer {
         this.createCylinderBond(start, end, 0.12, 0x888888, this.moleculeGroup);
       } else if (bond.type === 'double') {
         const dir = new THREE.Vector3().subVectors(end, start).normalize();
-        const perp = this.getPerpendicularVector(dir).multiplyScalar(0.12);
+        const perp = this.getBondPerpendicularVector(bond, data, dir).multiplyScalar(0.12);
         this.createCylinderBond(start.clone().add(perp), end.clone().add(perp), 0.08, 0x888888, this.moleculeGroup);
         this.createCylinderBond(start.clone().sub(perp), end.clone().sub(perp), 0.08, 0x888888, this.moleculeGroup);
       } else if (bond.type === 'triple') {
         this.createCylinderBond(start, end, 0.08, 0x888888, this.moleculeGroup);
         const dir = new THREE.Vector3().subVectors(end, start).normalize();
-        const perp = this.getPerpendicularVector(dir).multiplyScalar(0.16);
+        const perp = this.getBondPerpendicularVector(bond, data, dir).multiplyScalar(0.16);
         this.createCylinderBond(start.clone().add(perp), end.clone().add(perp), 0.07, 0x888888, this.moleculeGroup);
         this.createCylinderBond(start.clone().sub(perp), end.clone().sub(perp), 0.07, 0x888888, this.moleculeGroup);
       }
@@ -164,12 +181,73 @@ export class MoleculeRenderer {
     this.createBondAngles(data);
     this.toggleLobes(this.showLobes);
     this.toggleAngles(this.showAngles);
+
+    const box = new THREE.Box3();
+    data.atoms.forEach((atom) => {
+      const pos = new THREE.Vector3(...atom.position);
+      box.expandByPoint(pos.clone().addScalar(atom.radius));
+      box.expandByPoint(pos.clone().subScalar(atom.radius));
+    });
+
+    const sphere = new THREE.Sphere();
+    box.getBoundingSphere(sphere);
+
+    this.centroid.copy(sphere.center);
+    this.controls.target.copy(this.centroid);
+
+    const fov = (this.camera.fov * Math.PI) / 180;
+    const aspect = Math.max(this.camera.aspect, 0.1);
+    const fovH = 2 * Math.atan(Math.tan(fov / 2) * aspect);
+    const distV = sphere.radius / Math.sin(fov / 2);
+    const distH = sphere.radius / Math.sin(fovH / 2);
+    const distance = Math.max(distV, distH) * 1.35;
+
+    this.defaultCameraPos.set(this.centroid.x, this.centroid.y, this.centroid.z + distance);
+    this.camera.position.copy(this.defaultCameraPos);
+    this.camera.lookAt(this.centroid);
+    this.controls.update();
+    if (this.gizmo) {
+      this.gizmo.update();
+    }
   }
 
-  private getPerpendicularVector(dir: THREE.Vector3): THREE.Vector3 {
-    let perp = new THREE.Vector3(1, 0, 0).cross(dir);
-    if (perp.lengthSq() < 0.001) {
-      perp = new THREE.Vector3(0, 1, 0).cross(dir);
+  private getBondPerpendicularVector(
+    bond: MoleculeBond,
+    data: MoleculeData,
+    dir: THREE.Vector3
+  ): THREE.Vector3 {
+    const start = new THREE.Vector3(...data.atoms[bond.fromIndex].position);
+    const end = new THREE.Vector3(...data.atoms[bond.toIndex].position);
+
+    for (const otherBond of data.bonds) {
+      let otherPos: THREE.Vector3 | null = null;
+      let refPos: THREE.Vector3 | null = null;
+      if (otherBond.fromIndex === bond.fromIndex && otherBond.toIndex !== bond.toIndex) {
+        otherPos = new THREE.Vector3(...data.atoms[otherBond.toIndex].position);
+        refPos = start;
+      } else if (otherBond.toIndex === bond.fromIndex && otherBond.fromIndex !== bond.toIndex) {
+        otherPos = new THREE.Vector3(...data.atoms[otherBond.fromIndex].position);
+        refPos = start;
+      } else if (otherBond.fromIndex === bond.toIndex && otherBond.toIndex !== bond.fromIndex) {
+        otherPos = new THREE.Vector3(...data.atoms[otherBond.toIndex].position);
+        refPos = end;
+      } else if (otherBond.toIndex === bond.toIndex && otherBond.fromIndex !== bond.fromIndex) {
+        otherPos = new THREE.Vector3(...data.atoms[otherBond.fromIndex].position);
+        refPos = end;
+      }
+
+      if (otherPos && refPos) {
+        const v = new THREE.Vector3().subVectors(otherPos, refPos);
+        const planeNormal = new THREE.Vector3().crossVectors(dir, v);
+        if (planeNormal.lengthSq() > 1e-4) {
+          return new THREE.Vector3().crossVectors(planeNormal.normalize(), dir).normalize();
+        }
+      }
+    }
+
+    let perp = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0, 0, 1));
+    if (perp.lengthSq() < 1e-4) {
+      perp = new THREE.Vector3().crossVectors(dir, new THREE.Vector3(0, 1, 0));
     }
     return perp.normalize();
   }
@@ -195,30 +273,19 @@ export class MoleculeRenderer {
   }
 
   private createTeardropLobe(color: THREE.Color, opacity: number, scale: number): THREE.Mesh {
-    const geometry = new THREE.SphereGeometry(0.7 * scale, 32, 32);
-    // Deform sphere to create orbital lobe shape
+    const radius = 0.7 * scale;
+    const geometry = new THREE.SphereGeometry(radius, 32, 32);
     const pos = geometry.attributes.position;
     for (let i = 0; i < pos.count; i++) {
-      let y = pos.getY(i);
-      let x = pos.getX(i);
-      let z = pos.getZ(i);
+      const y = pos.getY(i);
+      const x = pos.getX(i);
+      const z = pos.getZ(i);
 
-      // Teardrop stretch along +y: elongate the lobe in +y direction
-      // and taper the cross-section proportionally to simulate the
-      // asymmetric pear shape of hybrid sp/sp2/sp3 orbital lobes.
-      if (y > 0) {
-        const ELONGATION_FACTOR = 1.4;
-        const TAPER_RATE = 0.15;
-        y *= ELONGATION_FACTOR;
-        x *= (1.0 - y * TAPER_RATE);
-        z *= (1.0 - y * TAPER_RATE);
-      } else {
-        const MINOR_SCALE = 0.25;
-        y *= MINOR_SCALE;
-        x *= MINOR_SCALE;
-        z *= MINOR_SCALE;
-      }
-      pos.setXYZ(i, x, y, z);
+      const u = y / radius;
+      const yFactor = 0.825 + 0.575 * u;
+      const xzFactor = 0.65 + 0.35 * u;
+
+      pos.setXYZ(i, x * xzFactor, y * yFactor, z * xzFactor);
     }
     geometry.computeVertexNormals();
 
@@ -307,14 +374,16 @@ export class MoleculeRenderer {
         }
       }
 
+      const centerRadius = data.atoms[centerIdx].radius;
       selectedPairs.forEach((pair) => {
-        this.renderAngleArcAndLabel(centerPos, pair);
+        this.renderAngleArcAndLabel(centerPos, centerRadius, pair);
       });
     });
   }
 
   private renderAngleArcAndLabel(
     centerPos: THREE.Vector3,
+    centerRadius: number,
     pair: {
       theta: number;
       thetaDeg: number;
@@ -327,7 +396,7 @@ export class MoleculeRenderer {
     const { theta, thetaDeg, u1, u2, v1Len, v2Len } = pair;
 
     const minBondLen = Math.min(v1Len, v2Len);
-    const radius = THREE.MathUtils.clamp(minBondLen * 0.42, 0.38, 0.62);
+    const radius = Math.max(centerRadius + 0.16, Math.min(minBondLen * 0.75, centerRadius + 0.28));
 
     const e1 = u1.clone();
     const w = u2.clone().addScaledVector(u1, -u1.dot(u2));
@@ -480,9 +549,10 @@ export class MoleculeRenderer {
     clearGroup(this.anglesGroup);
   }
 
-  private onWindowResize = (): void => {
+  public onWindowResize = (): void => {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.0));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
   };
 
@@ -510,11 +580,11 @@ export class MoleculeRenderer {
 
   public resetCamera(smooth: boolean = true): void {
     if (smooth) {
-      this.animateCameraTo(this.defaultCameraPos.clone(), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0), 450);
+      this.animateCameraTo(this.defaultCameraPos.clone(), new THREE.Vector3(0, 1, 0), this.centroid.clone(), 450);
     } else {
       this.camera.position.copy(this.defaultCameraPos);
       this.camera.up.set(0, 1, 0);
-      this.controls.target.set(0, 0, 0);
+      this.controls.target.copy(this.centroid);
       this.controls.update();
       if (this.gizmo) this.gizmo.update();
     }
@@ -522,7 +592,7 @@ export class MoleculeRenderer {
 
   public alignCameraTo(dir: THREE.Vector3, up: THREE.Vector3, smooth: boolean = true): void {
     const dist = this.camera.position.distanceTo(this.controls.target);
-    const targetPos = this.controls.target.clone().addScaledVector(dir, Math.max(dist, 4.0));
+    const targetPos = this.controls.target.clone().addScaledVector(dir, Math.max(dist, 2.0));
     if (smooth) {
       this.animateCameraTo(targetPos, up, this.controls.target.clone(), 400);
     } else {
@@ -568,6 +638,7 @@ export class MoleculeRenderer {
   private isAnimating: boolean = false;
 
   public start(): void {
+    this.controls.enabled = true;
     if (!this.isAnimating) {
       this.isAnimating = true;
       cancelAnimationFrame(this.animationId);
@@ -576,6 +647,7 @@ export class MoleculeRenderer {
   }
 
   public stop(): void {
+    this.controls.enabled = false;
     this.isAnimating = false;
     cancelAnimationFrame(this.animationId);
   }
@@ -624,6 +696,8 @@ export class MoleculeRenderer {
     this.renderer.domElement.removeEventListener('click', this.onMouseClick);
     this.clear();
     this.controls.dispose();
-    this.renderer.dispose();
+    if (!this.isShared) {
+      this.renderer.dispose();
+    }
   }
 }

@@ -196,6 +196,7 @@ export class PeriodicTableView {
   }
 
   private renderGridCells(filterText: string = ''): string {
+    const strings = getStrings();
     const query = filterText.toLowerCase().trim();
     let html = '';
 
@@ -260,10 +261,19 @@ export class PeriodicTableView {
         const gridPos = this.getElementGridPosition(el.Z);
         const color = this.getElementColor(el);
         const name = this.getElementName(el);
+        const catName = this.getCategoryName(el.category, strings);
+        const ariaLabel = `${name} (${el.symbol}), Z=${el.Z}, ${catName}`;
+        const isSelected = this.selectedElement?.Z === el.Z;
 
         return `
-          <div class="element-cell ${isDimmed ? 'dimmed' : ''} ${this.selectedElement?.Z === el.Z ? 'selected' : ''}"
+          <div class="element-cell ${isDimmed ? 'dimmed' : ''} ${isSelected ? 'selected' : ''}"
+               role="button"
+               tabindex="0"
+               aria-label="${ariaLabel}"
+               aria-pressed="${isSelected ? 'true' : 'false'}"
                data-z="${el.Z}"
+               data-row="${gridPos.row}"
+               data-col="${gridPos.col}"
                data-block="${block}"
                style="grid-column: ${gridPos.col}; grid-row: ${gridPos.row}; background-color: ${color};">
             <span class="el-z">${el.Z}</span>
@@ -448,16 +458,45 @@ export class PeriodicTableView {
     backdrop.classList.remove('active');
   }
 
+  public selectElement(el: ElementData): void {
+    this.selectedElement = el;
+
+    const grid = this.container.querySelector('#periodic-grid');
+    if (grid) {
+      grid.querySelectorAll<HTMLElement>('.element-cell').forEach((c) => {
+        const isMatch = c.getAttribute('data-z') === String(el.Z);
+        c.classList.toggle('selected', isMatch);
+        c.setAttribute('aria-pressed', isMatch ? 'true' : 'false');
+      });
+    }
+
+    const quickInspector = this.container.querySelector<HTMLElement>('#mobile-quick-inspector');
+    if (quickInspector) {
+      quickInspector.innerHTML = this.renderQuickInspectorContent();
+    }
+
+    const inspector = this.container.querySelector<HTMLElement>('#element-inspector');
+    if (inspector) {
+      inspector.innerHTML = `
+        <div class="mobile-drawer-handle"></div>
+        <div class="panel-header-actions mobile-only-header">
+          <button class="panel-close-btn" id="btn-close-inspector" aria-label="Close">${icon('close')}</button>
+        </div>
+        ${this.renderInspectorContent()}
+      `;
+      this.attachInfoButtonEvents(inspector);
+    }
+  }
+
+  public getSelectedElement(): ElementData | null {
+    return this.selectedElement;
+  }
+
   private attachEventListeners(): void {
     const colorSelect = this.container.querySelector('#color-scheme-select') as HTMLSelectElement;
     const searchInput = this.container.querySelector('#element-search') as HTMLInputElement;
     const grid = this.container.querySelector('#periodic-grid') as HTMLElement;
     const legendContainer = this.container.querySelector('#periodic-legend-container') as HTMLElement;
-    const backdrop = this.container.querySelector('#periodic-drawer-backdrop') as HTMLElement;
-    const btnCloseInspector = this.container.querySelector('#btn-close-inspector') as HTMLButtonElement;
-
-    btnCloseInspector.addEventListener('click', () => this.closeFullInspector());
-    backdrop.addEventListener('click', () => this.closeFullInspector());
 
     colorSelect.addEventListener('change', () => {
       this.currentColorScheme = colorSelect.value as 'category' | 'electronegativity' | 'radius';
@@ -483,77 +522,157 @@ export class PeriodicTableView {
       grid.innerHTML = this.renderGridCells(searchInput.value);
     });
 
+    // Click on element cell
     grid.addEventListener('click', (e) => {
-      const cell = (e.target as HTMLElement).closest('.element-cell:not(.placeholder-cell)');
+      const cell = (e.target as HTMLElement).closest<HTMLElement>('.element-cell:not(.placeholder-cell)');
       if (!cell) return;
       const zStr = cell.getAttribute('data-z');
       if (!zStr) return;
       const z = parseInt(zStr, 10);
-      this.selectedElement = this.elements.find((el) => el.Z === z)!;
-
-      grid.querySelectorAll('.element-cell').forEach((c) => c.classList.remove('selected'));
-      cell.classList.add('selected');
-
-      const quickInspector = this.container.querySelector('#mobile-quick-inspector') as HTMLElement;
-      quickInspector.innerHTML = this.renderQuickInspectorContent();
-
-      const inspector = this.container.querySelector('#element-inspector') as HTMLElement;
-      inspector.innerHTML = `
-        <div class="mobile-drawer-handle"></div>
-        <div class="panel-header-actions mobile-only-header">
-          <button class="panel-close-btn" id="btn-close-inspector" aria-label="Close">${icon('close')}</button>
-        </div>
-        ${this.renderInspectorContent()}
-      `;
-      this.attachInfoButtonEvents(inspector);
-
-      const closeBtn = inspector.querySelector('#btn-close-inspector') as HTMLButtonElement;
-      closeBtn.addEventListener('click', () => this.closeFullInspector());
-
-      this.attachQuickInspectorEvents();
+      const el = this.elements.find((item) => item.Z === z);
+      if (el) {
+        this.selectElement(el);
+      }
     });
 
-    this.attachQuickInspectorEvents();
+    // Double-click to launch 3D orbital directly
+    grid.addEventListener('dblclick', (e) => {
+      const cell = (e.target as HTMLElement).closest<HTMLElement>('.element-cell:not(.placeholder-cell)');
+      if (!cell) return;
+      const zStr = cell.getAttribute('data-z');
+      if (!zStr) return;
+      const z = parseInt(zStr, 10);
+      const el = this.elements.find((item) => item.Z === z);
+      if (el) {
+        this.selectElement(el);
+        this.closeFullInspector();
+        this.onSelectElementOrbital(el);
+      }
+    });
+
+    // Keyboard navigation & selection
+    grid.addEventListener('keydown', (e: KeyboardEvent) => {
+      const target = (e.target as HTMLElement).closest<HTMLElement>('.element-cell:not(.placeholder-cell)');
+      if (!target) return;
+
+      const zStr = target.getAttribute('data-z');
+      if (!zStr) return;
+      const z = parseInt(zStr, 10);
+      const el = this.elements.find((item) => item.Z === z);
+      if (!el) return;
+
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        if (this.selectedElement?.Z === el.Z && e.key === 'Enter') {
+          this.closeFullInspector();
+          this.onSelectElementOrbital(el);
+        } else {
+          this.selectElement(el);
+        }
+      } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        const currentRow = parseInt(target.getAttribute('data-row') || '0', 10);
+        const currentCol = parseInt(target.getAttribute('data-col') || '0', 10);
+        const cells = Array.from(grid.querySelectorAll<HTMLElement>('.element-cell:not(.placeholder-cell)'));
+
+        let nextCell: HTMLElement | undefined;
+
+        if (e.key === 'ArrowRight') {
+          nextCell = cells
+            .filter(
+              (c) =>
+                parseInt(c.getAttribute('data-row') || '0', 10) === currentRow &&
+                parseInt(c.getAttribute('data-col') || '0', 10) > currentCol
+            )
+            .sort(
+              (a, b) =>
+                parseInt(a.getAttribute('data-col') || '0', 10) -
+                parseInt(b.getAttribute('data-col') || '0', 10)
+            )[0];
+          if (!nextCell) {
+            nextCell = cells.find((c) => parseInt(c.getAttribute('data-z') || '0', 10) === z + 1);
+          }
+        } else if (e.key === 'ArrowLeft') {
+          nextCell = cells
+            .filter(
+              (c) =>
+                parseInt(c.getAttribute('data-row') || '0', 10) === currentRow &&
+                parseInt(c.getAttribute('data-col') || '0', 10) < currentCol
+            )
+            .sort(
+              (a, b) =>
+                parseInt(b.getAttribute('data-col') || '0', 10) -
+                parseInt(a.getAttribute('data-col') || '0', 10)
+            )[0];
+          if (!nextCell) {
+            nextCell = cells.find((c) => parseInt(c.getAttribute('data-z') || '0', 10) === z - 1);
+          }
+        } else if (e.key === 'ArrowDown') {
+          nextCell = cells
+            .filter(
+              (c) =>
+                parseInt(c.getAttribute('data-col') || '0', 10) === currentCol &&
+                parseInt(c.getAttribute('data-row') || '0', 10) > currentRow
+            )
+            .sort(
+              (a, b) =>
+                parseInt(a.getAttribute('data-row') || '0', 10) -
+                parseInt(b.getAttribute('data-row') || '0', 10)
+            )[0];
+        } else if (e.key === 'ArrowUp') {
+          nextCell = cells
+            .filter(
+              (c) =>
+                parseInt(c.getAttribute('data-col') || '0', 10) === currentCol &&
+                parseInt(c.getAttribute('data-row') || '0', 10) < currentRow
+            )
+            .sort(
+              (a, b) =>
+                parseInt(b.getAttribute('data-row') || '0', 10) -
+                parseInt(a.getAttribute('data-row') || '0', 10)
+            )[0];
+        }
+
+        if (nextCell) {
+          nextCell.focus();
+          const nextZ = parseInt(nextCell.getAttribute('data-z') || '0', 10);
+          const nextEl = this.elements.find((item) => item.Z === nextZ);
+          if (nextEl) {
+            this.selectElement(nextEl);
+          }
+        }
+      }
+    });
+
+    // Unified container click delegation
+    this.container.addEventListener('click', (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+
+      const orbitalBtn = target.closest<HTMLElement>('#btn-quick-3d, #btn-view-orbital');
+      if (orbitalBtn) {
+        e.stopPropagation();
+        if (this.selectedElement) {
+          this.closeFullInspector();
+          this.onSelectElementOrbital(this.selectedElement);
+        }
+        return;
+      }
+
+      const detailsBtn = target.closest<HTMLElement>('#btn-quick-details, #quick-inspector-trigger');
+      if (detailsBtn) {
+        e.stopPropagation();
+        this.openFullInspector();
+        return;
+      }
+
+      const closeBtn = target.closest<HTMLElement>('#btn-close-inspector, #periodic-drawer-backdrop');
+      if (closeBtn) {
+        this.closeFullInspector();
+        return;
+      }
+    });
+
     this.attachInfoButtonEvents(this.container);
-  }
-
-  private attachQuickInspectorEvents(): void {
-    const quick3dBtn = this.container.querySelector('#btn-quick-3d') as HTMLElement;
-    const quickDetailsBtn = this.container.querySelector('#btn-quick-details') as HTMLElement;
-    const quickTrigger = this.container.querySelector('#quick-inspector-trigger') as HTMLElement;
-    const inspector3dBtn = this.container.querySelector('#btn-view-orbital') as HTMLElement;
-
-    if (quick3dBtn) {
-      quick3dBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        if (this.selectedElement) {
-          this.closeFullInspector();
-          this.onSelectElementOrbital(this.selectedElement);
-        }
-      });
-    }
-
-    if (quickDetailsBtn) {
-      quickDetailsBtn.addEventListener('click', (e) => {
-        e.stopPropagation();
-        this.openFullInspector();
-      });
-    }
-
-    if (quickTrigger) {
-      quickTrigger.addEventListener('click', () => {
-        this.openFullInspector();
-      });
-    }
-
-    if (inspector3dBtn) {
-      inspector3dBtn.addEventListener('click', () => {
-        if (this.selectedElement) {
-          this.closeFullInspector();
-          this.onSelectElementOrbital(this.selectedElement);
-        }
-      });
-    }
   }
 
   private attachInfoButtonEvents(parent: HTMLElement): void {

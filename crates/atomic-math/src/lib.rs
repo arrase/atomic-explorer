@@ -121,8 +121,21 @@ pub fn probability_density(
     theta: f64,
     phi: f64,
 ) -> Result<f64, String> {
-    let psi = wavefunction_value(qn, mode, z_eff, r, theta, phi)?;
-    Ok(psi * psi)
+    qn.validate()?;
+    let r_part = wavefunctions::r_nl(qn.n, qn.l, z_eff, r)?;
+    let r_dens = r_part * r_part;
+
+    let ang_dens = match mode {
+        OrbitalMode::PureEigenstate => {
+            spherical_harmonics::y_lm_density(qn.l, qn.m, theta)?
+        }
+        OrbitalMode::RealChemist(kind) => {
+            let y = spherical_harmonics::real_orbital_angular(kind, theta, phi);
+            y * y
+        }
+    };
+
+    Ok(r_dens * ang_dens)
 }
 
 pub fn sample_points(
@@ -216,6 +229,31 @@ pub fn evaluate_density_grid(
     };
 
     let grid = grid::evaluate_density_grid_internal(&qn, &mode, z_eff, grid_size, bounds)?;
+    Ok(js_sys::Float32Array::from(grid.as_slice()))
+}
+
+#[wasm_bindgen]
+pub fn evaluate_isosurface_grid(
+    n: u32,
+    l: u32,
+    m: i32,
+    use_real_orbital: bool,
+    z_eff: f64,
+    grid_size: usize,
+    bounds: f32,
+    contrast: f32,
+) -> Result<js_sys::Float32Array, String> {
+    let qn = QuantumNumbers::new(n, l, m)?;
+    let mode = if use_real_orbital {
+        let kind = real_orbital_kind_from_lm(l, m).ok_or_else(|| {
+            format!("No real orbital representation available for l={}, m={}", l, m)
+        })?;
+        OrbitalMode::RealChemist(kind)
+    } else {
+        OrbitalMode::PureEigenstate
+    };
+
+    let grid = grid::evaluate_isosurface_grid_internal(&qn, &mode, z_eff, grid_size, bounds, contrast)?;
     Ok(js_sys::Float32Array::from(grid.as_slice()))
 }
 

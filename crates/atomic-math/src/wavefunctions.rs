@@ -36,3 +36,21 @@ pub fn r_nl(n: u32, l: u32, z_eff: f64, r: f64) -> Result<f64, String> {
     Ok(val)
 }
 
+/// Computes the exact maximum of r^2 * [R_nl(r)]^2 over [0, r_max].
+pub fn radial_density_max(n: u32, l: u32, z_eff: f64, r_max: f64) -> Result<f64, String> {
+    let steps = 1000;
+    let dr = r_max / (steps as f64);
+    let mut a_max = 0.0;
+
+    for i in 1..=steps {
+        let r = (i as f64) * dr;
+        let r_val = r_nl(n, l, z_eff, r)?;
+        let val = r * r * r_val * r_val;
+        if val > a_max {
+            a_max = val;
+        }
+    }
+
+    Ok(a_max)
+}
+

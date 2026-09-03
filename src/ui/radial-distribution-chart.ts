@@ -96,6 +96,7 @@ export class RadialDistributionChart {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private resizeObserver: ResizeObserver;
+  private animationFrameId: number = 0;
 
   private n: number = 1;
   private l: number = 0;
@@ -115,7 +116,12 @@ export class RadialDistributionChart {
     this.ctx = this.canvas.getContext('2d')!;
 
     this.resizeObserver = new ResizeObserver(() => {
-      this.draw();
+      if (this.animationFrameId) {
+        cancelAnimationFrame(this.animationFrameId);
+      }
+      this.animationFrameId = requestAnimationFrame(() => {
+        this.draw();
+      });
     });
     this.resizeObserver.observe(this.container);
 
@@ -211,11 +217,14 @@ export class RadialDistributionChart {
     const rect = this.container.getBoundingClientRect();
     if (rect.width <= 0 || rect.height <= 0) return;
 
-    const dpr = window.devicePixelRatio;
-    this.canvas.width = Math.floor(rect.width * dpr);
-    this.canvas.height = Math.floor(rect.height * dpr);
-    this.canvas.style.width = `${rect.width}px`;
-    this.canvas.style.height = `${rect.height}px`;
+    const dpr = Math.max(1, window.devicePixelRatio);
+    const targetW = Math.round(rect.width * dpr);
+    const targetH = Math.round(rect.height * dpr);
+
+    if (this.canvas.width !== targetW || this.canvas.height !== targetH) {
+      this.canvas.width = targetW;
+      this.canvas.height = targetH;
+    }
 
     const ctx = this.ctx;
     ctx.resetTransform();
@@ -493,6 +502,10 @@ export class RadialDistributionChart {
   }
 
   public destroy(): void {
+    if (this.animationFrameId) {
+      cancelAnimationFrame(this.animationFrameId);
+      this.animationFrameId = 0;
+    }
     this.resizeObserver.disconnect();
     this.canvas.removeEventListener('mousemove', this.handleMouseMove);
     this.canvas.removeEventListener('mouseleave', this.handleMouseLeave);
