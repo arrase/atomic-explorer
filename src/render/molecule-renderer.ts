@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { captureWebGLSnapshot, SnapshotOptions } from './render-utils';
+import { captureWebGLSnapshot, SnapshotOptions, initRendererTarget, runCameraAnimation, setCameraInstant } from './render-utils';
 import { OrientationGizmo } from './orientation-gizmo';
+
 
 export interface MoleculeAtom {
   symbol: string;
@@ -76,23 +77,10 @@ export class MoleculeRenderer {
   private showAngles: boolean = true;
 
   constructor(target: MoleculeRendererTarget) {
-    this.isShared = target instanceof THREE.WebGLRenderer || 'renderer' in target;
-    if (target instanceof THREE.WebGLRenderer) {
-      this.renderer = target;
-    } else if ('renderer' in target) {
-      this.renderer = target.renderer;
-    } else {
-      this.renderer = new THREE.WebGLRenderer({
-        canvas: target,
-        antialias: true,
-        alpha: true,
-        powerPreference: 'high-performance',
-        precision: 'highp',
-        preserveDrawingBuffer: true,
-      });
-      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      this.renderer.setClearColor(new THREE.Color('#0a0a1a'));
-    }
+    const { renderer, isShared } = initRendererTarget(target);
+    this.renderer = renderer;
+    this.isShared = isShared;
+
 
     this.scene = new THREE.Scene();
 
@@ -643,43 +631,22 @@ export class MoleculeRenderer {
   public alignCameraToInstant(dir: THREE.Vector3, up: THREE.Vector3): void {
     const dist = this.camera.position.distanceTo(this.controls.target);
     const targetPos = this.controls.target.clone().addScaledVector(dir, Math.max(dist, 2.0));
-    this.camera.position.copy(targetPos);
-    this.camera.up.copy(up);
-    this.camera.lookAt(this.controls.target);
-    this.controls.update();
-    if (this.gizmo) this.gizmo.update();
+    setCameraInstant(this.camera, this.controls, targetPos, up, undefined, () => this.gizmo?.update());
   }
 
   public animateCameraTo(targetPos: THREE.Vector3, targetUp: THREE.Vector3 = new THREE.Vector3(0, 1, 0), targetLookAt?: THREE.Vector3, duration: number = 400): void {
     cancelAnimationFrame(this.cameraTransitionId);
-    const startPos = this.camera.position.clone();
-    const startUp = this.camera.up.clone();
-    const startTarget = this.controls.target.clone();
-    const endTarget = targetLookAt ? targetLookAt.clone() : startTarget.clone();
-    const startTime = performance.now();
-
-    const step = (now: number) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1.0);
-      const ease = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-
-      this.camera.position.lerpVectors(startPos, targetPos, ease);
-      this.camera.up.lerpVectors(startUp, targetUp, ease);
-      this.controls.target.lerpVectors(startTarget, endTarget, ease);
-      this.camera.lookAt(this.controls.target);
-      this.controls.update();
-
-      if (this.gizmo) {
-        this.gizmo.update();
-      }
-
-      if (progress < 1.0) {
-        this.cameraTransitionId = requestAnimationFrame(step);
-      }
-    };
-
-    this.cameraTransitionId = requestAnimationFrame(step);
+    this.cameraTransitionId = runCameraAnimation({
+      camera: this.camera,
+      controls: this.controls,
+      targetPos,
+      targetUp,
+      targetLookAt,
+      duration,
+      onUpdate: () => this.gizmo?.update(),
+    });
   }
+
 
   private isAnimating: boolean = false;
 

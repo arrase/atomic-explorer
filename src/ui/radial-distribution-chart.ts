@@ -89,7 +89,20 @@ function findRadialNodes(n: number, l: number, zEff: number): number[] {
   return nodes;
 }
 
+interface ChartLayout {
+  w: number;
+  plotH: number;
+  padLeft: number;
+  padRight: number;
+  padTop: number;
+  rMax: number;
+  yMax: number;
+  toX: (r: number) => number;
+  toY: (p: number) => number;
+}
+
 export class RadialDistributionChart {
+
   private readonly container: HTMLElement;
   private readonly canvas: HTMLCanvasElement;
   private readonly ctx: CanvasRenderingContext2D;
@@ -265,7 +278,8 @@ export class RadialDistributionChart {
     const toX = (r: number) => padLeft + (r / rMax) * plotW;
     const toY = (p: number) => padTop + plotH - (p / yMax) * plotH;
 
-    this.drawGrid(ctx, w, plotH, padLeft, padRight, padTop, rMax, yMax, toX, toY);
+    const layout: ChartLayout = { w, plotH, padLeft, padRight, padTop, rMax, yMax, toX, toY };
+    this.drawGrid(layout);
 
     // Area Fill under Curve
     ctx.beginPath();
@@ -299,22 +313,14 @@ export class RadialDistributionChart {
     ctx.strokeStyle = strokeGrad;
     ctx.stroke();
 
-    this.drawMarkers(ctx, plotH, padTop, rMax, toX, toY);
-    this.drawHover(ctx, w, plotH, padTop, padRight, rMax, toX, toY);
+    this.drawMarkers(layout);
+    this.drawHover(layout);
   }
 
-  private drawGrid(
-    ctx: CanvasRenderingContext2D,
-    w: number,
-    plotH: number,
-    padLeft: number,
-    padRight: number,
-    padTop: number,
-    rMax: number,
-    yMax: number,
-    toX: (r: number) => number,
-    toY: (p: number) => number
-  ): void {
+  private drawGrid(layout: ChartLayout): void {
+    const { w, plotH, padLeft, padRight, padTop, rMax, yMax, toX, toY } = layout;
+    const ctx = this.ctx;
+
     ctx.lineWidth = 1;
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
     ctx.fillStyle = '#8080a0';
@@ -365,15 +371,11 @@ export class RadialDistributionChart {
     ctx.fillText(strings.chartProbAxis, padLeft, padTop - 6);
   }
 
-  private drawMarkers(
-    ctx: CanvasRenderingContext2D,
-    plotH: number,
-    padTop: number,
-    rMax: number,
-    toX: (r: number) => number,
-    toY: (p: number) => number
-  ): void {
+  private drawMarkers(layout: ChartLayout): void {
+    const { plotH, padTop, rMax, toX, toY } = layout;
+    const ctx = this.ctx;
     const strings = getStrings();
+
 
     // Radial Nodes Markers (P(r) = 0)
     this.radialNodes.forEach((nodeR) => {
@@ -463,17 +465,11 @@ export class RadialDistributionChart {
     }
   }
 
-  private drawHover(
-    ctx: CanvasRenderingContext2D,
-    w: number,
-    plotH: number,
-    padTop: number,
-    padRight: number,
-    rMax: number,
-    toX: (r: number) => number,
-    toY: (p: number) => number
-  ): void {
+  private drawHover(layout: ChartLayout): void {
+    const { w, plotH, padTop, padRight, rMax, toX, toY } = layout;
     if (this.hoverR === null || this.hoverR > rMax) return;
+    const ctx = this.ctx;
+
 
     const hx = toX(this.hoverR);
     const hp = calculateRadialProbabilityDensity(this.n, this.l, this.zEff, this.hoverR);

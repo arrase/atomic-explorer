@@ -46,6 +46,10 @@ export class MoleculeView {
     onLanguageChange(() => this.render());
   }
 
+  public getSelectedMolecule(): LocalizedMoleculeData {
+    return this.currentMolecule;
+  }
+
   private getMoleculeName(m: LocalizedMoleculeData): string {
     return getLanguage() === 'es' ? m.name_es : m.name_en;
   }
