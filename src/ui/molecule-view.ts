@@ -16,9 +16,9 @@ export interface LocalizedMoleculeData extends BaseMoleculeData {
 }
 
 export class MoleculeView {
-  private container: HTMLElement;
-  private renderer: MoleculeRenderer;
-  private molecules: LocalizedMoleculeData[] = moleculesData as LocalizedMoleculeData[];
+  private readonly container: HTMLElement;
+  private readonly renderer: MoleculeRenderer;
+  private readonly molecules: LocalizedMoleculeData[] = moleculesData as LocalizedMoleculeData[];
   private currentMolecule: LocalizedMoleculeData = this.molecules[1]; // H2O default
   private showLobes: boolean = true;
   private showAngles: boolean = true;
@@ -34,7 +34,10 @@ export class MoleculeView {
     };
     this.renderer.onAtomClick = (symbol) => {
       const element = (elementsData as ElementData[]).find((e) => e.symbol === symbol);
-      const elementName = element ? (getLanguage() === 'es' ? element.name_es : element.name_en) : symbol;
+      let elementName = symbol;
+      if (element) {
+        elementName = getLanguage() === 'es' ? element.name_es : element.name_en;
+      }
       const strings = getStrings();
       const title = `${strings.atomClickTitle}: ${elementName} (${symbol})`;
       ExplanationModal.showSimple(title, strings.atomClickSummary, strings.atomClickDetail);

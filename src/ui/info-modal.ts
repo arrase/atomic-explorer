@@ -61,8 +61,8 @@ export class ExplanationModal {
 
     const handleClose = () => {
       if (options?.showDontShowAgain && options?.storageKey) {
-        const checkbox = card.querySelector('#dont-show-again-checkbox') as HTMLInputElement;
-        if (checkbox && checkbox.checked) {
+        const checkbox = card.querySelector('#dont-show-again-checkbox') as HTMLInputElement | null;
+        if (checkbox?.checked) {
           localStorage.setItem(options.storageKey, 'true');
         }
       }
@@ -125,9 +125,7 @@ export class ExplanationModal {
       overlay.classList.add('fade-out');
 
       const cleanup = () => {
-        if (overlay.parentNode) {
-          overlay.parentNode.removeChild(overlay);
-        }
+        overlay.remove();
       };
 
       overlay.addEventListener('animationend', cleanup, { once: true });

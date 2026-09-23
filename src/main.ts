@@ -124,13 +124,19 @@ async function init() {
     () => imageExporterModal.open()
   );
 
-  new PeriodicTableView(viewLayers['periodic-table'], async (element: ElementData) => {
+  const periodicTableView = new PeriodicTableView(viewLayers['periodic-table'], async (element: ElementData) => {
     const { n, l, m, zEff } = await calculateValenceQuantumNumbers(element.Z);
     controlPanel.setParams({ n, l, m, zEff });
     switchTab('orbitals');
   });
 
-  new MoleculeView(viewLayers['molecules'], moleculeRenderer);
+  const moleculeView = new MoleculeView(viewLayers['molecules'], moleculeRenderer);
+
+  const views: Record<TabId, unknown> = {
+    orbitals: controlPanel,
+    'periodic-table': periodicTableView,
+    molecules: moleculeView,
+  };
 
   // Zen Mode Setup
   const zenRestoreBtn = document.createElement('button');
@@ -154,7 +160,7 @@ async function init() {
 
   const viewportHud = new ViewportHUD(uiOverlay, {
     onResetCamera: () => {
-      getActiveRenderer().resetCamera(true);
+      getActiveRenderer().resetCamera();
     },
     onToggleAutoRotate: () => {
       const renderer = getActiveRenderer();
@@ -169,6 +175,7 @@ async function init() {
   const switchTab = (newTab: TabId) => {
     activeTab = newTab;
     navBar.setActiveTab(newTab);
+    void views[newTab];
 
     // Close any open mobile drawers, backdrops, or floating buttons when switching tabs
     document.querySelectorAll('.mobile-open').forEach((el) => el.classList.remove('mobile-open'));
@@ -226,7 +233,7 @@ async function init() {
   const navBar = new NavigationBar(navContainer, switchTab, toggleZenMode);
 
   // Global Keyboard Shortcuts
-  window.addEventListener('keydown', (e: KeyboardEvent) => {
+  const handleKeyDown = (e: KeyboardEvent) => {
     const target = e.target as HTMLElement;
     if (
       target &&
@@ -238,56 +245,61 @@ async function init() {
       return;
     }
 
-    if (e.key === '1') {
+    const tabMap: Record<string, TabId> = {
+      '1': 'orbitals',
+      '2': 'periodic-table',
+      '3': 'molecules',
+    };
+
+    if (tabMap[e.key]) {
       e.preventDefault();
-      switchTab('orbitals');
-    } else if (e.key === '2') {
-      e.preventDefault();
-      switchTab('periodic-table');
-    } else if (e.key === '3') {
-      e.preventDefault();
-      switchTab('molecules');
-    } else if (e.code === 'Space') {
+      switchTab(tabMap[e.key]);
+      return;
+    }
+
+    if (e.code === 'Space') {
       e.preventDefault();
       if (activeTab === 'orbitals' || activeTab === 'molecules') {
         const renderer = getActiveRenderer();
         const newState = renderer.toggleAutoRotate();
         viewportHud.setAutoRotateState(newState);
       }
-    } else if (e.key === 'r' || e.key === 'R') {
+      return;
+    }
+
+    if (e.key === 'r' || e.key === 'R') {
       e.preventDefault();
       if (activeTab === 'orbitals' || activeTab === 'molecules') {
-        getActiveRenderer().resetCamera(true);
+        getActiveRenderer().resetCamera();
       }
-    } else if (e.key === 'p' || e.key === 'P') {
+      return;
+    }
+
+    if (e.key === 'p' || e.key === 'P') {
       e.preventDefault();
       imageExporterModal.open();
-    } else if (e.key === 'ArrowUp') {
-      if (activeTab === 'orbitals') {
-        e.preventDefault();
-        const current = controlPanel.getParams();
-        if (current.n < 7) {
-          controlPanel.setParams({ n: current.n + 1 });
-          loadOrbital(controlPanel.getParams());
-        }
-      }
-    } else if (e.key === 'ArrowDown') {
-      if (activeTab === 'orbitals') {
-        e.preventDefault();
-        const current = controlPanel.getParams();
-        if (current.n > 1) {
-          controlPanel.setParams({ n: current.n - 1 });
-          loadOrbital(controlPanel.getParams());
-        }
-      }
-    } else if (e.key === 'h' || e.key === 'H') {
-      e.preventDefault();
-      toggleZenMode();
-    } else if (e.key === 'Escape' && document.body.classList.contains('zen-mode')) {
-      e.preventDefault();
-      toggleZenMode();
+      return;
     }
-  });
+
+    if (e.key === 'h' || e.key === 'H' || (e.key === 'Escape' && document.body.classList.contains('zen-mode'))) {
+      e.preventDefault();
+      toggleZenMode();
+      return;
+    }
+
+    if ((e.key === 'ArrowUp' || e.key === 'ArrowDown') && activeTab === 'orbitals') {
+      e.preventDefault();
+      const current = controlPanel.getParams();
+      const nextN = e.key === 'ArrowUp' ? current.n + 1 : current.n - 1;
+      if (nextN >= 1 && nextN <= 7) {
+        controlPanel.setParams({ n: nextN });
+        loadOrbital(controlPanel.getParams());
+      }
+    }
+  };
+
+  window.addEventListener('keydown', handleKeyDown);
+
 
   await loadOrbital(controlPanel.getParams());
   orbitalRenderer.start();

@@ -1,10 +1,10 @@
 import { getStrings, onLanguageChange } from '../i18n';
 
 export class FPSDisplay {
-  private container: HTMLElement;
+  private readonly container: HTMLElement;
   private lastTime: number = performance.now();
   private frames: number = 0;
-  private fpsValues: number[] = [];
+  private readonly fpsValues: number[] = [];
   private currentEl!: HTMLElement;
   private avgEl!: HTMLElement;
   
@@ -28,7 +28,7 @@ export class FPSDisplay {
     this.avgEl = this.container.querySelector('#fps-avg') as HTMLElement;
   }
 
-  private update = (): void => {
+  private readonly update = (): void => {
     this.frames++;
     const now = performance.now();
     

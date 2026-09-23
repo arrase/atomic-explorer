@@ -6,7 +6,7 @@ export class GlossaryModal {
   private isOpen: boolean = false;
   private searchQuery: string = '';
   private activeCategory: string = 'all';
-  private expandedItemIds: Set<string> = new Set();
+  private readonly expandedItemIds: Set<string> = new Set();
   private keydownHandler: ((e: KeyboardEvent) => void) | null = null;
   private previousActiveElement: HTMLElement | null = null;
 
@@ -57,9 +57,7 @@ export class GlossaryModal {
       overlay.classList.add('fade-out');
 
       const cleanup = () => {
-        if (overlay.parentNode) {
-          overlay.parentNode.removeChild(overlay);
-        }
+        overlay.remove();
       };
 
       overlay.addEventListener('animationend', cleanup, { once: true });
@@ -230,7 +228,7 @@ export class GlossaryModal {
     const categoryTags = this.overlayElement.querySelectorAll('.category-tag');
     categoryTags.forEach((tag) => {
       tag.addEventListener('click', (e: Event) => {
-        const cat = (e.currentTarget as HTMLElement).getAttribute('data-category');
+        const cat = (e.currentTarget as HTMLElement).dataset.category;
         if (cat) {
           this.activeCategory = cat;
           this.render();
@@ -294,10 +292,10 @@ export class GlossaryModal {
   }
 
   private attachCardClickEvents(parent: HTMLElement): void {
-    const itemCards = parent.querySelectorAll('.glossary-item-card');
+    const itemCards = parent.querySelectorAll<HTMLElement>('.glossary-item-card');
     itemCards.forEach((card) => {
       card.addEventListener('click', () => {
-        const id = card.getAttribute('data-id');
+        const id = card.dataset.id;
         if (id) {
           if (this.expandedItemIds.has(id)) {
             this.expandedItemIds.delete(id);

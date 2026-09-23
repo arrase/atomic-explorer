@@ -4,8 +4,24 @@ import { ExplanationModal } from './info-modal';
 import { icon } from './icons';
 import { RadialDistributionChart } from './radial-distribution-chart';
 
+const SUBSHELL_NAMES = ['s', 'p', 'd', 'f', 'g'];
+const REAL_ORBITAL_SUFFIX: Record<number, Record<number, string>> = {
+  0: { 0: 's' },
+  1: { 0: 'p_z', 1: 'p_x', [-1]: 'p_y' },
+  2: { 0: 'd_{z^2}', 1: 'd_{xz}', [-1]: 'd_{yz}', 2: 'd_{x^2-y^2}', [-2]: 'd_{xy}' },
+  3: {
+    0: 'f_{z^3}',
+    1: 'f_{xz^2}',
+    [-1]: 'f_{yz^2}',
+    2: 'f_{z(x^2-y^2)}',
+    [-2]: 'f_{xyz}',
+    3: 'f_{x(x^2-3y^2)}',
+    [-3]: 'f_{y(3x^2-y^2)}',
+  },
+};
+
 export class OrbitalPhysicsPanel {
-  private container: HTMLElement;
+  private readonly container: HTMLElement;
   private currentParams: ExtendedOrbitalParams;
   private panelElement: HTMLElement | null = null;
   private radialChart: RadialDistributionChart | null = null;
@@ -92,34 +108,16 @@ export class OrbitalPhysicsPanel {
   }
 
   private getOrbitalNotation(n: number, l: number, m: number, useRealOrbital: boolean): string {
-    const subshellMap = ['s', 'p', 'd', 'f', 'g'];
-    const subshell = subshellMap[l] || 's';
+    const subshell = SUBSHELL_NAMES[l] || 's';
 
     if (!useRealOrbital) {
       const mSign = m >= 0 ? `+${m}` : `${m}`;
       return `${n}${subshell} (m=${mSign})`;
     }
 
-    if (l === 0) {
-      return `${n}s`;
-    } else if (l === 1) {
-      if (m === 0) return `${n}p_z`;
-      if (m === 1) return `${n}p_x`;
-      if (m === -1) return `${n}p_y`;
-    } else if (l === 2) {
-      if (m === 0) return `${n}d_{z^2}`;
-      if (m === 1) return `${n}d_{xz}`;
-      if (m === -1) return `${n}d_{yz}`;
-      if (m === 2) return `${n}d_{x^2-y^2}`;
-      if (m === -2) return `${n}d_{xy}`;
-    } else if (l === 3) {
-      if (m === 0) return `${n}f_{z^3}`;
-      if (m === 1) return `${n}f_{xz^2}`;
-      if (m === -1) return `${n}f_{yz^2}`;
-      if (m === 2) return `${n}f_{z(x^2-y^2)}`;
-      if (m === -2) return `${n}f_{xyz}`;
-      if (m === 3) return `${n}f_{x(x^2-3y^2)}`;
-      if (m === -3) return `${n}f_{y(3x^2-y^2)}`;
+    const realSuffix = REAL_ORBITAL_SUFFIX[l]?.[m];
+    if (realSuffix) {
+      return `${n}${realSuffix}`;
     }
 
     return `${n}${subshell}`;

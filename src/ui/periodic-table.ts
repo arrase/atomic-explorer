@@ -20,13 +20,36 @@ export interface ElementData {
 
 export type ChemicalBlock = 'all' | 's' | 'p' | 'd' | 'f';
 
+interface GridRange {
+  readonly maxZ: number;
+  readonly row: number;
+  readonly colOffset: number;
+}
+
+const GRID_RANGES: readonly GridRange[] = [
+  { maxZ: 1, row: 2, colOffset: 1 },
+  { maxZ: 2, row: 2, colOffset: 17 },
+  { maxZ: 4, row: 3, colOffset: -1 },
+  { maxZ: 10, row: 3, colOffset: 9 },
+  { maxZ: 12, row: 4, colOffset: -9 },
+  { maxZ: 18, row: 4, colOffset: 1 },
+  { maxZ: 36, row: 5, colOffset: -17 },
+  { maxZ: 54, row: 6, colOffset: -35 },
+  { maxZ: 56, row: 7, colOffset: -53 },
+  { maxZ: 71, row: 10, colOffset: -53 },
+  { maxZ: 86, row: 7, colOffset: -67 },
+  { maxZ: 88, row: 8, colOffset: -85 },
+  { maxZ: 103, row: 11, colOffset: -85 },
+  { maxZ: 118, row: 8, colOffset: -99 },
+];
+
 export class PeriodicTableView {
-  private container: HTMLElement;
-  private elements: ElementData[] = elementsData as ElementData[];
+  private readonly container: HTMLElement;
+  private readonly elements: ElementData[] = elementsData as ElementData[];
   private selectedElement: ElementData | null = null;
   private currentColorScheme: 'category' | 'electronegativity' | 'radius' = 'category';
   private selectedBlock: ChemicalBlock = 'all';
-  private onSelectElementOrbital: (element: ElementData) => void;
+  private readonly onSelectElementOrbital: (element: ElementData) => void;
 
   constructor(container: HTMLElement, onSelectElementOrbital: (element: ElementData) => void) {
     this.container = container;
@@ -288,26 +311,11 @@ export class PeriodicTableView {
   }
 
   private getElementGridPosition(z: number): { row: number; col: number } {
-    if (z === 1) return { row: 2, col: 2 };
-    if (z === 2) return { row: 2, col: 19 };
-
-    if (z >= 3 && z <= 4) return { row: 3, col: z - 1 };
-    if (z >= 5 && z <= 10) return { row: 3, col: z + 9 };
-
-    if (z >= 11 && z <= 12) return { row: 4, col: z - 9 };
-    if (z >= 13 && z <= 18) return { row: 4, col: z + 1 };
-
-    if (z >= 19 && z <= 36) return { row: 5, col: z - 17 };
-    if (z >= 37 && z <= 54) return { row: 6, col: z - 35 };
-
-    if (z === 55 || z === 56) return { row: 7, col: z - 53 };
-    if (z >= 57 && z <= 71) return { row: 10, col: z - 53 }; // Lanthanides: 57 -> Col 4, 71 -> Col 18
-    if (z >= 72 && z <= 86) return { row: 7, col: z - 67 };
-
-    if (z === 87 || z === 88) return { row: 8, col: z - 85 };
-    if (z >= 89 && z <= 103) return { row: 11, col: z - 85 }; // Actinides: 89 -> Col 4, 103 -> Col 18
-    if (z >= 104 && z <= 118) return { row: 8, col: z - 99 };
-
+    for (const range of GRID_RANGES) {
+      if (z <= range.maxZ) {
+        return { row: range.row, col: z + range.colOffset };
+      }
+    }
     return { row: 2, col: 2 };
   }
 
@@ -464,7 +472,7 @@ export class PeriodicTableView {
     const grid = this.container.querySelector('#periodic-grid');
     if (grid) {
       grid.querySelectorAll<HTMLElement>('.element-cell').forEach((c) => {
-        const isMatch = c.getAttribute('data-z') === String(el.Z);
+        const isMatch = c.dataset.z === String(el.Z);
         c.classList.toggle('selected', isMatch);
         c.setAttribute('aria-pressed', isMatch ? 'true' : 'false');
       });
@@ -526,9 +534,9 @@ export class PeriodicTableView {
     grid.addEventListener('click', (e) => {
       const cell = (e.target as HTMLElement).closest<HTMLElement>('.element-cell:not(.placeholder-cell)');
       if (!cell) return;
-      const zStr = cell.getAttribute('data-z');
+      const zStr = cell.dataset.z;
       if (!zStr) return;
-      const z = parseInt(zStr, 10);
+      const z = Number.parseInt(zStr, 10);
       const el = this.elements.find((item) => item.Z === z);
       if (el) {
         this.selectElement(el);
@@ -539,9 +547,9 @@ export class PeriodicTableView {
     grid.addEventListener('dblclick', (e) => {
       const cell = (e.target as HTMLElement).closest<HTMLElement>('.element-cell:not(.placeholder-cell)');
       if (!cell) return;
-      const zStr = cell.getAttribute('data-z');
+      const zStr = cell.dataset.z;
       if (!zStr) return;
-      const z = parseInt(zStr, 10);
+      const z = Number.parseInt(zStr, 10);
       const el = this.elements.find((item) => item.Z === z);
       if (el) {
         this.selectElement(el);
@@ -552,96 +560,7 @@ export class PeriodicTableView {
 
     // Keyboard navigation & selection
     grid.addEventListener('keydown', (e: KeyboardEvent) => {
-      const target = (e.target as HTMLElement).closest<HTMLElement>('.element-cell:not(.placeholder-cell)');
-      if (!target) return;
-
-      const zStr = target.getAttribute('data-z');
-      if (!zStr) return;
-      const z = parseInt(zStr, 10);
-      const el = this.elements.find((item) => item.Z === z);
-      if (!el) return;
-
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        if (this.selectedElement?.Z === el.Z && e.key === 'Enter') {
-          this.closeFullInspector();
-          this.onSelectElementOrbital(el);
-        } else {
-          this.selectElement(el);
-        }
-      } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-        e.preventDefault();
-        const currentRow = parseInt(target.getAttribute('data-row') || '0', 10);
-        const currentCol = parseInt(target.getAttribute('data-col') || '0', 10);
-        const cells = Array.from(grid.querySelectorAll<HTMLElement>('.element-cell:not(.placeholder-cell)'));
-
-        let nextCell: HTMLElement | undefined;
-
-        if (e.key === 'ArrowRight') {
-          nextCell = cells
-            .filter(
-              (c) =>
-                parseInt(c.getAttribute('data-row') || '0', 10) === currentRow &&
-                parseInt(c.getAttribute('data-col') || '0', 10) > currentCol
-            )
-            .sort(
-              (a, b) =>
-                parseInt(a.getAttribute('data-col') || '0', 10) -
-                parseInt(b.getAttribute('data-col') || '0', 10)
-            )[0];
-          if (!nextCell) {
-            nextCell = cells.find((c) => parseInt(c.getAttribute('data-z') || '0', 10) === z + 1);
-          }
-        } else if (e.key === 'ArrowLeft') {
-          nextCell = cells
-            .filter(
-              (c) =>
-                parseInt(c.getAttribute('data-row') || '0', 10) === currentRow &&
-                parseInt(c.getAttribute('data-col') || '0', 10) < currentCol
-            )
-            .sort(
-              (a, b) =>
-                parseInt(b.getAttribute('data-col') || '0', 10) -
-                parseInt(a.getAttribute('data-col') || '0', 10)
-            )[0];
-          if (!nextCell) {
-            nextCell = cells.find((c) => parseInt(c.getAttribute('data-z') || '0', 10) === z - 1);
-          }
-        } else if (e.key === 'ArrowDown') {
-          nextCell = cells
-            .filter(
-              (c) =>
-                parseInt(c.getAttribute('data-col') || '0', 10) === currentCol &&
-                parseInt(c.getAttribute('data-row') || '0', 10) > currentRow
-            )
-            .sort(
-              (a, b) =>
-                parseInt(a.getAttribute('data-row') || '0', 10) -
-                parseInt(b.getAttribute('data-row') || '0', 10)
-            )[0];
-        } else if (e.key === 'ArrowUp') {
-          nextCell = cells
-            .filter(
-              (c) =>
-                parseInt(c.getAttribute('data-col') || '0', 10) === currentCol &&
-                parseInt(c.getAttribute('data-row') || '0', 10) < currentRow
-            )
-            .sort(
-              (a, b) =>
-                parseInt(b.getAttribute('data-row') || '0', 10) -
-                parseInt(a.getAttribute('data-row') || '0', 10)
-            )[0];
-        }
-
-        if (nextCell) {
-          nextCell.focus();
-          const nextZ = parseInt(nextCell.getAttribute('data-z') || '0', 10);
-          const nextEl = this.elements.find((item) => item.Z === nextZ);
-          if (nextEl) {
-            this.selectElement(nextEl);
-          }
-        }
-      }
+      this.handleGridKeydown(e, grid);
     });
 
     // Unified container click delegation
@@ -668,7 +587,6 @@ export class PeriodicTableView {
       const closeBtn = target.closest<HTMLElement>('#btn-close-inspector, #periodic-drawer-backdrop');
       if (closeBtn) {
         this.closeFullInspector();
-        return;
       }
     });
 
@@ -689,5 +607,104 @@ export class PeriodicTableView {
         }
       });
     });
+  }
+
+  private handleGridKeydown(e: KeyboardEvent, grid: HTMLElement): void {
+    const target = (e.target as HTMLElement).closest<HTMLElement>('.element-cell:not(.placeholder-cell)');
+    if (!target) return;
+
+    const zStr = target.dataset.z;
+    if (!zStr) return;
+    const z = Number.parseInt(zStr, 10);
+    const el = this.elements.find((item) => item.Z === z);
+    if (!el) return;
+
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      this.handleCellActivation(e.key, el);
+    } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      e.preventDefault();
+      this.handleCellArrowNavigation(e.key, target, z, grid);
+    }
+  }
+
+  private handleCellActivation(key: string, el: ElementData): void {
+    if (this.selectedElement?.Z === el.Z && key === 'Enter') {
+      this.closeFullInspector();
+      this.onSelectElementOrbital(el);
+    } else {
+      this.selectElement(el);
+    }
+  }
+
+  private handleCellArrowNavigation(key: string, target: HTMLElement, currentZ: number, grid: HTMLElement): void {
+    const cells = Array.from(grid.querySelectorAll<HTMLElement>('.element-cell:not(.placeholder-cell)'));
+    const nextCell = this.findNextCell(key, target, currentZ, cells);
+
+    if (nextCell) {
+      nextCell.focus();
+      const nextZ = Number.parseInt(nextCell.dataset.z!, 10);
+      const nextEl = this.elements.find((item) => item.Z === nextZ);
+      if (nextEl) {
+        this.selectElement(nextEl);
+      }
+    }
+  }
+
+  private findNextCell(
+    key: string,
+    target: HTMLElement,
+    currentZ: number,
+    cells: HTMLElement[]
+  ): HTMLElement | undefined {
+    const currentRow = Number.parseInt(target.dataset.row!, 10);
+    const currentCol = Number.parseInt(target.dataset.col!, 10);
+
+    switch (key) {
+      case 'ArrowRight':
+        return this.findCellRight(cells, currentRow, currentCol, currentZ);
+      case 'ArrowLeft':
+        return this.findCellLeft(cells, currentRow, currentCol, currentZ);
+      case 'ArrowDown':
+        return this.findCellDown(cells, currentRow, currentCol);
+      case 'ArrowUp':
+        return this.findCellUp(cells, currentRow, currentCol);
+      default:
+        return undefined;
+    }
+  }
+
+  private findCellRight(cells: HTMLElement[], currentRow: number, currentCol: number, currentZ: number): HTMLElement | undefined {
+    const nextInRow = cells
+      .filter((c) => Number.parseInt(c.dataset.row!, 10) === currentRow && Number.parseInt(c.dataset.col!, 10) > currentCol)
+      .sort((a, b) => Number.parseInt(a.dataset.col!, 10) - Number.parseInt(b.dataset.col!, 10))[0];
+
+    if (nextInRow) {
+      return nextInRow;
+    }
+    return cells.find((c) => Number.parseInt(c.dataset.z!, 10) === currentZ + 1);
+  }
+
+  private findCellLeft(cells: HTMLElement[], currentRow: number, currentCol: number, currentZ: number): HTMLElement | undefined {
+    const nextInRow = cells
+      .filter((c) => Number.parseInt(c.dataset.row!, 10) === currentRow && Number.parseInt(c.dataset.col!, 10) < currentCol)
+      .sort((a, b) => Number.parseInt(b.dataset.col!, 10) - Number.parseInt(a.dataset.col!, 10))[0];
+
+    if (nextInRow) {
+      return nextInRow;
+    }
+    return cells.find((c) => Number.parseInt(c.dataset.z!, 10) === currentZ - 1);
+  }
+
+  private findCellDown(cells: HTMLElement[], currentRow: number, currentCol: number): HTMLElement | undefined {
+    return cells
+      .filter((c) => Number.parseInt(c.dataset.col!, 10) === currentCol && Number.parseInt(c.dataset.row!, 10) > currentRow)
+      .sort((a, b) => Number.parseInt(a.dataset.row!, 10) - Number.parseInt(b.dataset.row!, 10))[0];
+  }
+
+  private findCellUp(cells: HTMLElement[], currentRow: number, currentCol: number): HTMLElement | undefined {
+    return cells
+      .filter((c) => Number.parseInt(c.dataset.col!, 10) === currentCol && Number.parseInt(c.dataset.row!, 10) < currentRow)
+      .sort((a, b) => Number.parseInt(b.dataset.row!, 10) - Number.parseInt(a.dataset.row!, 10))[0];
   }
 }

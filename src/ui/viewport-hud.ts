@@ -8,8 +8,8 @@ export interface ViewportHUDCallbacks {
 }
 
 export class ViewportHUD {
-  private container: HTMLElement;
-  private callbacks: ViewportHUDCallbacks;
+  private readonly container: HTMLElement;
+  private readonly callbacks: ViewportHUDCallbacks;
   private isAutoRotating: boolean = false;
   private scaleText: string = '1 a₀ = 52.9 pm';
 
