@@ -157,7 +157,7 @@ pub fn sample_orbital_points(
     z_eff: f64,
     n_points: usize,
     seed: u64,
-) -> Result<js_sys::Float32Array, String> {
+) -> Result<Vec<f32>, String> {
     let qn = QuantumNumbers::new(n, l, m)?;
 
     let mode = if use_real_orbital {
@@ -179,7 +179,7 @@ pub fn sample_orbital_points(
         flat.push(sign);
     }
 
-    Ok(js_sys::Float32Array::from(flat.as_slice()))
+    Ok(flat)
 }
 
 #[wasm_bindgen]
@@ -217,7 +217,7 @@ pub fn evaluate_density_grid(
     z_eff: f64,
     grid_size: usize,
     bounds: f32,
-) -> Result<js_sys::Float32Array, String> {
+) -> Result<Vec<f32>, String> {
     let qn = QuantumNumbers::new(n, l, m)?;
     let mode = if use_real_orbital {
         let kind = real_orbital_kind_from_lm(l, m).ok_or_else(|| {
@@ -229,7 +229,7 @@ pub fn evaluate_density_grid(
     };
 
     let grid = grid::evaluate_density_grid_internal(&qn, &mode, z_eff, grid_size, bounds)?;
-    Ok(js_sys::Float32Array::from(grid.as_slice()))
+    Ok(grid)
 }
 
 #[wasm_bindgen]
@@ -240,9 +240,14 @@ pub fn evaluate_isosurface_grid(
     use_real_orbital: bool,
     z_eff: f64,
     grid_size: usize,
-    bounds: f32,
-    contrast: f32,
-) -> Result<js_sys::Float32Array, String> {
+    bounds_contrast: &[f32],
+) -> Result<Vec<f32>, String> {
+    if bounds_contrast.len() < 2 {
+        return Err("bounds_contrast must contain at least [bounds, contrast]".into());
+    }
+    let bounds = bounds_contrast[0];
+    let contrast = bounds_contrast[1];
+
     let qn = QuantumNumbers::new(n, l, m)?;
     let mode = if use_real_orbital {
         let kind = real_orbital_kind_from_lm(l, m).ok_or_else(|| {
@@ -254,6 +259,7 @@ pub fn evaluate_isosurface_grid(
     };
 
     let grid = grid::evaluate_isosurface_grid_internal(&qn, &mode, z_eff, grid_size, bounds, contrast)?;
-    Ok(js_sys::Float32Array::from(grid.as_slice()))
+    Ok(grid)
 }
+
 

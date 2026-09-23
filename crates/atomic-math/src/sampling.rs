@@ -1,4 +1,4 @@
-use crate::{OrbitalMode, QuantumNumbers};
+use crate::{OrbitalMode, QuantumNumbers, RealOrbitalKind};
 use crate::spherical_harmonics::{angular_density_max, real_orbital_angular, y_lm_density, y_lm_theta_component};
 use crate::wavefunctions::{r_nl, radial_density_max};
 
@@ -56,84 +56,114 @@ pub fn sample_points_internal(
     }
 
     let max_iterations = n_points.saturating_mul(100_000).max(1_000_000);
-    let mut iterations = 0;
 
     match mode {
         OrbitalMode::PureEigenstate => {
-            // In quantum mechanics, pure eigenstates |n, l, m> have probability density
-            // |psi|^2 = |R_nl(r)|^2 * |Y_l^m(theta, phi)|^2 = |R_nl(r)|^2 * |Theta_lm(theta)|^2 / (2*pi).
-            // This is strictly independent of phi (cylindrical/toroidal symmetry around Z).
-            // We sample (r, theta) via rejection against p_max, and assign phi uniformly in [0, 2*pi).
-            while points.len() < n_points {
-                iterations += 1;
-                if iterations > max_iterations {
-                    return Err("Rejection sampling exceeded maximum iteration safety threshold".into());
-                }
-
-                let r = rng.next_f64() * r_max;
-                let theta = rng.next_f64() * std::f64::consts::PI;
-
-                let r_part = r_nl(qn.n, qn.l, z_eff, r)?;
-                let y_dens = y_lm_density(qn.l, qn.m, theta)?;
-                let density = (r * r * r_part * r_part) * (y_dens * theta.sin());
-
-                let threshold = rng.next_f64() * p_max;
-                if density > threshold {
-                    // Continuous uniform azimuthal distribution in [0, 2*pi)
-                    let phi = rng.next_f64() * 2.0 * std::f64::consts::PI;
-
-                    let sin_t = theta.sin();
-                    let cos_t = theta.cos();
-                    let x = r * sin_t * phi.cos();
-                    let y = r * sin_t * phi.sin();
-                    let z = r * cos_t;
-
-                    // Complex quantum phase: Arg(psi) = Arg(R_nl(r) * Theta_lm(theta) * exp(i * m * phi))
-                    let theta_comp = y_lm_theta_component(qn.l, qn.m, theta)?;
-                    let spatial_sign = r_part * theta_comp;
-                    let base_phase = (qn.m as f64) * phi;
-                    let phase = if spatial_sign < 0.0 {
-                        base_phase + std::f64::consts::PI
-                    } else {
-                        base_phase
-                    };
-                    let phase_arg = phase.sin().atan2(phase.cos()) as f32;
-
-                    points.push(([x as f32, y as f32, z as f32], phase_arg));
-                }
-            }
+            sample_eigenstate_points(qn, z_eff, n_points, r_max, p_max, max_iterations, &mut rng, &mut points)?;
         }
         OrbitalMode::RealChemist(kind) => {
-            // Real chemist orbital representations with real lobes
-            while points.len() < n_points {
-                iterations += 1;
-                if iterations > max_iterations {
-                    return Err("Rejection sampling exceeded maximum iteration safety threshold".into());
-                }
-
-                let r = rng.next_f64() * r_max;
-                let theta = rng.next_f64() * std::f64::consts::PI;
-                let phi = rng.next_f64() * 2.0 * std::f64::consts::PI;
-
-                let r_part = r_nl(qn.n, qn.l, z_eff, r)?;
-                let y_real = real_orbital_angular(kind, theta, phi);
-                let psi = r_part * y_real;
-                let density = psi * psi * (r * r * theta.sin());
-
-                let threshold = rng.next_f64() * p_max;
-                if density > threshold {
-                    let sin_t = theta.sin();
-                    let cos_t = theta.cos();
-                    let x = r * sin_t * phi.cos();
-                    let y = r * sin_t * phi.sin();
-                    let z = r * cos_t;
-                    let sign = if psi >= 0.0 { 1.0f32 } else { -1.0f32 };
-                    points.push(([x as f32, y as f32, z as f32], sign));
-                }
-            }
+            sample_chemist_points(qn, kind, z_eff, n_points, r_max, p_max, max_iterations, &mut rng, &mut points)?;
         }
     }
 
     Ok(points)
+}
+
+fn sample_eigenstate_points(
+    qn: &QuantumNumbers,
+    z_eff: f64,
+    n_points: usize,
+    r_max: f64,
+    p_max: f64,
+    max_iterations: usize,
+    rng: &mut Lcg,
+    points: &mut Vec<([f32; 3], f32)>,
+) -> Result<(), String> {
+    let mut iterations = 0;
+    // In quantum mechanics, pure eigenstates |n, l, m> have probability density
+    // |psi|^2 = |R_nl(r)|^2 * |Y_l^m(theta, phi)|^2 = |R_nl(r)|^2 * |Theta_lm(theta)|^2 / (2*pi).
+    // This is strictly independent of phi (cylindrical/toroidal symmetry around Z).
+    // We sample (r, theta) via rejection against p_max, and assign phi uniformly in [0, 2*pi).
+    while points.len() < n_points {
+        iterations += 1;
+        if iterations > max_iterations {
+            return Err("Rejection sampling exceeded maximum iteration safety threshold".into());
+        }
+
+        let r = rng.next_f64() * r_max;
+        let theta = rng.next_f64() * std::f64::consts::PI;
+
+        let r_part = r_nl(qn.n, qn.l, z_eff, r)?;
+        let y_dens = y_lm_density(qn.l, qn.m, theta)?;
+        let density = (r * r * r_part * r_part) * (y_dens * theta.sin());
+
+        let threshold = rng.next_f64() * p_max;
+        if density > threshold {
+            // Continuous uniform azimuthal distribution in [0, 2*pi)
+            let phi = rng.next_f64() * 2.0 * std::f64::consts::PI;
+
+            let sin_t = theta.sin();
+            let cos_t = theta.cos();
+            let x = r * sin_t * phi.cos();
+            let y = r * sin_t * phi.sin();
+            let z = r * cos_t;
+
+            // Complex quantum phase: Arg(psi) = Arg(R_nl(r) * Theta_lm(theta) * exp(i * m * phi))
+            let theta_comp = y_lm_theta_component(qn.l, qn.m, theta)?;
+            let spatial_sign = r_part * theta_comp;
+            let base_phase = (qn.m as f64) * phi;
+            let phase = if spatial_sign < 0.0 {
+                base_phase + std::f64::consts::PI
+            } else {
+                base_phase
+            };
+            let phase_arg = phase.sin().atan2(phase.cos()) as f32;
+
+            points.push(([x as f32, y as f32, z as f32], phase_arg));
+        }
+    }
+    Ok(())
+}
+
+fn sample_chemist_points(
+    qn: &QuantumNumbers,
+    kind: &RealOrbitalKind,
+    z_eff: f64,
+    n_points: usize,
+    r_max: f64,
+    p_max: f64,
+    max_iterations: usize,
+    rng: &mut Lcg,
+    points: &mut Vec<([f32; 3], f32)>,
+) -> Result<(), String> {
+    let mut iterations = 0;
+    // Real chemist orbital representations with real lobes
+    while points.len() < n_points {
+        iterations += 1;
+        if iterations > max_iterations {
+            return Err("Rejection sampling exceeded maximum iteration safety threshold".into());
+        }
+
+        let r = rng.next_f64() * r_max;
+        let theta = rng.next_f64() * std::f64::consts::PI;
+        let phi = rng.next_f64() * 2.0 * std::f64::consts::PI;
+
+        let r_part = r_nl(qn.n, qn.l, z_eff, r)?;
+        let y_real = real_orbital_angular(kind, theta, phi);
+        let psi = r_part * y_real;
+        let density = psi * psi * (r * r * theta.sin());
+
+        let threshold = rng.next_f64() * p_max;
+        if density > threshold {
+            let sin_t = theta.sin();
+            let cos_t = theta.cos();
+            let x = r * sin_t * phi.cos();
+            let y = r * sin_t * phi.sin();
+            let z = r * cos_t;
+            let sign = if psi >= 0.0 { 1.0f32 } else { -1.0f32 };
+            points.push(([x as f32, y as f32, z as f32], sign));
+        }
+    }
+    Ok(())
 }
 

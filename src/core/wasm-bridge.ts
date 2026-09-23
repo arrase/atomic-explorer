@@ -60,8 +60,7 @@ export async function evaluateIsosurfaceGrid(params: IsosurfaceGridParams): Prom
     params.useRealOrbital,
     params.zEff,
     params.gridSize,
-    params.bounds,
-    params.contrast,
+    new Float32Array([params.bounds, params.contrast]),
   );
 }
 
