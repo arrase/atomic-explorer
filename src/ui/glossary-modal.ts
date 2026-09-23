@@ -1,5 +1,6 @@
 import { getStrings, onLanguageChange, GlossaryItem } from '../i18n';
 import { icon } from './icons';
+import { trapModalFocus } from './modal-utils';
 
 export class GlossaryModal {
   private overlayElement: HTMLElement | null = null;
@@ -72,20 +73,8 @@ export class GlossaryModal {
         this.close();
       } else if (e.key === 'Tab' && this.overlayElement) {
         const card = this.overlayElement.querySelector('.glass-modal-card');
-        if (!card) return;
-        const focusable = Array.from(card.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        )).filter((el) => !el.hasAttribute('disabled'));
-        if (focusable.length === 0) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
+        if (card) {
+          trapModalFocus(card, e);
         }
       }
     };

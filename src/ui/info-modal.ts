@@ -1,5 +1,6 @@
 import { ConceptExplanation, getStrings } from '../i18n';
 import { icon } from './icons';
+import { trapModalFocus } from './modal-utils';
 
 export class ExplanationModal {
   private static overlayElement: HTMLElement | null = null;
@@ -82,20 +83,7 @@ export class ExplanationModal {
       if (e.key === 'Escape') {
         handleClose();
       } else if (e.key === 'Tab') {
-        const focusable = Array.from(card.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        )).filter((el) => !el.hasAttribute('disabled'));
-        if (focusable.length === 0) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
+        trapModalFocus(card, e);
       }
     };
     document.addEventListener('keydown', ExplanationModal.keydownHandler);
