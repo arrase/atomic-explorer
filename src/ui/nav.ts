@@ -6,11 +6,11 @@ import { icon } from './icons';
 export type TabId = 'orbitals' | 'periodic-table' | 'molecules';
 
 export class NavigationBar {
-  private container: HTMLElement;
+  private readonly container: HTMLElement;
   private activeTab: TabId = 'orbitals';
-  private onTabChange: (tab: TabId) => void;
-  private onZenToggle?: () => void;
-  private glossaryModal: GlossaryModal;
+  private readonly onTabChange: (tab: TabId) => void;
+  private readonly onZenToggle?: () => void;
+  private readonly glossaryModal: GlossaryModal;
 
   constructor(
     container: HTMLElement,
@@ -126,7 +126,7 @@ export class NavigationBar {
     const buttons = this.container.querySelectorAll<HTMLButtonElement>('.nav-tab[data-tab]');
     buttons.forEach((btn) => {
       btn.addEventListener('click', (e) => {
-        const target = (e.currentTarget as HTMLElement).getAttribute('data-tab') as TabId;
+        const target = (e.currentTarget as HTMLElement).dataset.tab as TabId;
         navTabsMenu.classList.remove('mobile-open');
         mobileMenuToggle.classList.remove('active');
         mobileMenuToggle.setAttribute('aria-expanded', 'false');
@@ -139,7 +139,7 @@ export class NavigationBar {
 
     navTabsMenu.addEventListener('keydown', (e: KeyboardEvent) => {
       const tabButtons = Array.from(this.container.querySelectorAll<HTMLButtonElement>('.nav-tab[data-tab]'));
-      const currentIndex = tabButtons.findIndex((b) => b.getAttribute('data-tab') === this.activeTab);
+      const currentIndex = tabButtons.findIndex((b) => b.dataset.tab === this.activeTab);
       let nextIndex = -1;
 
       if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
@@ -151,7 +151,7 @@ export class NavigationBar {
       if (nextIndex !== -1) {
         e.preventDefault();
         const nextBtn = tabButtons[nextIndex];
-        const nextTab = nextBtn.getAttribute('data-tab') as TabId;
+        const nextTab = nextBtn.dataset.tab as TabId;
         this.setActiveTab(nextTab);
         this.onTabChange(nextTab);
         nextBtn.focus();
@@ -192,7 +192,7 @@ export class NavigationBar {
     this.activeTab = tab;
     const buttons = this.container.querySelectorAll<HTMLButtonElement>('.nav-tab[data-tab]');
     buttons.forEach((btn) => {
-      const isTarget = btn.getAttribute('data-tab') === tab;
+      const isTarget = btn.dataset.tab === tab;
       if (isTarget) {
         btn.classList.add('active');
         btn.setAttribute('aria-selected', 'true');

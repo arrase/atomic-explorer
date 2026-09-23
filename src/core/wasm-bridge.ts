@@ -14,12 +14,21 @@ export interface OrbitalParams {
   pointCount: number;
 }
 
+export interface IsosurfaceGridParams {
+  n: number;
+  l: number;
+  m: number;
+  useRealOrbital: boolean;
+  zEff: number;
+  gridSize: number;
+  bounds: number;
+  contrast: number;
+}
+
 let wasmInitPromise: Promise<void> | null = null;
 
 export async function ensureWasmLoaded(): Promise<void> {
-  if (!wasmInitPromise) {
-    wasmInitPromise = init().then(() => undefined);
-  }
+  wasmInitPromise ??= init().then(() => undefined);
   return wasmInitPromise;
 }
 
@@ -42,26 +51,17 @@ export async function sampleOrbitalPoints(params: OrbitalParams): Promise<Float3
   );
 }
 
-export async function evaluateIsosurfaceGrid(
-  n: number,
-  l: number,
-  m: number,
-  useRealOrbital: boolean,
-  zEff: number,
-  gridSize: number,
-  bounds: number,
-  contrast: number,
-): Promise<Float32Array> {
+export async function evaluateIsosurfaceGrid(params: IsosurfaceGridParams): Promise<Float32Array> {
   await ensureWasmLoaded();
   return evaluate_isosurface_grid(
-    n,
-    l,
-    m,
-    useRealOrbital,
-    zEff,
-    gridSize,
-    bounds,
-    contrast,
+    params.n,
+    params.l,
+    params.m,
+    params.useRealOrbital,
+    params.zEff,
+    params.gridSize,
+    params.bounds,
+    params.contrast,
   );
 }
 

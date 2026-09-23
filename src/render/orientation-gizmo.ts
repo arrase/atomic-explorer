@@ -20,20 +20,28 @@ const AXES: AxisInfo[] = [
   { id: '-z', dir: new THREE.Vector3(0, 0, -1), up: new THREE.Vector3(0, 1, 0), color: '#3b82f6', label: '-Z', isPositive: false },
 ];
 
+interface ProjectedAxis {
+  axis: AxisInfo;
+  x: number;
+  y: number;
+  z: number;
+  radius: number;
+}
+
 export class OrientationGizmo {
-  private container: HTMLElement;
-  private canvas: HTMLCanvasElement;
-  private ctx: CanvasRenderingContext2D;
+  private readonly container: HTMLElement;
+  private readonly canvas: HTMLCanvasElement;
+  private readonly ctx: CanvasRenderingContext2D;
   private camera: THREE.Camera | null = null;
   private onAlignCamera?: (dir: THREE.Vector3, up: THREE.Vector3) => void;
 
-  private size: number = 88;
-  private radius: number = 32;
+  private readonly size: number = 88;
+  private readonly radius: number = 32;
   private hoveredAxis: AxisId | null = null;
-  private projectedAxes: Array<{ axis: AxisInfo; x: number; y: number; z: number; radius: number }> = [];
+  private projectedAxes: ProjectedAxis[] = [];
 
-  private tempMatrix = new THREE.Matrix4();
-  private tempVec = new THREE.Vector3();
+  private readonly tempMatrix = new THREE.Matrix4();
+  private readonly tempVec = new THREE.Vector3();
 
   constructor(
     parent: HTMLElement,
@@ -80,23 +88,10 @@ export class OrientationGizmo {
   public update(): void {
     if (!this.camera) return;
 
-    const ctx = this.ctx;
     const center = this.size / 2;
+    this.ctx.clearRect(0, 0, this.size, this.size);
+    this.drawBackground(center);
 
-    ctx.clearRect(0, 0, this.size, this.size);
-
-    // Subtle glass circular background
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(center, center, center - 4, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(18, 18, 36, 0.65)';
-    ctx.fill();
-    ctx.lineWidth = 1.5;
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
-    ctx.stroke();
-    ctx.restore();
-
-    // Compute view rotation matrix (camera rotation only)
     this.tempMatrix.extractRotation(this.camera.matrixWorldInverse);
 
     this.projectedAxes = AXES.map((axis) => {
@@ -108,63 +103,85 @@ export class OrientationGizmo {
       return { axis, x, y, z, radius: nodeRadius };
     });
 
-    // Sort back-to-front (painter's algorithm)
     this.projectedAxes.sort((a, b) => a.z - b.z);
 
-    // Draw axes lines and nodes
     for (const item of this.projectedAxes) {
-      const isHovered = this.hoveredAxis === item.axis.id;
-
-      // Draw axis line from center
-      ctx.beginPath();
-      ctx.moveTo(center, center);
-      ctx.lineTo(item.x, item.y);
-      ctx.strokeStyle = item.axis.color;
-      ctx.lineWidth = item.axis.isPositive ? 2.5 : 1.2;
-      ctx.globalAlpha = item.axis.isPositive ? 0.9 : 0.45;
-      ctx.stroke();
-      ctx.globalAlpha = 1.0;
-
-      // Draw pole circle node
-      ctx.beginPath();
-      const drawRadius = isHovered ? item.radius + 2 : item.radius;
-      ctx.arc(item.x, item.y, drawRadius, 0, Math.PI * 2);
-
-      if (item.axis.isPositive) {
-        ctx.fillStyle = item.axis.color;
-        ctx.fill();
-        ctx.lineWidth = isHovered ? 2 : 1;
-        ctx.strokeStyle = '#ffffff';
-        ctx.stroke();
-
-        // Draw axis letter label
-        ctx.font = `bold 10px Inter, sans-serif`;
-        ctx.fillStyle = '#ffffff';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(item.axis.label, item.x, item.y + 0.5);
-      } else {
-        // Negative axis node
-        ctx.fillStyle = item.axis.color;
-        ctx.globalAlpha = 0.55;
-        ctx.fill();
-        ctx.globalAlpha = 1.0;
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-        ctx.stroke();
-
-        if (isHovered) {
-          ctx.font = `9px Inter, sans-serif`;
-          ctx.fillStyle = '#ffffff';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText(item.axis.label, item.x, item.y);
-        }
-      }
+      this.drawAxisItem(item, center);
     }
   }
 
-  private handlePointerMove = (e: MouseEvent): void => {
+  private drawBackground(center: number): void {
+    const ctx = this.ctx;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(center, center, center - 4, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(18, 18, 36, 0.65)';
+    ctx.fill();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  private drawAxisItem(item: ProjectedAxis, center: number): void {
+    const ctx = this.ctx;
+    const isHovered = this.hoveredAxis === item.axis.id;
+
+    ctx.beginPath();
+    ctx.moveTo(center, center);
+    ctx.lineTo(item.x, item.y);
+    ctx.strokeStyle = item.axis.color;
+    ctx.lineWidth = item.axis.isPositive ? 2.5 : 1.2;
+    ctx.globalAlpha = item.axis.isPositive ? 0.9 : 0.45;
+    ctx.stroke();
+    ctx.globalAlpha = 1.0;
+
+    ctx.beginPath();
+    const drawRadius = isHovered ? item.radius + 2 : item.radius;
+    ctx.arc(item.x, item.y, drawRadius, 0, Math.PI * 2);
+
+    if (item.axis.isPositive) {
+      this.drawPositiveNode(item, isHovered);
+    } else {
+      this.drawNegativeNode(item, isHovered);
+    }
+  }
+
+  private drawPositiveNode(item: ProjectedAxis, isHovered: boolean): void {
+    const ctx = this.ctx;
+    ctx.fillStyle = item.axis.color;
+    ctx.fill();
+    ctx.lineWidth = isHovered ? 2 : 1;
+    ctx.strokeStyle = '#ffffff';
+    ctx.stroke();
+
+    ctx.font = 'bold 10px Inter, sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(item.axis.label, item.x, item.y + 0.5);
+  }
+
+  private drawNegativeNode(item: ProjectedAxis, isHovered: boolean): void {
+    const ctx = this.ctx;
+    ctx.fillStyle = item.axis.color;
+    ctx.globalAlpha = 0.55;
+    ctx.fill();
+    ctx.globalAlpha = 1.0;
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.stroke();
+
+    if (isHovered) {
+      ctx.font = '9px Inter, sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(item.axis.label, item.x, item.y);
+    }
+  }
+
+  private readonly handlePointerMove = (e: MouseEvent): void => {
     const rect = this.canvas.getBoundingClientRect();
     const mouseX = e.clientX - rect.left;
     const mouseY = e.clientY - rect.top;
@@ -186,7 +203,7 @@ export class OrientationGizmo {
     }
   };
 
-  private handlePointerLeave = (): void => {
+  private readonly handlePointerLeave = (): void => {
     if (this.hoveredAxis !== null) {
       this.hoveredAxis = null;
       this.canvas.style.cursor = 'default';
@@ -194,7 +211,7 @@ export class OrientationGizmo {
     }
   };
 
-  private handlePointerDown = (e: MouseEvent): void => {
+  private readonly handlePointerDown = (e: MouseEvent): void => {
     e.stopPropagation();
     if (!this.hoveredAxis) return;
 

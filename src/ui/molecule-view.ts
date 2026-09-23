@@ -1,7 +1,7 @@
 import moleculesData from '../../assets/data/molecules.json';
 import elementsData from '../../assets/data/elements.json';
 import { MoleculeRenderer, MoleculeData as BaseMoleculeData } from '../render/molecule-renderer';
-import { getStrings, getLanguage, onLanguageChange, I18nStrings, ConceptExplanation } from '../i18n';
+import { getStrings, getLanguage, onLanguageChange } from '../i18n';
 import { ElementData } from './periodic-table';
 import { ExplanationModal } from './info-modal';
 import { icon } from './icons';
@@ -16,9 +16,9 @@ export interface LocalizedMoleculeData extends BaseMoleculeData {
 }
 
 export class MoleculeView {
-  private container: HTMLElement;
-  private renderer: MoleculeRenderer;
-  private molecules: LocalizedMoleculeData[] = moleculesData as LocalizedMoleculeData[];
+  private readonly container: HTMLElement;
+  private readonly renderer: MoleculeRenderer;
+  private readonly molecules: LocalizedMoleculeData[] = moleculesData as LocalizedMoleculeData[];
   private currentMolecule: LocalizedMoleculeData = this.molecules[1]; // H2O default
   private showLobes: boolean = true;
   private showAngles: boolean = true;
@@ -34,13 +34,20 @@ export class MoleculeView {
     };
     this.renderer.onAtomClick = (symbol) => {
       const element = (elementsData as ElementData[]).find((e) => e.symbol === symbol);
-      const elementName = element ? (getLanguage() === 'es' ? element.name_es : element.name_en) : symbol;
+      let elementName = symbol;
+      if (element) {
+        elementName = getLanguage() === 'es' ? element.name_es : element.name_en;
+      }
       const strings = getStrings();
       const title = `${strings.atomClickTitle}: ${elementName} (${symbol})`;
       ExplanationModal.showSimple(title, strings.atomClickSummary, strings.atomClickDetail);
     };
     this.render();
     onLanguageChange(() => this.render());
+  }
+
+  public getSelectedMolecule(): LocalizedMoleculeData {
+    return this.currentMolecule;
   }
 
   private getMoleculeName(m: LocalizedMoleculeData): string {
@@ -226,7 +233,7 @@ export class MoleculeView {
     const infoCard = this.container.querySelector('#molecule-info') as HTMLElement;
     if (infoCard) {
       infoCard.innerHTML = this.renderMoleculeInfo();
-      this.attachInfoButtonEvents(infoCard);
+      ExplanationModal.attachInfoButtons(infoCard);
     }
   }
 
@@ -291,23 +298,7 @@ export class MoleculeView {
       btnToggleLobes.title = this.showLobes ? strings.hideLobes : strings.showLobes;
     });
 
-    this.attachInfoButtonEvents(this.container);
-  }
-
-  private attachInfoButtonEvents(parent: HTMLElement): void {
-    const infoBtns = parent.querySelectorAll('.btn-info-icon');
-    const strings = getStrings();
-    infoBtns.forEach((btn) => {
-      btn.addEventListener('click', (e: Event) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const explainKey = (btn as HTMLElement).dataset.explain as keyof I18nStrings;
-        if (explainKey && strings[explainKey]) {
-          const explanation = strings[explainKey] as ConceptExplanation;
-          ExplanationModal.show(explanation);
-        }
-      });
-    });
+    ExplanationModal.attachInfoButtons(this.container);
   }
 }
 

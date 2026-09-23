@@ -11,15 +11,15 @@
     "wasm:build:dev": "cd crates/atomic-math && wasm-pack build --target web --out-dir pkg --dev"
   },
   "dependencies": {
-    "three": "^0.185.1"
+    "three": "^0.186.0"
   },
   "devDependencies": {
     "@types/node": "^26.5.1",
-    "@types/three": "^0.185.4",
+    "@types/three": "^0.186.0",
     "esbuild": "^0.28.2",
-    "rollup": "^4.63.1",
+    "rollup": "^4.63.3",
     "typescript": "~7.0.2",
-    "vite": "^8.2.2",
+    "vite": "^8.3.0",
     "vite-plugin-top-level-await": "^1.4.4",
     "vite-plugin-wasm": "^3.4.1"
   }

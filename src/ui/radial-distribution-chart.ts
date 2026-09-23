@@ -45,6 +45,22 @@ function calculateRadialProbabilityDensity(n: number, l: number, zEff: number, r
   return r * r * rNl * rNl;
 }
 
+function refineLaguerreRoot(p: number, q: number, left: number, right: number, prevVal: number): number {
+  for (let b = 0; b < 16; b++) {
+    const mid = 0.5 * (left + right);
+    const midVal = associatedLaguerre(p, q, mid);
+    if (midVal === 0) {
+      return mid;
+    }
+    if ((prevVal > 0 && midVal > 0) || (prevVal < 0 && midVal < 0)) {
+      left = mid;
+    } else {
+      right = mid;
+    }
+  }
+  return 0.5 * (left + right);
+}
+
 function findRadialNodes(n: number, l: number, zEff: number): number[] {
   const p = n - l - 1;
   if (p <= 0) return [];
@@ -62,26 +78,8 @@ function findRadialNodes(n: number, l: number, zEff: number): number[] {
     const rho = i * dRho;
     const val = associatedLaguerre(p, q, rho);
     if ((prevVal > 0 && val <= 0) || (prevVal < 0 && val >= 0)) {
-      // Bisection refinement
-      let left = prevRho;
-      let right = rho;
-      for (let b = 0; b < 16; b++) {
-        const mid = 0.5 * (left + right);
-        const midVal = associatedLaguerre(p, q, mid);
-        if (midVal === 0) {
-          left = mid;
-          right = mid;
-          break;
-        }
-        if ((prevVal > 0 && midVal > 0) || (prevVal < 0 && midVal < 0)) {
-          left = mid;
-        } else {
-          right = mid;
-        }
-      }
-      const rootRho = 0.5 * (left + right);
-      const rootR = (n * rootRho) / (2 * zEff);
-      nodes.push(rootR);
+      const rootRho = refineLaguerreRoot(p, q, prevRho, rho, prevVal);
+      nodes.push((n * rootRho) / (2 * zEff));
       if (nodes.length === p) break;
     }
     prevRho = rho;
@@ -91,11 +89,24 @@ function findRadialNodes(n: number, l: number, zEff: number): number[] {
   return nodes;
 }
 
+interface ChartLayout {
+  w: number;
+  plotH: number;
+  padLeft: number;
+  padRight: number;
+  padTop: number;
+  rMax: number;
+  yMax: number;
+  toX: (r: number) => number;
+  toY: (p: number) => number;
+}
+
 export class RadialDistributionChart {
-  private container: HTMLElement;
-  private canvas: HTMLCanvasElement;
-  private ctx: CanvasRenderingContext2D;
-  private resizeObserver: ResizeObserver;
+
+  private readonly container: HTMLElement;
+  private readonly canvas: HTMLCanvasElement;
+  private readonly ctx: CanvasRenderingContext2D;
+  private readonly resizeObserver: ResizeObserver;
   private animationFrameId: number = 0;
 
   private n: number = 1;
@@ -191,7 +202,7 @@ export class RadialDistributionChart {
     this.peakR = 0.5 * (a + b);
   }
 
-  private handleMouseMove = (e: MouseEvent): void => {
+  private readonly handleMouseMove = (e: MouseEvent): void => {
     const rect = this.canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const padLeft = 44;
@@ -208,7 +219,7 @@ export class RadialDistributionChart {
     this.draw();
   };
 
-  private handleMouseLeave = (): void => {
+  private readonly handleMouseLeave = (): void => {
     this.hoverR = null;
     this.draw();
   };
@@ -267,7 +278,49 @@ export class RadialDistributionChart {
     const toX = (r: number) => padLeft + (r / rMax) * plotW;
     const toY = (p: number) => padTop + plotH - (p / yMax) * plotH;
 
-    // Draw Grid & Axes
+    const layout: ChartLayout = { w, plotH, padLeft, padRight, padTop, rMax, yMax, toX, toY };
+    this.drawGrid(layout);
+
+    // Area Fill under Curve
+    ctx.beginPath();
+    ctx.moveTo(toX(0), toY(0));
+    for (let i = 0; i <= pointCount; i++) {
+      ctx.lineTo(toX(rValues[i]), toY(pValues[i]));
+    }
+    ctx.lineTo(toX(rMax), toY(0));
+    ctx.closePath();
+
+    const areaGrad = ctx.createLinearGradient(0, padTop, 0, padTop + plotH);
+    areaGrad.addColorStop(0, 'rgba(0, 229, 255, 0.35)');
+    areaGrad.addColorStop(0.6, 'rgba(32, 128, 255, 0.18)');
+    areaGrad.addColorStop(1, 'rgba(124, 58, 237, 0.02)');
+    ctx.fillStyle = areaGrad;
+    ctx.fill();
+
+    // Curve Stroke
+    ctx.beginPath();
+    ctx.moveTo(toX(rValues[0]), toY(pValues[0]));
+    for (let i = 1; i <= pointCount; i++) {
+      ctx.lineTo(toX(rValues[i]), toY(pValues[i]));
+    }
+
+    const strokeGrad = ctx.createLinearGradient(padLeft, 0, w - padRight, 0);
+    strokeGrad.addColorStop(0, '#00e5ff');
+    strokeGrad.addColorStop(0.5, '#38bdf8');
+    strokeGrad.addColorStop(1, '#a855f7');
+
+    ctx.lineWidth = 2.5;
+    ctx.strokeStyle = strokeGrad;
+    ctx.stroke();
+
+    this.drawMarkers(layout);
+    this.drawHover(layout);
+  }
+
+  private drawGrid(layout: ChartLayout): void {
+    const { w, plotH, padLeft, padRight, padTop, rMax, yMax, toX, toY } = layout;
+    const ctx = this.ctx;
+
     ctx.lineWidth = 1;
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
     ctx.fillStyle = '#8080a0';
@@ -316,38 +369,13 @@ export class RadialDistributionChart {
     ctx.textAlign = 'left';
     ctx.textBaseline = 'bottom';
     ctx.fillText(strings.chartProbAxis, padLeft, padTop - 6);
+  }
 
-    // Area Fill under Curve
-    ctx.beginPath();
-    ctx.moveTo(toX(0), toY(0));
-    for (let i = 0; i <= pointCount; i++) {
-      ctx.lineTo(toX(rValues[i]), toY(pValues[i]));
-    }
-    ctx.lineTo(toX(rMax), toY(0));
-    ctx.closePath();
+  private drawMarkers(layout: ChartLayout): void {
+    const { plotH, padTop, rMax, toX, toY } = layout;
+    const ctx = this.ctx;
+    const strings = getStrings();
 
-    const areaGrad = ctx.createLinearGradient(0, padTop, 0, padTop + plotH);
-    areaGrad.addColorStop(0, 'rgba(0, 229, 255, 0.35)');
-    areaGrad.addColorStop(0.6, 'rgba(32, 128, 255, 0.18)');
-    areaGrad.addColorStop(1, 'rgba(124, 58, 237, 0.02)');
-    ctx.fillStyle = areaGrad;
-    ctx.fill();
-
-    // Curve Stroke
-    ctx.beginPath();
-    ctx.moveTo(toX(rValues[0]), toY(pValues[0]));
-    for (let i = 1; i <= pointCount; i++) {
-      ctx.lineTo(toX(rValues[i]), toY(pValues[i]));
-    }
-
-    const strokeGrad = ctx.createLinearGradient(padLeft, 0, w - padRight, 0);
-    strokeGrad.addColorStop(0, '#00e5ff');
-    strokeGrad.addColorStop(0.5, '#38bdf8');
-    strokeGrad.addColorStop(1, '#a855f7');
-
-    ctx.lineWidth = 2.5;
-    ctx.strokeStyle = strokeGrad;
-    ctx.stroke();
 
     // Radial Nodes Markers (P(r) = 0)
     this.radialNodes.forEach((nodeR) => {
@@ -355,7 +383,6 @@ export class RadialDistributionChart {
         const nx = toX(nodeR);
         const ny = toY(0);
 
-        // Dashed line
         ctx.save();
         ctx.setLineDash([3, 3]);
         ctx.strokeStyle = 'rgba(244, 63, 94, 0.7)';
@@ -366,7 +393,6 @@ export class RadialDistributionChart {
         ctx.stroke();
         ctx.restore();
 
-        // Glowing node dot on baseline
         ctx.fillStyle = '#f43f5e';
         ctx.beginPath();
         ctx.arc(nx, ny, 3.5, 0, Math.PI * 2);
@@ -395,14 +421,12 @@ export class RadialDistributionChart {
       ctx.stroke();
       ctx.restore();
 
-      // Top badge
       ctx.fillStyle = '#fbbf24';
       ctx.font = 'bold 9px Inter, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
       ctx.fillText(`⟨r⟩ ${this.expR.toFixed(2)}`, ex, padTop + 2);
 
-      // Dot on curve
       ctx.fillStyle = '#f59e0b';
       ctx.beginPath();
       ctx.arc(ex, ey, 3, 0, Math.PI * 2);
@@ -424,7 +448,6 @@ export class RadialDistributionChart {
       ctx.stroke();
       ctx.restore();
 
-      // Diamond marker on peak
       ctx.fillStyle = '#38bdf8';
       ctx.beginPath();
       ctx.moveTo(px, py - 5);
@@ -434,71 +457,74 @@ export class RadialDistributionChart {
       ctx.closePath();
       ctx.fill();
 
-      // Top label
       ctx.fillStyle = '#38bdf8';
       ctx.font = 'bold 9px Inter, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'bottom';
       ctx.fillText(`r_max ${this.peakR.toFixed(2)}`, px, py - 6);
     }
+  }
 
-    // Hover Crosshair & Dynamic Values
-    if (this.hoverR !== null && this.hoverR <= rMax) {
-      const hx = toX(this.hoverR);
-      const hp = calculateRadialProbabilityDensity(this.n, this.l, this.zEff, this.hoverR);
-      const hy = toY(hp);
-      const hPm = this.hoverR * 52.917721;
+  private drawHover(layout: ChartLayout): void {
+    const { w, plotH, padTop, padRight, rMax, toX, toY } = layout;
+    if (this.hoverR === null || this.hoverR > rMax) return;
+    const ctx = this.ctx;
 
-      // Crosshair line
-      ctx.save();
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([2, 2]);
-      ctx.beginPath();
-      ctx.moveTo(hx, padTop);
-      ctx.lineTo(hx, padTop + plotH);
-      ctx.stroke();
-      ctx.restore();
 
-      // Glowing dot at hover curve point
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.arc(hx, hy, 4.5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.strokeStyle = '#2080ff';
-      ctx.lineWidth = 2;
-      ctx.stroke();
+    const hx = toX(this.hoverR);
+    const hp = calculateRadialProbabilityDensity(this.n, this.l, this.zEff, this.hoverR);
+    const hy = toY(hp);
+    const hPm = this.hoverR * 52.917721;
 
-      // Hover Card Badge
-      const tooltipText1 = `r = ${this.hoverR.toFixed(2)} a₀ (${hPm.toFixed(1)} pm)`;
-      const tooltipText2 = `P(r) = ${hp.toFixed(4)}`;
+    // Crosshair line
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 2]);
+    ctx.beginPath();
+    ctx.moveTo(hx, padTop);
+    ctx.lineTo(hx, padTop + plotH);
+    ctx.stroke();
+    ctx.restore();
 
-      ctx.font = '10px monospace';
-      const tw = Math.max(ctx.measureText(tooltipText1).width, ctx.measureText(tooltipText2).width) + 16;
-      const th = 34;
+    // Glowing dot at hover curve point
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(hx, hy, 4.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#2080ff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
 
-      let tx = hx + 10;
-      if (tx + tw > w - padRight) {
-        tx = hx - tw - 10;
-      }
-      let ty = Math.max(padTop + 4, Math.min(padTop + plotH - th - 4, hy - th / 2));
+    // Hover Card Badge
+    const tooltipText1 = `r = ${this.hoverR.toFixed(2)} a₀ (${hPm.toFixed(1)} pm)`;
+    const tooltipText2 = `P(r) = ${hp.toFixed(4)}`;
 
-      ctx.fillStyle = 'rgba(14, 14, 28, 0.88)';
-      ctx.strokeStyle = 'rgba(64, 192, 255, 0.4)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.roundRect(tx, ty, tw, th, 6);
-      ctx.fill();
-      ctx.stroke();
+    ctx.font = '10px monospace';
+    const tw = Math.max(ctx.measureText(tooltipText1).width, ctx.measureText(tooltipText2).width) + 16;
+    const th = 34;
 
-      ctx.fillStyle = '#ffffff';
-      ctx.textBaseline = 'top';
-      ctx.textAlign = 'left';
-      ctx.fillText(tooltipText1, tx + 8, ty + 5);
-
-      ctx.fillStyle = '#40c0ff';
-      ctx.fillText(tooltipText2, tx + 8, ty + 18);
+    let tx = hx + 10;
+    if (tx + tw > w - padRight) {
+      tx = hx - tw - 10;
     }
+    const ty = Math.max(padTop + 4, Math.min(padTop + plotH - th - 4, hy - th / 2));
+
+    ctx.fillStyle = 'rgba(14, 14, 28, 0.88)';
+    ctx.strokeStyle = 'rgba(64, 192, 255, 0.4)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.roundRect(tx, ty, tw, th, 6);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'left';
+    ctx.fillText(tooltipText1, tx + 8, ty + 5);
+
+    ctx.fillStyle = '#40c0ff';
+    ctx.fillText(tooltipText2, tx + 8, ty + 18);
   }
 
   public destroy(): void {
