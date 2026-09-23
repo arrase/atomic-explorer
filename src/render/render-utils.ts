@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { OrientationGizmo } from './orientation-gizmo';
 
 export type RendererTarget =
   | HTMLCanvasElement
@@ -149,4 +150,157 @@ export function captureWebGLSnapshot(
   onRestore();
 
   return dataUrl;
+}
+
+export abstract class BaseThreeRenderer {
+  protected readonly renderer: THREE.WebGLRenderer;
+  protected readonly scene: THREE.Scene;
+  protected readonly camera: THREE.PerspectiveCamera;
+  protected readonly controls: OrbitControls;
+  protected readonly isShared: boolean;
+  protected autoRotate: boolean = false;
+  protected autoRotateSpeed: number = 2.0;
+  protected minAlignDistance: number = 2.0;
+  protected defaultCameraPos: THREE.Vector3;
+  protected defaultTarget: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
+  protected gizmo: OrientationGizmo | null = null;
+  protected isAnimating: boolean = false;
+  private animationId: number = 0;
+  private cameraTransitionId: number = 0;
+
+  constructor(target: RendererTarget, initialCameraPos: THREE.Vector3, clearColorHex: string = '#0a0a1a') {
+    const { renderer, isShared } = initRendererTarget(target, clearColorHex);
+    this.renderer = renderer;
+    this.isShared = isShared;
+    this.defaultCameraPos = initialCameraPos.clone();
+
+    this.scene = new THREE.Scene();
+
+    this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+    this.camera.position.copy(initialCameraPos);
+
+    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
+    this.controls.enableDamping = true;
+    this.controls.dampingFactor = 0.05;
+
+    if (!this.isShared) {
+      window.addEventListener('resize', this.onWindowResize);
+    }
+    this.onWindowResize();
+  }
+
+  protected getEffectivePixelRatio(): number {
+    return Math.min(window.devicePixelRatio, 2.0);
+  }
+
+  public readonly onWindowResize = (): void => {
+    this.camera.aspect = window.innerWidth / window.innerHeight;
+    this.camera.updateProjectionMatrix();
+    this.renderer.setPixelRatio(this.getEffectivePixelRatio());
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
+  };
+
+  public async captureSnapshot(options: SnapshotOptions): Promise<string> {
+    return captureWebGLSnapshot(this.renderer, this.scene, this.camera, options, this.onWindowResize);
+  }
+
+  public setGizmo(gizmo: OrientationGizmo | null): void {
+    this.gizmo = gizmo;
+    if (gizmo) {
+      gizmo.setCamera(this.camera, (dir, up) => this.alignCameraTo(dir, up));
+    }
+  }
+
+  public toggleAutoRotate(enabled?: boolean): boolean {
+    this.autoRotate = enabled ?? !this.autoRotate;
+    this.controls.autoRotate = this.autoRotate;
+    this.controls.autoRotateSpeed = this.autoRotateSpeed;
+    return this.autoRotate;
+  }
+
+  public isAutoRotating(): boolean {
+    return this.autoRotate;
+  }
+
+  public resetCamera(): void {
+    this.animateCameraTo(this.defaultCameraPos.clone(), new THREE.Vector3(0, 1, 0), this.defaultTarget.clone(), 450);
+  }
+
+  public resetCameraInstant(): void {
+    this.camera.position.copy(this.defaultCameraPos);
+    this.camera.up.set(0, 1, 0);
+    this.controls.target.copy(this.defaultTarget);
+    this.controls.update();
+    if (this.gizmo) this.gizmo.update();
+  }
+
+  public alignCameraTo(dir: THREE.Vector3, up: THREE.Vector3): void {
+    const dist = this.camera.position.distanceTo(this.controls.target);
+    const targetPos = this.controls.target.clone().addScaledVector(dir, Math.max(dist, this.minAlignDistance));
+    this.animateCameraTo(targetPos, up, this.controls.target.clone(), 400);
+  }
+
+  public alignCameraToInstant(dir: THREE.Vector3, up: THREE.Vector3): void {
+    const dist = this.camera.position.distanceTo(this.controls.target);
+    const targetPos = this.controls.target.clone().addScaledVector(dir, Math.max(dist, this.minAlignDistance));
+    setCameraInstant(this.camera, this.controls, targetPos, up, undefined, () => this.gizmo?.update());
+  }
+
+  public animateCameraTo(
+    targetPos: THREE.Vector3,
+    targetUp: THREE.Vector3 = new THREE.Vector3(0, 1, 0),
+    targetLookAt?: THREE.Vector3,
+    duration: number = 400
+  ): void {
+    cancelAnimationFrame(this.cameraTransitionId);
+    this.cameraTransitionId = runCameraAnimation({
+      camera: this.camera,
+      controls: this.controls,
+      targetPos,
+      targetUp,
+      targetLookAt,
+      duration,
+      onUpdate: () => this.gizmo?.update(),
+    });
+  }
+
+  public start(): void {
+    this.controls.enabled = true;
+    if (!this.isAnimating) {
+      this.isAnimating = true;
+      cancelAnimationFrame(this.animationId);
+      this.animate();
+    }
+  }
+
+  public stop(): void {
+    this.controls.enabled = false;
+    this.isAnimating = false;
+    cancelAnimationFrame(this.animationId);
+  }
+
+  public readonly animate = (): void => {
+    if (!this.isAnimating) return;
+    this.animationId = requestAnimationFrame(this.animate);
+    this.controls.update();
+
+    if (this.gizmo) {
+      this.gizmo.update();
+    }
+
+    this.renderer.render(this.scene, this.camera);
+  };
+
+  public dispose(): void {
+    cancelAnimationFrame(this.animationId);
+    cancelAnimationFrame(this.cameraTransitionId);
+    window.removeEventListener('resize', this.onWindowResize);
+    this.cleanupScene();
+    this.controls.dispose();
+    if (!this.isShared) {
+      this.renderer.dispose();
+    }
+  }
+
+  protected abstract cleanupScene(): void;
 }

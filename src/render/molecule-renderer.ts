@@ -1,8 +1,5 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { captureWebGLSnapshot, SnapshotOptions, initRendererTarget, runCameraAnimation, setCameraInstant } from './render-utils';
-import { OrientationGizmo } from './orientation-gizmo';
-
+import { BaseThreeRenderer, RendererTarget } from './render-utils';
 
 export interface MoleculeAtom {
   symbol: string;
@@ -46,24 +43,9 @@ interface AngleCandidatePair {
   v2Len: number;
 }
 
-export type MoleculeRendererTarget =
-  | HTMLCanvasElement
-  | THREE.WebGLRenderer
-  | { canvas?: HTMLCanvasElement; renderer: THREE.WebGLRenderer };
+export type MoleculeRendererTarget = RendererTarget;
 
-export class MoleculeRenderer {
-  private readonly renderer: THREE.WebGLRenderer;
-  private readonly scene: THREE.Scene;
-  private readonly camera: THREE.PerspectiveCamera;
-  private readonly controls: OrbitControls;
-  private animationId: number = 0;
-  private cameraTransitionId: number = 0;
-  private autoRotate: boolean = false;
-  private gizmo: OrientationGizmo | null = null;
-  private readonly centroid = new THREE.Vector3(0, 0, 0);
-  private readonly defaultCameraPos = new THREE.Vector3(0, 0, 10);
-  private readonly isShared: boolean;
-
+export class MoleculeRenderer extends BaseThreeRenderer {
   private readonly moleculeGroup: THREE.Group;
   private readonly lobesGroup: THREE.Group;
   private readonly anglesGroup: THREE.Group;
@@ -77,19 +59,7 @@ export class MoleculeRenderer {
   private showAngles: boolean = true;
 
   constructor(target: MoleculeRendererTarget) {
-    const { renderer, isShared } = initRendererTarget(target);
-    this.renderer = renderer;
-    this.isShared = isShared;
-
-
-    this.scene = new THREE.Scene();
-
-    this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-    this.camera.position.set(0, 0, 10);
-
-    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-    this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.05;
+    super(target, new THREE.Vector3(0, 0, 10));
 
     this.moleculeGroup = new THREE.Group();
     this.lobesGroup = new THREE.Group();
@@ -104,10 +74,6 @@ export class MoleculeRenderer {
     this.scene.add(this.anglesGroup);
 
     this.setupLighting();
-    if (!this.isShared) {
-      window.addEventListener('resize', this.onWindowResize);
-    }
-    this.onWindowResize();
     this.stop();
   }
 
@@ -191,8 +157,8 @@ export class MoleculeRenderer {
     const sphere = new THREE.Sphere();
     box.getBoundingSphere(sphere);
 
-    this.centroid.copy(sphere.center);
-    this.controls.target.copy(this.centroid);
+    this.defaultTarget.copy(sphere.center);
+    this.controls.target.copy(this.defaultTarget);
 
     const fov = (this.camera.fov * Math.PI) / 180;
     const aspect = Math.max(this.camera.aspect, 0.1);
@@ -201,9 +167,9 @@ export class MoleculeRenderer {
     const distH = sphere.radius / Math.sin(fovH / 2);
     const distance = Math.max(distV, distH) * 1.35;
 
-    this.defaultCameraPos.set(this.centroid.x, this.centroid.y, this.centroid.z + distance);
+    this.defaultCameraPos.set(this.defaultTarget.x, this.defaultTarget.y, this.defaultTarget.z + distance);
     this.camera.position.copy(this.defaultCameraPos);
-    this.camera.lookAt(this.centroid);
+    this.camera.lookAt(this.defaultTarget);
     this.controls.update();
     if (this.gizmo) {
       this.gizmo.update();
@@ -581,101 +547,10 @@ export class MoleculeRenderer {
     clearGroup(this.anglesGroup);
   }
 
-  public readonly onWindowResize = (): void => {
-    this.camera.aspect = window.innerWidth / window.innerHeight;
-    this.camera.updateProjectionMatrix();
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.0));
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-  };
-
-  public async captureSnapshot(options: SnapshotOptions): Promise<string> {
-    return captureWebGLSnapshot(this.renderer, this.scene, this.camera, options, this.onWindowResize);
+  protected override cleanupScene(): void {
+    this.renderer.domElement.removeEventListener('click', this.onMouseClick);
+    this.clear();
   }
-
-  public setGizmo(gizmo: OrientationGizmo | null): void {
-    this.gizmo = gizmo;
-    if (gizmo) {
-      gizmo.setCamera(this.camera, (dir, up) => this.alignCameraTo(dir, up));
-    }
-  }
-
-  public toggleAutoRotate(enabled?: boolean): boolean {
-    this.autoRotate = enabled ?? !this.autoRotate;
-    this.controls.autoRotate = this.autoRotate;
-    this.controls.autoRotateSpeed = 2.0;
-    return this.autoRotate;
-  }
-
-  public isAutoRotating(): boolean {
-    return this.autoRotate;
-  }
-
-  public resetCamera(): void {
-    this.animateCameraTo(this.defaultCameraPos.clone(), new THREE.Vector3(0, 1, 0), this.centroid.clone(), 450);
-  }
-
-  public resetCameraInstant(): void {
-    this.camera.position.copy(this.defaultCameraPos);
-    this.camera.up.set(0, 1, 0);
-    this.controls.target.copy(this.centroid);
-    this.controls.update();
-    if (this.gizmo) this.gizmo.update();
-  }
-
-  public alignCameraTo(dir: THREE.Vector3, up: THREE.Vector3): void {
-    const dist = this.camera.position.distanceTo(this.controls.target);
-    const targetPos = this.controls.target.clone().addScaledVector(dir, Math.max(dist, 2.0));
-    this.animateCameraTo(targetPos, up, this.controls.target.clone(), 400);
-  }
-
-  public alignCameraToInstant(dir: THREE.Vector3, up: THREE.Vector3): void {
-    const dist = this.camera.position.distanceTo(this.controls.target);
-    const targetPos = this.controls.target.clone().addScaledVector(dir, Math.max(dist, 2.0));
-    setCameraInstant(this.camera, this.controls, targetPos, up, undefined, () => this.gizmo?.update());
-  }
-
-  public animateCameraTo(targetPos: THREE.Vector3, targetUp: THREE.Vector3 = new THREE.Vector3(0, 1, 0), targetLookAt?: THREE.Vector3, duration: number = 400): void {
-    cancelAnimationFrame(this.cameraTransitionId);
-    this.cameraTransitionId = runCameraAnimation({
-      camera: this.camera,
-      controls: this.controls,
-      targetPos,
-      targetUp,
-      targetLookAt,
-      duration,
-      onUpdate: () => this.gizmo?.update(),
-    });
-  }
-
-
-  private isAnimating: boolean = false;
-
-  public start(): void {
-    this.controls.enabled = true;
-    if (!this.isAnimating) {
-      this.isAnimating = true;
-      cancelAnimationFrame(this.animationId);
-      this.animate();
-    }
-  }
-
-  public stop(): void {
-    this.controls.enabled = false;
-    this.isAnimating = false;
-    cancelAnimationFrame(this.animationId);
-  }
-
-  public readonly animate = (): void => {
-    if (!this.isAnimating) return;
-    this.animationId = requestAnimationFrame(this.animate);
-    this.controls.update();
-
-    if (this.gizmo) {
-      this.gizmo.update();
-    }
-
-    this.renderer.render(this.scene, this.camera);
-  };
 
   private readonly onMouseClick = (event: MouseEvent): void => {
     if (!this.isAnimating) return;
@@ -701,16 +576,4 @@ export class MoleculeRenderer {
       }
     }
   };
-
-  public dispose(): void {
-    cancelAnimationFrame(this.animationId);
-    cancelAnimationFrame(this.cameraTransitionId);
-    window.removeEventListener('resize', this.onWindowResize);
-    this.renderer.domElement.removeEventListener('click', this.onMouseClick);
-    this.clear();
-    this.controls.dispose();
-    if (!this.isShared) {
-      this.renderer.dispose();
-    }
-  }
 }

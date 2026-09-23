@@ -1,8 +1,6 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { MarchingCubes } from 'three/addons/objects/MarchingCubes.js';
-import { captureWebGLSnapshot, SnapshotOptions, initRendererTarget, runCameraAnimation, setCameraInstant, RendererTarget } from './render-utils';
-import { OrientationGizmo } from './orientation-gizmo';
+import { BaseThreeRenderer, RendererTarget } from './render-utils';
 import { evaluateIsosurfaceGrid } from '../core/wasm-bridge';
 
 export type RenderMode = 'points' | 'isosurface' | 'raymarching';
@@ -325,23 +323,12 @@ const raymarchFragmentShader = `
   }
 `;
 
-export class OrbitalRenderer {
-  private readonly renderer: THREE.WebGLRenderer;
-  private readonly scene: THREE.Scene;
-  private readonly camera: THREE.PerspectiveCamera;
-  private readonly controls: OrbitControls;
-  private animationId: number = 0;
-  private cameraTransitionId: number = 0;
-  private autoRotate: boolean = false;
-  private gizmo: OrientationGizmo | null = null;
-  private readonly defaultCameraPos = new THREE.Vector3(16, 16, 16);
-
+export class OrbitalRenderer extends BaseThreeRenderer {
   private pointsMesh: THREE.Points | null = null;
   private marchingCubesGroup: THREE.Group | null = null;
   private raymarchingMesh: THREE.Mesh | null = null;
   private raymarchingMaterial: THREE.ShaderMaterial | null = null;
 
-  private readonly isShared: boolean;
   private currentMode: RenderMode = 'points';
   private currentParams: OrbitalRenderParams = {
     n: 1,
@@ -358,26 +345,11 @@ export class OrbitalRenderer {
   };
 
   constructor(target: RendererTarget) {
-    const { renderer, isShared } = initRendererTarget(target);
-    this.renderer = renderer;
-    this.isShared = isShared;
-
-
-    this.scene = new THREE.Scene();
-
-    this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-    this.camera.position.set(16, 16, 16);
-
-    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-    this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.05;
+    super(target, new THREE.Vector3(16, 16, 16));
+    this.autoRotateSpeed = 1.5;
+    this.minAlignDistance = 5.0;
 
     this.setupLighting();
-
-    if (!this.isShared) {
-      window.addEventListener('resize', this.onWindowResize);
-    }
-    this.onWindowResize();
   }
 
   private setupLighting(): void {
@@ -781,116 +753,13 @@ export class OrbitalRenderer {
     }
   }
 
-  public readonly onWindowResize = (): void => {
+  protected override getEffectivePixelRatio(): number {
     const resScale = this.currentParams.resolutionScale ?? 1.0;
-    const pixelRatio = Math.min(window.devicePixelRatio * resScale, 2.0);
-
-    this.camera.aspect = window.innerWidth / window.innerHeight;
-    this.camera.updateProjectionMatrix();
-
-    this.renderer.setPixelRatio(pixelRatio);
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-
-  };
-
-  public async captureSnapshot(options: SnapshotOptions): Promise<string> {
-    return captureWebGLSnapshot(this.renderer, this.scene, this.camera, options, this.onWindowResize);
+    return Math.min(window.devicePixelRatio * resScale, 2.0);
   }
 
-  public setGizmo(gizmo: OrientationGizmo | null): void {
-    this.gizmo = gizmo;
-    if (gizmo) {
-      gizmo.setCamera(this.camera, (dir, up) => this.alignCameraTo(dir, up));
-    }
-  }
-
-  public toggleAutoRotate(enabled?: boolean): boolean {
-    this.autoRotate = enabled ?? !this.autoRotate;
-    this.controls.autoRotate = this.autoRotate;
-    this.controls.autoRotateSpeed = 1.5;
-    return this.autoRotate;
-  }
-
-  public isAutoRotating(): boolean {
-    return this.autoRotate;
-  }
-
-  public resetCamera(): void {
-    this.animateCameraTo(this.defaultCameraPos.clone(), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0), 450);
-  }
-
-  public resetCameraInstant(): void {
-    this.camera.position.copy(this.defaultCameraPos);
-    this.camera.up.set(0, 1, 0);
-    this.controls.target.set(0, 0, 0);
-    this.controls.update();
-    if (this.gizmo) this.gizmo.update();
-  }
-
-  public alignCameraTo(dir: THREE.Vector3, up: THREE.Vector3): void {
-    const dist = this.camera.position.distanceTo(this.controls.target);
-    const targetPos = this.controls.target.clone().addScaledVector(dir, Math.max(dist, 5.0));
-    this.animateCameraTo(targetPos, up, this.controls.target.clone(), 400);
-  }
-
-  public alignCameraToInstant(dir: THREE.Vector3, up: THREE.Vector3): void {
-    const dist = this.camera.position.distanceTo(this.controls.target);
-    const targetPos = this.controls.target.clone().addScaledVector(dir, Math.max(dist, 5.0));
-    setCameraInstant(this.camera, this.controls, targetPos, up, undefined, () => this.gizmo?.update());
-  }
-
-  public animateCameraTo(targetPos: THREE.Vector3, targetUp: THREE.Vector3 = new THREE.Vector3(0, 1, 0), targetLookAt?: THREE.Vector3, duration: number = 400): void {
-    cancelAnimationFrame(this.cameraTransitionId);
-    this.cameraTransitionId = runCameraAnimation({
-      camera: this.camera,
-      controls: this.controls,
-      targetPos,
-      targetUp,
-      targetLookAt,
-      duration,
-      onUpdate: () => this.gizmo?.update(),
-    });
-  }
-
-
-  private isAnimating: boolean = false;
-
-  public start(): void {
-    this.controls.enabled = true;
-    if (!this.isAnimating) {
-      this.isAnimating = true;
-      cancelAnimationFrame(this.animationId);
-      this.animate();
-    }
-  }
-
-  public stop(): void {
-    this.controls.enabled = false;
-    this.isAnimating = false;
-    cancelAnimationFrame(this.animationId);
-  }
-
-  public readonly animate = (): void => {
-    if (!this.isAnimating) return;
-    this.animationId = requestAnimationFrame(this.animate);
-    this.controls.update();
-
-    if (this.gizmo) {
-      this.gizmo.update();
-    }
-
-    this.renderer.render(this.scene, this.camera);
-  };
-
-  public dispose(): void {
-    cancelAnimationFrame(this.animationId);
-    cancelAnimationFrame(this.cameraTransitionId);
-    window.removeEventListener('resize', this.onWindowResize);
+  protected override cleanupScene(): void {
     this.clearCurrentMesh();
-    this.controls.dispose();
-    if (!this.isShared) {
-      this.renderer.dispose();
-    }
   }
 }
 
