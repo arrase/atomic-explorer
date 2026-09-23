@@ -1,9 +1,14 @@
 use approx::assert_relative_eq;
 use atomic_math::{
+    calculate_spontaneous_emission_rate, calculate_transition_wavelength, evaluate_density_grid,
+    evaluate_isosurface_grid, get_slater_z_eff, is_dipole_transition_allowed,
+    sample_orbital_points,
     grid::evaluate_density_grid_internal,
+    math_utils::{associated_legendre, factorial},
     probability_density, real_orbital_kind_from_lm, sample_points,
     slater::{calculate_slater_z_eff, get_slater_z_eff_by_name, parse_orbital_designation},
-    transition::{calculate_energy_ev, calculate_transition, spectral_series_name},
+    spherical_harmonics::{angular_density_max, y_lm_density, y_lm_real, y_lm_theta_component},
+    transition::{calculate_energy_ev, calculate_transition, radial_dipole_integral, spectral_series_name},
     wavefunctions::r_nl,
     OrbitalMode, QuantumNumbers, RealOrbitalKind,
 };
@@ -441,6 +446,231 @@ fn test_angular_momentum_safety() {
     // real_orbital_kind_from_lm for l > 3 returns None
     assert_eq!(real_orbital_kind_from_lm(4, 0), None);
     assert_eq!(real_orbital_kind_from_lm(4, 4), None);
+}
+
+#[test]
+fn test_wasm_calculate_transition_wavelength() {
+    let wl = calculate_transition_wavelength(1.0, 1, 2).unwrap();
+    assert_relative_eq!(wl, 121.5, epsilon = 0.2);
+
+    let wl_rev = calculate_transition_wavelength(1.0, 2, 1).unwrap();
+    assert_relative_eq!(wl_rev, 121.5, epsilon = 0.2);
+
+    assert!(calculate_transition_wavelength(1.0, 2, 2).is_err());
+    assert!(calculate_transition_wavelength(1.0, 0, 2).is_err());
+    assert!(calculate_transition_wavelength(1.0, 2, 0).is_err());
+    assert!(calculate_transition_wavelength(0.0, 1, 2).is_err());
+    assert!(calculate_transition_wavelength(-1.0, 1, 2).is_err());
+}
+
+#[test]
+fn test_wasm_is_dipole_transition_allowed() {
+    assert!(is_dipole_transition_allowed(0, 0, 1, 0));
+    assert!(is_dipole_transition_allowed(0, 0, 1, 1));
+    assert!(is_dipole_transition_allowed(0, 0, 1, -1));
+
+    assert!(!is_dipole_transition_allowed(0, 0, 2, 0));
+    assert!(!is_dipole_transition_allowed(0, 0, 0, 0));
+    assert!(!is_dipole_transition_allowed(1, -1, 2, 1));
+}
+
+#[test]
+fn test_wasm_calculate_spontaneous_emission_rate() {
+    let rate = calculate_spontaneous_emission_rate(1.0, 1, 0, 2, 1).unwrap();
+    assert!(rate > 0.0);
+    assert_relative_eq!(rate, 6.268e8, epsilon = 0.05 * 6.268e8);
+
+    assert!(calculate_spontaneous_emission_rate(1.0, 2, 0, 1, 1).is_err());
+    assert!(calculate_spontaneous_emission_rate(1.0, 2, 0, 2, 1).is_err());
+
+    let forbidden_rate = calculate_spontaneous_emission_rate(1.0, 1, 0, 3, 2).unwrap();
+    assert_eq!(forbidden_rate, 0.0);
+}
+
+#[test]
+fn test_wasm_get_slater_z_eff() {
+    let z_c = get_slater_z_eff(6, 2, 1).unwrap();
+    assert_relative_eq!(z_c, 3.25, epsilon = 1e-5);
+
+    assert!(get_slater_z_eff(0, 2, 1).is_err());
+    assert!(get_slater_z_eff(6, 0, 0).is_err());
+    assert!(get_slater_z_eff(6, 2, 2).is_err());
+}
+
+#[test]
+fn test_wasm_sample_orbital_points() {
+    let pts_1s = sample_orbital_points(1, 0, 0, true, 1.0, 50, 42).unwrap();
+    assert_eq!(pts_1s.len(), 50 * 4);
+
+    let pts_2pz = sample_orbital_points(2, 1, 0, true, 1.0, 50, 42).unwrap();
+    assert_eq!(pts_2pz.len(), 50 * 4);
+
+    let pts_pure = sample_orbital_points(2, 1, 0, false, 1.0, 50, 42).unwrap();
+    assert_eq!(pts_pure.len(), 50 * 4);
+
+    assert!(sample_orbital_points(0, 0, 0, true, 1.0, 50, 42).is_err());
+    assert!(sample_orbital_points(2, 2, 0, true, 1.0, 50, 42).is_err());
+    assert!(sample_orbital_points(2, 1, 2, true, 1.0, 50, 42).is_err());
+    assert!(sample_orbital_points(1, 0, 0, true, 0.0, 50, 42).is_err());
+}
+
+#[test]
+fn test_wasm_evaluate_density_grid() {
+    let grid_size = 8;
+    let grid_1s = evaluate_density_grid(1, 0, 0, true, 1.0, grid_size, 4.0).unwrap();
+    assert_eq!(grid_1s.len(), grid_size * grid_size * grid_size);
+    for &val in &grid_1s {
+        assert!(val >= 0.0);
+    }
+
+    let grid_pure = evaluate_density_grid(1, 0, 0, false, 1.0, grid_size, 4.0).unwrap();
+    assert_eq!(grid_pure.len(), grid_size * grid_size * grid_size);
+
+    assert!(evaluate_density_grid(1, 0, 0, true, 1.0, 0, 4.0).is_err());
+    assert!(evaluate_density_grid(1, 0, 0, true, 1.0, grid_size, 0.0).is_err());
+    assert!(evaluate_density_grid(1, 0, 0, true, 1.0, grid_size, -2.0).is_err());
+}
+
+#[test]
+fn test_wasm_evaluate_isosurface_grid() {
+    let grid_size = 8;
+    let grid_2pz = evaluate_isosurface_grid(2, 1, 0, true, 1.0, grid_size, &[5.0, 2.0]).unwrap();
+    assert_eq!(grid_2pz.len(), grid_size * grid_size * grid_size);
+
+    let grid_pure = evaluate_isosurface_grid(2, 1, 0, false, 1.0, grid_size, &[5.0, 2.0]).unwrap();
+    assert_eq!(grid_pure.len(), grid_size * grid_size * grid_size);
+
+    assert!(evaluate_isosurface_grid(2, 1, 0, true, 1.0, grid_size, &[5.0]).is_err());
+    assert!(evaluate_isosurface_grid(2, 1, 0, true, 1.0, grid_size, &[]).is_err());
+
+    assert!(evaluate_isosurface_grid(0, 0, 0, true, 1.0, grid_size, &[5.0, 2.0]).is_err());
+    assert!(evaluate_isosurface_grid(2, 2, 0, true, 1.0, grid_size, &[5.0, 2.0]).is_err());
+}
+
+#[test]
+fn test_y_lm_real_m_signs() {
+    let theta = 0.8;
+    let phi = 0.5;
+
+    let y0 = y_lm_real(1, 0, theta, phi).unwrap();
+    let expected_y0 = 0.5 * (3.0 / std::f64::consts::PI).sqrt() * theta.cos();
+    assert_relative_eq!(y0, expected_y0, epsilon = 1e-6);
+
+    let y_pos = y_lm_real(1, 1, theta, phi).unwrap();
+    assert!(y_pos != 0.0);
+
+    let y_neg = y_lm_real(1, -1, theta, phi).unwrap();
+    assert!(y_neg != 0.0);
+
+    assert!(y_lm_real(2, -2, theta, phi).is_ok());
+    assert!(y_lm_real(2, 0, theta, phi).is_ok());
+    assert!(y_lm_real(2, 2, theta, phi).is_ok());
+}
+
+#[test]
+fn test_spherical_harmonics_magnitude_error_cases() {
+    assert!(y_lm_real(1, 2, 0.5, 0.5).is_err());
+    assert!(y_lm_real(1, -2, 0.5, 0.5).is_err());
+
+    assert!(y_lm_density(1, 2, 0.5).is_err());
+    assert!(y_lm_density(1, -2, 0.5).is_err());
+
+    assert!(y_lm_theta_component(1, 2, 0.5).is_err());
+    assert!(y_lm_theta_component(1, -2, 0.5).is_err());
+
+    assert!(y_lm_theta_component(1, 1, 0.5).is_ok());
+    assert!(y_lm_theta_component(2, 2, 0.5).is_ok());
+    assert!(y_lm_theta_component(1, 0, 0.5).is_ok());
+}
+
+#[test]
+fn test_angular_density_max_orbital_kinds() {
+    assert!(angular_density_max(0, 0, Some(&RealOrbitalKind::S)).unwrap() > 0.0);
+    assert!(angular_density_max(1, 0, Some(&RealOrbitalKind::Pz)).unwrap() > 0.0);
+    assert!(angular_density_max(1, 1, Some(&RealOrbitalKind::Px)).unwrap() > 0.0);
+    assert!(angular_density_max(2, 0, Some(&RealOrbitalKind::Dz2)).unwrap() > 0.0);
+    assert!(angular_density_max(2, 2, Some(&RealOrbitalKind::Dx2y2)).unwrap() > 0.0);
+    assert!(angular_density_max(3, 0, Some(&RealOrbitalKind::Fz3)).unwrap() > 0.0);
+    assert!(angular_density_max(3, 1, Some(&RealOrbitalKind::Fxz2)).unwrap() > 0.0);
+
+    assert!(angular_density_max(0, 0, None).unwrap() > 0.0);
+    assert!(angular_density_max(1, 0, None).unwrap() > 0.0);
+    assert!(angular_density_max(2, 1, None).unwrap() > 0.0);
+    assert!(angular_density_max(3, -2, None).unwrap() > 0.0);
+
+    assert!(angular_density_max(1, 2, None).is_err());
+}
+
+#[test]
+fn test_factorial_values_and_overflow() {
+    assert_eq!(factorial(0).unwrap(), 1.0);
+    assert_eq!(factorial(1).unwrap(), 1.0);
+    assert_eq!(factorial(2).unwrap(), 2.0);
+    assert_eq!(factorial(3).unwrap(), 6.0);
+    assert_eq!(factorial(5).unwrap(), 120.0);
+    assert_eq!(factorial(10).unwrap(), 3628800.0);
+
+    assert!(factorial(170).is_ok());
+    assert!(factorial(171).is_err());
+}
+
+#[test]
+fn test_associated_legendre_boundary_errors() {
+    assert!(associated_legendre(1, 2, 0.5).is_err());
+    assert!(associated_legendre(2, -3, 0.5).is_err());
+
+    assert!(associated_legendre(1, 0, 1.1).is_err());
+    assert!(associated_legendre(1, 0, -1.1).is_err());
+    assert!(associated_legendre(2, 1, 2.0).is_err());
+
+    assert_relative_eq!(associated_legendre(0, 0, 0.5).unwrap(), 1.0, epsilon = 1e-10);
+    assert_relative_eq!(associated_legendre(1, 0, 0.5).unwrap(), 0.5, epsilon = 1e-10);
+}
+
+#[test]
+fn test_slater_z_eff_error_cases() {
+    assert!(calculate_slater_z_eff(0, 1, 0).is_err());
+    assert!(calculate_slater_z_eff(1, 0, 0).is_err());
+    assert!(calculate_slater_z_eff(1, 1, 1).is_err());
+    assert!(calculate_slater_z_eff(6, 2, 3).is_err());
+}
+
+#[test]
+fn test_parse_orbital_designation_cases() {
+    assert_eq!(parse_orbital_designation("1s"), Some((1, 0)));
+    assert_eq!(parse_orbital_designation("2p"), Some((2, 1)));
+    assert_eq!(parse_orbital_designation("3d"), Some((3, 2)));
+    assert_eq!(parse_orbital_designation("4f"), Some((4, 3)));
+    assert_eq!(parse_orbital_designation("  2p  "), Some((2, 1)));
+
+    assert_eq!(parse_orbital_designation(""), None);
+    assert_eq!(parse_orbital_designation("s"), None);
+    assert_eq!(parse_orbital_designation("1"), None);
+    assert_eq!(parse_orbital_designation("0s"), None);
+    assert_eq!(parse_orbital_designation("1p"), None);
+    assert_eq!(parse_orbital_designation("2d"), None);
+    assert_eq!(parse_orbital_designation("3f"), None);
+    assert_eq!(parse_orbital_designation("xyz"), None);
+}
+
+#[test]
+fn test_calculate_transition_error_cases() {
+    assert!(calculate_transition(1.0, 0, 2).is_err());
+    assert!(calculate_transition(1.0, 2, 0).is_err());
+
+    assert!(calculate_transition(1.0, 2, 2).is_err());
+
+    assert!(calculate_transition(0.0, 1, 2).is_err());
+    assert!(calculate_transition(-1.0, 1, 2).is_err());
+}
+
+#[test]
+fn test_radial_dipole_integral_forbidden() {
+    let forbidden_1s_2s = radial_dipole_integral(1, 0, 2, 0, 1.0).unwrap();
+    assert_eq!(forbidden_1s_2s, 0.0);
+
+    let forbidden_1s_3d = radial_dipole_integral(1, 0, 3, 2, 1.0).unwrap();
+    assert_eq!(forbidden_1s_3d, 0.0);
 }
 
 

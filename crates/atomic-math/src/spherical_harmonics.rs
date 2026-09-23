@@ -1,7 +1,7 @@
 use crate::math_utils::{associated_legendre, factorial};
 use crate::RealOrbitalKind;
 
-pub fn y_lm_real(l: u32, m: i32, theta: f64, phi: f64) -> Result<f64, String> {
+fn spherical_harmonic_base(l: u32, m: i32, theta: f64) -> Result<(f64, f64, u32), String> {
     let m_abs = m.unsigned_abs();
     if m_abs > l {
         return Err(format!(
@@ -9,13 +9,17 @@ pub fn y_lm_real(l: u32, m: i32, theta: f64, phi: f64) -> Result<f64, String> {
             m, l
         ));
     }
-    let x = theta.cos();
+    let x = theta.cos().clamp(-1.0, 1.0);
     let plm = associated_legendre(l, m_abs as i32, x)?;
-
     let l_f = l as f64;
     let num_fact = factorial(l - m_abs)?;
     let den_fact = factorial(l + m_abs)?;
     let prefactor = (((2.0 * l_f + 1.0) / (4.0 * std::f64::consts::PI)) * (num_fact / den_fact)).sqrt();
+    Ok((prefactor, plm, m_abs))
+}
+
+pub fn y_lm_real(l: u32, m: i32, theta: f64, phi: f64) -> Result<f64, String> {
+    let (prefactor, plm, m_abs) = spherical_harmonic_base(l, m, theta)?;
 
     let phi_part = if m == 0 {
         1.0
@@ -32,40 +36,14 @@ pub fn y_lm_real(l: u32, m: i32, theta: f64, phi: f64) -> Result<f64, String> {
 /// Probability density |Y_l^m(theta, phi)|^2 for a pure eigenstate.
 /// Pure eigenstates have azimuthal symmetry: |Y_l^m(theta, phi)|^2 is strictly independent of phi.
 pub fn y_lm_density(l: u32, m: i32, theta: f64) -> Result<f64, String> {
-    let m_abs = m.unsigned_abs();
-    if m_abs > l {
-        return Err(format!(
-            "Magnetic quantum number m ({}) magnitude exceeds azimuthal l ({})",
-            m, l
-        ));
-    }
-    let x = theta.cos();
-    let plm = associated_legendre(l, m_abs as i32, x)?;
+    let (prefactor, plm, _) = spherical_harmonic_base(l, m, theta)?;
 
-    let l_f = l as f64;
-    let num_fact = factorial(l - m_abs)?;
-    let den_fact = factorial(l + m_abs)?;
-    let prefactor = ((2.0 * l_f + 1.0) / (4.0 * std::f64::consts::PI)) * (num_fact / den_fact);
-
-    Ok(prefactor * plm * plm)
+    Ok(prefactor * prefactor * plm * plm)
 }
 
 /// Signed polar amplitude of Y_l^m(theta, phi) without the exp(i*m*phi) phase factor.
 pub fn y_lm_theta_component(l: u32, m: i32, theta: f64) -> Result<f64, String> {
-    let m_abs = m.unsigned_abs();
-    if m_abs > l {
-        return Err(format!(
-            "Magnetic quantum number m ({}) magnitude exceeds azimuthal l ({})",
-            m, l
-        ));
-    }
-    let x = theta.cos();
-    let plm = associated_legendre(l, m_abs as i32, x)?;
-
-    let l_f = l as f64;
-    let num_fact = factorial(l - m_abs)?;
-    let den_fact = factorial(l + m_abs)?;
-    let prefactor = (((2.0 * l_f + 1.0) / (4.0 * std::f64::consts::PI)) * (num_fact / den_fact)).sqrt();
+    let (prefactor, plm, _) = spherical_harmonic_base(l, m, theta)?;
 
     let phase = if m >= 0 && (m % 2 != 0) { -1.0 } else { 1.0 };
     Ok(prefactor * phase * plm)

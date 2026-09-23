@@ -89,6 +89,39 @@ fn slater_group_rank(n: u32, l: u32) -> u32 {
     n * 10 + sub_rank
 }
 
+fn calculate_group_shielding(
+    target_rank: u32,
+    target_is_sp: bool,
+    target_n: u32,
+    cn: u32,
+    cl: u32,
+    count: u32,
+    is_target_subshell: bool,
+) -> f64 {
+    let g_rank = slater_group_rank(cn, cl);
+    if g_rank == target_rank {
+        let other_count = if is_target_subshell {
+            count.saturating_sub(1)
+        } else {
+            count
+        };
+        let weight = if target_rank == 10 { 0.30 } else { 0.35 };
+        (other_count as f64) * weight
+    } else if target_is_sp {
+        if cn == target_n - 1 {
+            (count as f64) * 0.85
+        } else if cn < target_n - 1 {
+            (count as f64) * 1.00
+        } else {
+            0.0
+        }
+    } else if g_rank < target_rank {
+        (count as f64) * 1.00
+    } else {
+        0.0
+    }
+}
+
 /// Calculate effective nuclear charge Z_eff using Slater's rules for element Z and orbital (n, l).
 pub fn calculate_slater_z_eff(z: u32, n: u32, l: u32) -> Result<f64, String> {
     if z == 0 {
@@ -131,34 +164,15 @@ pub fn calculate_slater_z_eff(z: u32, n: u32, l: u32) -> Result<f64, String> {
             continue;
         }
 
-        let g_rank = slater_group_rank(cn, cl);
-
-        if g_rank == target_rank {
-            // Other electrons in the same group
-            let other_count = if cn == n && cl == l {
-                count.saturating_sub(1)
-            } else {
-                count
-            };
-
-            let weight = if target_rank == 10 {
-                0.30 // 1s
-            } else {
-                0.35
-            };
-            shielding += (other_count as f64) * weight;
-        } else if target_is_sp {
-            if cn == n - 1 {
-                shielding += (count as f64) * 0.85;
-            } else if cn < n - 1 {
-                shielding += (count as f64) * 1.00;
-            }
-        } else {
-            // For d/f orbitals, all groups with lower rank contribute 1.00
-            if g_rank < target_rank {
-                shielding += (count as f64) * 1.00;
-            }
-        }
+        shielding += calculate_group_shielding(
+            target_rank,
+            target_is_sp,
+            n,
+            cn,
+            cl,
+            count,
+            cn == n && cl == l,
+        );
     }
 
     let z_eff = (z as f64) - shielding;

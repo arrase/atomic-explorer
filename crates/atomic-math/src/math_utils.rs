@@ -83,6 +83,12 @@ pub fn gamma(z: f64) -> f64 {
 }
 
 pub fn associated_legendre(l: u32, m: i32, x: f64) -> Result<f64, String> {
+    if x < -1.0 || x > 1.0 {
+        return Err(format!(
+            "Associated legendre argument x ({}) magnitude cannot exceed 1.0",
+            x
+        ));
+    }
     let m_abs = m.unsigned_abs();
     if m_abs > l {
         return Err(format!(

@@ -1,4 +1,4 @@
-use crate::math_utils::constants::*;
+use crate::math_utils::constants::{BOHR_RADIUS_M, COULOMB_CONST, ELEMENTARY_CHARGE, HBAR, RYDBERG_CONST_M1, RYDBERG_ENERGY_EV, SPEED_OF_LIGHT};
 use crate::wavefunctions::r_nl;
 
 #[derive(Debug, Clone, PartialEq)]

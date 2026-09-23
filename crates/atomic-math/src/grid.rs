@@ -1,5 +1,67 @@
 use crate::{probability_density, OrbitalMode, QuantumNumbers};
 
+fn cartesian_to_spherical(x: f64, y: f64, z: f64) -> (f64, f64, f64) {
+    let r = (x * x + y * y + z * z).sqrt();
+    if r < 1e-12 {
+        return (0.0, 0.0, 0.0);
+    }
+    let cos_t = (z / r).clamp(-1.0, 1.0);
+    let theta = cos_t.acos();
+    let mut phi = y.atan2(x);
+    if phi < 0.0 {
+        phi += 2.0 * std::f64::consts::PI;
+    }
+    (r, theta, phi)
+}
+
+fn evaluate_isosurface_point(
+    qn: &QuantumNumbers,
+    mode: &OrbitalMode,
+    z_eff: f64,
+    r: f64,
+    theta: f64,
+    phi: f64,
+) -> Result<(f64, f64), String> {
+    let r_part = crate::wavefunctions::r_nl(qn.n, qn.l, z_eff, r)?;
+    match mode {
+        OrbitalMode::RealChemist(kind) => {
+            let y_ang = crate::spherical_harmonics::real_orbital_angular(kind, theta, phi);
+            let psi = r_part * y_ang;
+            let s = if psi >= 0.0 { 1.0 } else { -1.0 };
+            Ok((psi * psi, s))
+        }
+        OrbitalMode::PureEigenstate => {
+            let y_dens = crate::spherical_harmonics::y_lm_density(qn.l, qn.m, theta)?;
+            let theta_comp = crate::spherical_harmonics::y_lm_theta_component(qn.l, qn.m, theta)?;
+            let s = if r_part * theta_comp >= 0.0 { 1.0 } else { -1.0 };
+            Ok((r_part * r_part * y_dens, s))
+        }
+    }
+}
+
+fn apply_contrast_normalization(data: &mut [f32], max_density: f64, contrast: f32) {
+    let peak = max_density.max(1e-12);
+    let contrast_f64 = contrast as f64;
+    let log_contrast_denom = if contrast_f64 > 0.0 {
+        1.0 / (1.0 + contrast_f64).ln()
+    } else {
+        1.0
+    };
+
+    for val in data.iter_mut() {
+        if *val != 0.0 {
+            let s = if *val >= 0.0 { 1.0 } else { -1.0 };
+            let norm_density = (val.abs() as f64 / peak).min(1.0);
+            let enhanced_density = if contrast_f64 > 0.0 {
+                (1.0 + contrast_f64 * norm_density).ln() * log_contrast_denom
+            } else {
+                norm_density
+            };
+            *val = (s * enhanced_density) as f32;
+        }
+    }
+}
+
 /// Evaluate 3D orbital density grid over [-bounds, bounds] in x, y, z.
 /// Returns a flat vector of length grid_size^3 in row-major / slice order (x fastest, then y, then z).
 pub fn evaluate_density_grid_internal(
@@ -31,28 +93,12 @@ pub fn evaluate_density_grid_internal(
 
     for iz in 0..grid_size {
         let z = -bounds_f64 + (iz as f64) * step;
-        let z2 = z * z;
         for iy in 0..grid_size {
             let y = -bounds_f64 + (iy as f64) * step;
-            let y2_z2 = y * y + z2;
             for ix in 0..grid_size {
                 let x = -bounds_f64 + (ix as f64) * step;
 
-                let r = (x * x + y2_z2).sqrt();
-                let (theta, phi) = if r < 1e-12 {
-                    (0.0, 0.0)
-                } else {
-                    let cos_t = (z / r).clamp(-1.0, 1.0);
-                    let theta = cos_t.acos();
-                    let phi = y.atan2(x);
-                    let phi = if phi < 0.0 {
-                        phi + 2.0 * std::f64::consts::PI
-                    } else {
-                        phi
-                    };
-                    (theta, phi)
-                };
-
+                let (r, theta, phi) = cartesian_to_spherical(x, y, z);
                 let density = probability_density(qn, mode, z_eff, r, theta, phi)?;
                 let idx = (iz * grid_size + iy) * grid_size + ix;
                 data[idx] = density as f32;
@@ -96,44 +142,17 @@ pub fn evaluate_isosurface_grid_internal(
 
     for iz in 0..grid_size {
         let z = -bounds_f64 + (iz as f64) * step;
-        let z2 = z * z;
         for iy in 0..grid_size {
             let y = -bounds_f64 + (iy as f64) * step;
-            let y2_z2 = y * y + z2;
             for ix in 0..grid_size {
                 let x = -bounds_f64 + (ix as f64) * step;
 
-                let r = (x * x + y2_z2).sqrt();
+                let (r, theta, phi) = cartesian_to_spherical(x, y, z);
                 if r < 1e-4 {
                     continue;
                 }
 
-                let cos_t = (z / r).clamp(-1.0, 1.0);
-                let theta = cos_t.acos();
-                let phi = y.atan2(x);
-                let phi = if phi < 0.0 {
-                    phi + 2.0 * std::f64::consts::PI
-                } else {
-                    phi
-                };
-
-                let r_part = crate::wavefunctions::r_nl(qn.n, qn.l, z_eff, r)?;
-
-                let (raw_density, sign) = match mode {
-                    OrbitalMode::RealChemist(kind) => {
-                        let y_ang = crate::spherical_harmonics::real_orbital_angular(kind, theta, phi);
-                        let psi = r_part * y_ang;
-                        let s = if psi >= 0.0 { 1.0 } else { -1.0 };
-                        (psi * psi, s)
-                    }
-                    OrbitalMode::PureEigenstate => {
-                        let y_dens = crate::spherical_harmonics::y_lm_density(qn.l, qn.m, theta)?;
-                        let theta_comp = crate::spherical_harmonics::y_lm_theta_component(qn.l, qn.m, theta)?;
-                        let s = if r_part * theta_comp >= 0.0 { 1.0 } else { -1.0 };
-                        (r_part * r_part * y_dens, s)
-                    }
-                };
-
+                let (raw_density, sign) = evaluate_isosurface_point(qn, mode, z_eff, r, theta, phi)?;
                 if raw_density > max_density {
                     max_density = raw_density;
                 }
@@ -144,26 +163,7 @@ pub fn evaluate_isosurface_grid_internal(
         }
     }
 
-    let peak = max_density.max(1e-12);
-    let contrast_f64 = contrast as f64;
-    let log_contrast_denom = if contrast_f64 > 0.0 {
-        1.0 / (1.0 + contrast_f64).ln()
-    } else {
-        1.0
-    };
-
-    for val in data.iter_mut() {
-        if *val != 0.0 {
-            let s = if *val >= 0.0 { 1.0 } else { -1.0 };
-            let norm_density = (val.abs() as f64 / peak).min(1.0);
-            let enhanced_density = if contrast_f64 > 0.0 {
-                (1.0 + contrast_f64 * norm_density).ln() * log_contrast_denom
-            } else {
-                norm_density
-            };
-            *val = (s * enhanced_density) as f32;
-        }
-    }
+    apply_contrast_normalization(&mut data, max_density, contrast);
 
     Ok(data)
 }
