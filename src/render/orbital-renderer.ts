@@ -1,8 +1,6 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { MarchingCubes } from 'three/addons/objects/MarchingCubes.js';
-import { captureWebGLSnapshot, SnapshotOptions } from './render-utils';
-import { OrientationGizmo } from './orientation-gizmo';
+import { BaseThreeRenderer, RendererTarget } from './render-utils';
 import { evaluateIsosurfaceGrid } from '../core/wasm-bridge';
 
 export type RenderMode = 'points' | 'isosurface' | 'raymarching';
@@ -25,10 +23,9 @@ export interface OrbitalRenderParams {
   contrast?: number;
 }
 
-export type RendererTarget =
-  | HTMLCanvasElement
-  | THREE.WebGLRenderer
-  | { canvas?: HTMLCanvasElement; renderer: THREE.WebGLRenderer };
+export type { RendererTarget };
+
+
 
 export const PALETTE_CONFIG: Record<ColorPalette, { id: number; posColor: number; negColor: number }> = {
   default: { id: 0, posColor: 0x00ccff, negColor: 0xff6611 },
@@ -326,23 +323,12 @@ const raymarchFragmentShader = `
   }
 `;
 
-export class OrbitalRenderer {
-  private renderer: THREE.WebGLRenderer;
-  private scene: THREE.Scene;
-  private camera: THREE.PerspectiveCamera;
-  private controls: OrbitControls;
-  private animationId: number = 0;
-  private cameraTransitionId: number = 0;
-  private autoRotate: boolean = false;
-  private gizmo: OrientationGizmo | null = null;
-  private defaultCameraPos = new THREE.Vector3(16, 16, 16);
-
+export class OrbitalRenderer extends BaseThreeRenderer {
   private pointsMesh: THREE.Points | null = null;
   private marchingCubesGroup: THREE.Group | null = null;
   private raymarchingMesh: THREE.Mesh | null = null;
   private raymarchingMaterial: THREE.ShaderMaterial | null = null;
 
-  private isShared: boolean;
   private currentMode: RenderMode = 'points';
   private currentParams: OrbitalRenderParams = {
     n: 1,
@@ -359,39 +345,11 @@ export class OrbitalRenderer {
   };
 
   constructor(target: RendererTarget) {
-    this.isShared = target instanceof THREE.WebGLRenderer || 'renderer' in target;
-    if (target instanceof THREE.WebGLRenderer) {
-      this.renderer = target;
-    } else if ('renderer' in target) {
-      this.renderer = target.renderer;
-    } else {
-      this.renderer = new THREE.WebGLRenderer({
-        canvas: target,
-        antialias: true,
-        alpha: true,
-        powerPreference: 'high-performance',
-        precision: 'highp',
-        preserveDrawingBuffer: true,
-      });
-      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      this.renderer.setClearColor(new THREE.Color('#0a0a1a'));
-    }
-
-    this.scene = new THREE.Scene();
-
-    this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-    this.camera.position.set(16, 16, 16);
-
-    this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-    this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.05;
+    super(target, new THREE.Vector3(16, 16, 16));
+    this.autoRotateSpeed = 1.5;
+    this.minAlignDistance = 5.0;
 
     this.setupLighting();
-
-    if (!this.isShared) {
-      window.addEventListener('resize', this.onWindowResize);
-    }
-    this.onWindowResize();
   }
 
   private setupLighting(): void {
@@ -467,30 +425,43 @@ export class OrbitalRenderer {
     this.scene.add(this.pointsMesh);
   }
 
-  public async updateIsosurface(params: OrbitalRenderParams): Promise<void> {
-    this.clearCurrentMesh();
-    this.currentMode = 'isosurface';
-    this.currentParams = { ...params };
+  private getGridResolution(quality?: QualityPreset): number {
+    switch (quality) {
+      case 'low':
+        return 32;
+      case 'medium':
+        return 40;
+      case 'high':
+        return 48;
+      case 'ultra':
+        return 64;
+      case 'extreme':
+        return 80;
+      default:
+        return 48;
+    }
+  }
 
-    const gridRes =
-      params.quality === 'low'
-        ? 32
-        : params.quality === 'medium'
-        ? 40
-        : params.quality === 'high'
-        ? 48
-        : params.quality === 'ultra'
-        ? 64
-        : params.quality === 'extreme'
-        ? 80
-        : 48;
+  private getRaymarchingSteps(quality?: QualityPreset): number {
+    switch (quality) {
+      case 'low':
+        return 64;
+      case 'medium':
+        return 96;
+      case 'high':
+        return 128;
+      case 'ultra':
+        return 256;
+      case 'extreme':
+        return 512;
+      default:
+        return 128;
+    }
+  }
 
-    const palette = PALETTE_CONFIG[params.colorPalette];
-    const baseColorPos = palette.posColor;
-    const baseColorNeg = palette.negColor;
-
-    const materialPos = new THREE.MeshPhysicalMaterial({
-      color: baseColorPos,
+  private createIsosurfaceMaterial(color: number): THREE.MeshPhysicalMaterial {
+    return new THREE.MeshPhysicalMaterial({
+      color,
       roughness: 0.15,
       metalness: 0.2,
       transmission: 0.65,
@@ -498,43 +469,17 @@ export class OrbitalRenderer {
       transparent: true,
       side: THREE.DoubleSide,
     });
-    
-    const materialNeg = new THREE.MeshPhysicalMaterial({
-      color: baseColorNeg,
-      roughness: 0.15,
-      metalness: 0.2,
-      transmission: 0.65,
-      opacity: 0.85,
-      transparent: true,
-      side: THREE.DoubleSide,
-    });
+  }
 
-    const mcPos = new MarchingCubes(gridRes, materialPos, false, false, 150000);
-    const mcNeg = new MarchingCubes(gridRes, materialNeg, false, false, 150000);
-    const boxExtent = (4.0 * (params.n * params.n)) / Math.max(params.zEff, 0.5);
-    mcPos.scale.set(boxExtent, boxExtent, boxExtent);
-    mcNeg.scale.set(boxExtent, boxExtent, boxExtent);
-
-    const isolevel = params.isolevel ?? 0.05;
-    const contrast = params.contrast ?? 0.0;
-    mcPos.reset();
-    mcNeg.reset();
-
-    // Fast grid evaluation via WASM engine
-    const gridData = await evaluateIsosurfaceGrid(
-      params.n,
-      params.l,
-      params.m,
-      params.useRealOrbital,
-      params.zEff,
-      gridRes,
-      boxExtent,
-      contrast,
-    );
-
+  private populateMarchingCubes(
+    mcPos: MarchingCubes,
+    mcNeg: MarchingCubes,
+    gridData: Float32Array,
+    isolevel: number
+  ): void {
     let maxAbs = 0;
-    for (let i = 0; i < gridData.length; i++) {
-      const a = Math.abs(gridData[i]);
+    for (const val of gridData) {
+      const a = Math.abs(val);
       if (a > maxAbs) maxAbs = a;
     }
 
@@ -550,6 +495,43 @@ export class OrbitalRenderer {
 
     mcPos.update();
     mcNeg.update();
+  }
+
+  public async updateIsosurface(params: OrbitalRenderParams): Promise<void> {
+    this.clearCurrentMesh();
+    this.currentMode = 'isosurface';
+    this.currentParams = { ...params };
+
+    const gridRes = this.getGridResolution(params.quality);
+    const palette = PALETTE_CONFIG[params.colorPalette];
+
+    const materialPos = this.createIsosurfaceMaterial(palette.posColor);
+    const materialNeg = this.createIsosurfaceMaterial(palette.negColor);
+
+    const mcPos = new MarchingCubes(gridRes, materialPos, false, false, 150000);
+    const mcNeg = new MarchingCubes(gridRes, materialNeg, false, false, 150000);
+    const boxExtent = (4.0 * (params.n * params.n)) / Math.max(params.zEff, 0.5);
+    mcPos.scale.set(boxExtent, boxExtent, boxExtent);
+    mcNeg.scale.set(boxExtent, boxExtent, boxExtent);
+
+    const isolevel = params.isolevel ?? 0.05;
+    const contrast = params.contrast ?? 0.0;
+    mcPos.reset();
+    mcNeg.reset();
+
+    // Fast grid evaluation via WASM engine
+    const gridData = await evaluateIsosurfaceGrid({
+      n: params.n,
+      l: params.l,
+      m: params.m,
+      useRealOrbital: params.useRealOrbital,
+      zEff: params.zEff,
+      gridSize: gridRes,
+      bounds: boxExtent,
+      contrast,
+    });
+
+    this.populateMarchingCubes(mcPos, mcNeg, gridData, isolevel);
 
     this.marchingCubesGroup = new THREE.Group();
     this.marchingCubesGroup.add(mcPos);
@@ -565,13 +547,7 @@ export class OrbitalRenderer {
     const boxExtent = (4.0 * (params.n * params.n)) / params.zEff;
     const geometry = new THREE.BoxGeometry(boxExtent * 2, boxExtent * 2, boxExtent * 2);
 
-    const steps = params.raymarchingSteps ?? (
-      params.quality === 'low' ? 64 :
-      params.quality === 'medium' ? 96 :
-      params.quality === 'high' ? 128 :
-      params.quality === 'ultra' ? 256 :
-      params.quality === 'extreme' ? 512 : 128
-    );
+    const steps = params.raymarchingSteps ?? this.getRaymarchingSteps(params.quality);
 
     const palette = PALETTE_CONFIG[params.colorPalette];
     const peakDensity = this.calculatePeakDensity(params.n, params.l, params.m, params.zEff, params.useRealOrbital);
@@ -624,60 +600,103 @@ export class OrbitalRenderer {
     return lp;
   }
 
-  private evalRadial(n: number, l: number, zeff: number, r: number): number {
-    const zr = zeff * r;
-    if (n === 1 && l === 0) return 2.0 * Math.pow(zeff, 1.5) * Math.exp(-zr);
-    if (n === 2 && l === 0) return (1.0 / (2.0 * Math.SQRT2)) * Math.pow(zeff, 1.5) * (2.0 - zr) * Math.exp(-zr / 2.0);
-    if (n === 2 && l === 1) return (1.0 / (2.0 * Math.sqrt(6))) * Math.pow(zeff, 1.5) * zr * Math.exp(-zr / 2.0);
-    if (n === 3 && l === 0) return (2.0 / (81.0 * Math.sqrt(3))) * Math.pow(zeff, 1.5) * (27.0 - 18.0 * zr + 2.0 * zr * zr) * Math.exp(-zr / 3.0);
-    if (n === 3 && l === 1) return (4.0 / (81.0 * Math.sqrt(6))) * Math.pow(zeff, 1.5) * (6.0 * zr - zr * zr) * Math.exp(-zr / 3.0);
-    if (n === 3 && l === 2) return (4.0 / (81.0 * Math.sqrt(30))) * Math.pow(zeff, 1.5) * (zr * zr) * Math.exp(-zr / 3.0);
-    if (n === 4 && l === 0) return (1.0 / 768.0) * Math.pow(zeff, 1.5) * (192.0 - 144.0 * zr + 24.0 * zr * zr - zr * zr * zr) * Math.exp(-zr / 4.0);
-    if (n === 4 && l === 1) return (1.0 / (256.0 * Math.sqrt(15))) * Math.pow(zeff, 1.5) * (80.0 * zr - 20.0 * zr * zr + zr * zr * zr) * Math.exp(-zr / 4.0);
-    if (n === 4 && l === 2) return (1.0 / (768.0 * Math.sqrt(5))) * Math.pow(zeff, 1.5) * (12.0 * zr * zr - zr * zr * zr) * Math.exp(-zr / 4.0);
-    if (n === 4 && l === 3) return (1.0 / (768.0 * Math.sqrt(35))) * Math.pow(zeff, 1.5) * (zr * zr * zr) * Math.exp(-zr / 4.0);
-    // Generic formula using associated Laguerre polynomials for n > 4
-    const rho = 2.0 * zr / n;
+  private evalRadialN2(l: number, zeffPower: number, zr: number): number {
+    const expHalf = Math.exp(-zr / 2.0);
+    if (l === 0) return (1.0 / (2.0 * Math.SQRT2)) * zeffPower * (2.0 - zr) * expHalf;
+    if (l === 1) return (1.0 / (2.0 * Math.sqrt(6))) * zeffPower * zr * expHalf;
+    return 0;
+  }
+
+  private evalRadialN3(l: number, zeffPower: number, zr: number): number {
+    const expThird = Math.exp(-zr / 3.0);
+    if (l === 0) return (2.0 / (81.0 * Math.sqrt(3))) * zeffPower * (27.0 - 18.0 * zr + 2.0 * zr * zr) * expThird;
+    if (l === 1) return (4.0 / (81.0 * Math.sqrt(6))) * zeffPower * (6.0 * zr - zr * zr) * expThird;
+    if (l === 2) return (4.0 / (81.0 * Math.sqrt(30))) * zeffPower * (zr * zr) * expThird;
+    return 0;
+  }
+
+  private evalRadialN4(l: number, zeffPower: number, zr: number): number {
+    const expQuarter = Math.exp(-zr / 4.0);
+    if (l === 0) return (1.0 / 768.0) * zeffPower * (192.0 - 144.0 * zr + 24.0 * zr * zr - zr * zr * zr) * expQuarter;
+    if (l === 1) return (1.0 / (256.0 * Math.sqrt(15))) * zeffPower * (80.0 * zr - 20.0 * zr * zr + zr * zr * zr) * expQuarter;
+    if (l === 2) return (1.0 / (768.0 * Math.sqrt(5))) * zeffPower * (12.0 * zr * zr - zr * zr * zr) * expQuarter;
+    if (l === 3) return (1.0 / (768.0 * Math.sqrt(35))) * zeffPower * (zr * zr * zr) * expQuarter;
+    return 0;
+  }
+
+  private evalRadialGeneric(n: number, l: number, zeff: number, zr: number): number {
+    const rho = (2.0 * zr) / n;
     const p = n - l - 1;
     const q = 2 * l + 1;
     const lag = this.associatedLaguerre(p, q, rho);
-    const num = Math.pow(2.0 * zeff / n, 3) * this.factorial(n - l - 1);
+    const num = Math.pow((2.0 * zeff) / n, 3) * this.factorial(n - l - 1);
     const den = 2.0 * n * this.factorial(n + l);
     const prefactor = Math.sqrt(num / den);
     return prefactor * Math.exp(-zr / n) * Math.pow(rho, l) * lag;
   }
 
+  private evalRadial(n: number, l: number, zeff: number, r: number): number {
+    const zr = zeff * r;
+    const zeffPower = Math.pow(zeff, 1.5);
+
+    if (n === 1 && l === 0) {
+      return 2.0 * zeffPower * Math.exp(-zr);
+    }
+    if (n === 2) {
+      return this.evalRadialN2(l, zeffPower, zr);
+    }
+    if (n === 3) {
+      return this.evalRadialN3(l, zeffPower, zr);
+    }
+    if (n === 4) {
+      return this.evalRadialN4(l, zeffPower, zr);
+    }
+
+    return this.evalRadialGeneric(n, l, zeff, zr);
+  }
+
+  private getAzimuthalFactor(m: number, phi: number, useReal: boolean): number {
+    if (!useReal || m === 0) return 1.0;
+    const absM = Math.abs(m);
+    return m > 0 ? Math.cos(absM * phi) : Math.sin(absM * phi);
+  }
+
+  private evalAngularL1(m: number, ct: number, st: number, az: number): number {
+    const factor = 0.5 * Math.sqrt(3.0 / Math.PI);
+    if (m === 0) return factor * ct;
+    return factor * st * az;
+  }
+
+  private evalAngularL2(m: number, ct: number, st: number, az: number): number {
+    if (m === 0) return 0.25 * Math.sqrt(5.0 / Math.PI) * (3.0 * ct * ct - 1.0);
+    if (Math.abs(m) === 1) return 0.5 * Math.sqrt(15.0 / Math.PI) * st * ct * az;
+    if (Math.abs(m) === 2) return 0.25 * Math.sqrt(15.0 / Math.PI) * st * st * az;
+    return 0;
+  }
+
+  private evalAngularL3(m: number, ct: number, st: number, az: number): number {
+    if (m === 0) return 0.25 * Math.sqrt(7.0 / Math.PI) * (5.0 * ct * ct * ct - 3.0 * ct);
+    if (Math.abs(m) === 1) return 0.25 * Math.sqrt(10.5 / Math.PI) * st * (5.0 * ct * ct - 1.0) * az;
+    if (Math.abs(m) === 2) return 0.25 * Math.sqrt(105.0 / Math.PI) * st * st * ct * az;
+    if (Math.abs(m) === 3) return 0.25 * Math.sqrt(17.5 / Math.PI) * st * st * st * az;
+    return 0;
+  }
+
   private evalAngular(l: number, m: number, useReal: boolean, theta: number, phi: number): number {
     const ct = Math.cos(theta);
     const st = Math.sin(theta);
-    const cp = useReal ? Math.cos(phi) : 1.0;
-    const sp = useReal ? Math.sin(phi) : 1.0;
+    const az = this.getAzimuthalFactor(m, phi, useReal);
 
     let y = 0.5 * Math.sqrt(1.0 / Math.PI);
 
-    if (l === 0) y = 0.5 * Math.sqrt(1.0 / Math.PI);
-    else if (l === 1) {
-      if (m === 0) y = 0.5 * Math.sqrt(3.0 / Math.PI) * ct;
-      else if (m === 1) y = 0.5 * Math.sqrt(3.0 / Math.PI) * st * cp;
-      else if (m === -1) y = 0.5 * Math.sqrt(3.0 / Math.PI) * st * sp;
+    if (l === 1) {
+      y = this.evalAngularL1(m, ct, st, az);
+    } else if (l === 2) {
+      y = this.evalAngularL2(m, ct, st, az);
+    } else if (l === 3) {
+      y = this.evalAngularL3(m, ct, st, az);
     }
-    else if (l === 2) {
-      if (m === 0) y = 0.25 * Math.sqrt(5.0 / Math.PI) * (3.0 * ct * ct - 1.0);
-      else if (m === 1) y = 0.5 * Math.sqrt(15.0 / Math.PI) * st * ct * cp;
-      else if (m === -1) y = 0.5 * Math.sqrt(15.0 / Math.PI) * st * ct * sp;
-      else if (m === 2) y = 0.25 * Math.sqrt(15.0 / Math.PI) * st * st * (useReal ? Math.cos(2 * phi) : 1.0);
-      else if (m === -2) y = 0.25 * Math.sqrt(15.0 / Math.PI) * st * st * (useReal ? Math.sin(2 * phi) : 1.0);
-    }
-    else if (l === 3) {
-      if (m === 0) y = 0.25 * Math.sqrt(7.0 / Math.PI) * (5.0 * ct * ct * ct - 3.0 * ct);
-      else if (m === 1) y = 0.25 * Math.sqrt(10.5 / Math.PI) * st * (5.0 * ct * ct - 1.0) * cp;
-      else if (m === -1) y = 0.25 * Math.sqrt(10.5 / Math.PI) * st * (5.0 * ct * ct - 1.0) * sp;
-      else if (m === 2) y = 0.25 * Math.sqrt(105.0 / Math.PI) * st * st * ct * (useReal ? Math.cos(2 * phi) : 1.0);
-      else if (m === -2) y = 0.25 * Math.sqrt(105.0 / Math.PI) * st * st * ct * (useReal ? Math.sin(2 * phi) : 1.0);
-      else if (m === 3) y = 0.25 * Math.sqrt(17.5 / Math.PI) * st * st * st * (useReal ? Math.cos(3 * phi) : 1.0);
-      else if (m === -3) y = 0.25 * Math.sqrt(17.5 / Math.PI) * st * st * st * (useReal ? Math.sin(3 * phi) : 1.0);
-    }
-    
+
     if (!useReal && m !== 0) {
       y *= Math.SQRT1_2;
     }
@@ -734,135 +753,13 @@ export class OrbitalRenderer {
     }
   }
 
-  public onWindowResize = (): void => {
+  protected override getEffectivePixelRatio(): number {
     const resScale = this.currentParams.resolutionScale ?? 1.0;
-    const pixelRatio = Math.min(window.devicePixelRatio * resScale, 2.0);
-
-    this.camera.aspect = window.innerWidth / window.innerHeight;
-    this.camera.updateProjectionMatrix();
-
-    this.renderer.setPixelRatio(pixelRatio);
-    this.renderer.setSize(window.innerWidth, window.innerHeight);
-
-  };
-
-  public async captureSnapshot(options: SnapshotOptions): Promise<string> {
-    return captureWebGLSnapshot(this.renderer, this.scene, this.camera, options, this.onWindowResize);
+    return Math.min(window.devicePixelRatio * resScale, 2.0);
   }
 
-  public setGizmo(gizmo: OrientationGizmo | null): void {
-    this.gizmo = gizmo;
-    if (gizmo) {
-      gizmo.setCamera(this.camera, (dir, up) => this.alignCameraTo(dir, up));
-    }
-  }
-
-  public toggleAutoRotate(enabled?: boolean): boolean {
-    this.autoRotate = enabled === undefined ? !this.autoRotate : enabled;
-    this.controls.autoRotate = this.autoRotate;
-    this.controls.autoRotateSpeed = 1.5;
-    return this.autoRotate;
-  }
-
-  public isAutoRotating(): boolean {
-    return this.autoRotate;
-  }
-
-  public resetCamera(smooth: boolean = true): void {
-    if (smooth) {
-      this.animateCameraTo(this.defaultCameraPos.clone(), new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0, 0), 450);
-    } else {
-      this.camera.position.copy(this.defaultCameraPos);
-      this.camera.up.set(0, 1, 0);
-      this.controls.target.set(0, 0, 0);
-      this.controls.update();
-      if (this.gizmo) this.gizmo.update();
-    }
-  }
-
-  public alignCameraTo(dir: THREE.Vector3, up: THREE.Vector3, smooth: boolean = true): void {
-    const dist = this.camera.position.distanceTo(this.controls.target);
-    const targetPos = this.controls.target.clone().addScaledVector(dir, Math.max(dist, 5.0));
-    if (smooth) {
-      this.animateCameraTo(targetPos, up, this.controls.target.clone(), 400);
-    } else {
-      this.camera.position.copy(targetPos);
-      this.camera.up.copy(up);
-      this.camera.lookAt(this.controls.target);
-      this.controls.update();
-      if (this.gizmo) this.gizmo.update();
-    }
-  }
-
-  public animateCameraTo(targetPos: THREE.Vector3, targetUp: THREE.Vector3 = new THREE.Vector3(0, 1, 0), targetLookAt?: THREE.Vector3, duration: number = 400): void {
-    cancelAnimationFrame(this.cameraTransitionId);
-    const startPos = this.camera.position.clone();
-    const startUp = this.camera.up.clone();
-    const startTarget = this.controls.target.clone();
-    const endTarget = targetLookAt ? targetLookAt.clone() : startTarget.clone();
-    const startTime = performance.now();
-
-    const step = (now: number) => {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1.0);
-      const ease = progress < 0.5 ? 4 * progress * progress * progress : 1 - Math.pow(-2 * progress + 2, 3) / 2;
-
-      this.camera.position.lerpVectors(startPos, targetPos, ease);
-      this.camera.up.lerpVectors(startUp, targetUp, ease);
-      this.controls.target.lerpVectors(startTarget, endTarget, ease);
-      this.camera.lookAt(this.controls.target);
-      this.controls.update();
-
-      if (this.gizmo) {
-        this.gizmo.update();
-      }
-
-      if (progress < 1.0) {
-        this.cameraTransitionId = requestAnimationFrame(step);
-      }
-    };
-
-    this.cameraTransitionId = requestAnimationFrame(step);
-  }
-
-  private isAnimating: boolean = false;
-
-  public start(): void {
-    this.controls.enabled = true;
-    if (!this.isAnimating) {
-      this.isAnimating = true;
-      cancelAnimationFrame(this.animationId);
-      this.animate();
-    }
-  }
-
-  public stop(): void {
-    this.controls.enabled = false;
-    this.isAnimating = false;
-    cancelAnimationFrame(this.animationId);
-  }
-
-  public animate = (): void => {
-    if (!this.isAnimating) return;
-    this.animationId = requestAnimationFrame(this.animate);
-    this.controls.update();
-
-    if (this.gizmo) {
-      this.gizmo.update();
-    }
-
-    this.renderer.render(this.scene, this.camera);
-  };
-
-  public dispose(): void {
-    cancelAnimationFrame(this.animationId);
-    cancelAnimationFrame(this.cameraTransitionId);
-    window.removeEventListener('resize', this.onWindowResize);
+  protected override cleanupScene(): void {
     this.clearCurrentMesh();
-    this.controls.dispose();
-    if (!this.isShared) {
-      this.renderer.dispose();
-    }
   }
 }
 

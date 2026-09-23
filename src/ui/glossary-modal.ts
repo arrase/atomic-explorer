@@ -1,12 +1,13 @@
 import { getStrings, onLanguageChange, GlossaryItem } from '../i18n';
 import { icon } from './icons';
+import { trapModalFocus } from './modal-utils';
 
 export class GlossaryModal {
   private overlayElement: HTMLElement | null = null;
   private isOpen: boolean = false;
   private searchQuery: string = '';
   private activeCategory: string = 'all';
-  private expandedItemIds: Set<string> = new Set();
+  private readonly expandedItemIds: Set<string> = new Set();
   private keydownHandler: ((e: KeyboardEvent) => void) | null = null;
   private previousActiveElement: HTMLElement | null = null;
 
@@ -57,9 +58,7 @@ export class GlossaryModal {
       overlay.classList.add('fade-out');
 
       const cleanup = () => {
-        if (overlay.parentNode) {
-          overlay.parentNode.removeChild(overlay);
-        }
+        overlay.remove();
       };
 
       overlay.addEventListener('animationend', cleanup, { once: true });
@@ -74,20 +73,8 @@ export class GlossaryModal {
         this.close();
       } else if (e.key === 'Tab' && this.overlayElement) {
         const card = this.overlayElement.querySelector('.glass-modal-card');
-        if (!card) return;
-        const focusable = Array.from(card.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        )).filter((el) => !el.hasAttribute('disabled'));
-        if (focusable.length === 0) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
+        if (card) {
+          trapModalFocus(card, e);
         }
       }
     };
@@ -230,7 +217,7 @@ export class GlossaryModal {
     const categoryTags = this.overlayElement.querySelectorAll('.category-tag');
     categoryTags.forEach((tag) => {
       tag.addEventListener('click', (e: Event) => {
-        const cat = (e.currentTarget as HTMLElement).getAttribute('data-category');
+        const cat = (e.currentTarget as HTMLElement).dataset.category;
         if (cat) {
           this.activeCategory = cat;
           this.render();
@@ -294,10 +281,10 @@ export class GlossaryModal {
   }
 
   private attachCardClickEvents(parent: HTMLElement): void {
-    const itemCards = parent.querySelectorAll('.glossary-item-card');
+    const itemCards = parent.querySelectorAll<HTMLElement>('.glossary-item-card');
     itemCards.forEach((card) => {
       card.addEventListener('click', () => {
-        const id = card.getAttribute('data-id');
+        const id = card.dataset.id;
         if (id) {
           if (this.expandedItemIds.has(id)) {
             this.expandedItemIds.delete(id);

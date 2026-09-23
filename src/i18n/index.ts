@@ -1,4 +1,4 @@
-import { Language, I18nStrings, GlossaryItem, QuantumExplanation, ConceptExplanation } from './types';
+import { Language, I18nStrings } from './types';
 import { strings as esStrings } from './es';
 import { strings as enStrings } from './en';
 import { strings as frStrings } from './fr';
@@ -15,7 +15,8 @@ import { strings as trStrings } from './tr';
 import { strings as hiStrings } from './hi';
 import { strings as arStrings } from './ar';
 
-export type { Language, I18nStrings, GlossaryItem, QuantumExplanation, ConceptExplanation };
+export type { Language, I18nStrings };
+export type { GlossaryItem, QuantumExplanation, ConceptExplanation } from './types';
 
 const STORAGE_KEY = 'atomic_explorer_lang';
 

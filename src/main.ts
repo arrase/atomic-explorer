@@ -124,15 +124,16 @@ async function init() {
     () => imageExporterModal.open()
   );
 
-  new PeriodicTableView(viewLayers['periodic-table'], async (element: ElementData) => {
+  const periodicTableView = new PeriodicTableView(viewLayers['periodic-table'], async (element: ElementData) => {
     const { n, l, m, zEff } = await calculateValenceQuantumNumbers(element.Z);
     controlPanel.setParams({ n, l, m, zEff });
     switchTab('orbitals');
   });
 
-  new MoleculeView(viewLayers['molecules'], moleculeRenderer);
+  const moleculeView = new MoleculeView(viewLayers['molecules'], moleculeRenderer);
 
   // Zen Mode Setup
+
   const zenRestoreBtn = document.createElement('button');
   zenRestoreBtn.className = 'zen-restore-btn';
   zenRestoreBtn.id = 'zen-restore-btn';
@@ -154,7 +155,7 @@ async function init() {
 
   const viewportHud = new ViewportHUD(uiOverlay, {
     onResetCamera: () => {
-      getActiveRenderer().resetCamera(true);
+      getActiveRenderer().resetCamera();
     },
     onToggleAutoRotate: () => {
       const renderer = getActiveRenderer();
@@ -206,6 +207,7 @@ async function init() {
       moleculeRenderer.onWindowResize();
       moleculeRenderer.start();
       updatePhysicalScaleText();
+      moleculeView.getSelectedMolecule();
     } else if (newTab === 'periodic-table') {
       canvas.style.display = 'none';
       orbitalRenderer.stop();
@@ -214,6 +216,7 @@ async function init() {
       moleculeRenderer.setGizmo(null);
       orientationGizmo.setVisible(false);
       viewportHud.setVisible(false);
+      periodicTableView.getSelectedElement();
     }
   };
 
@@ -226,8 +229,60 @@ async function init() {
   const navBar = new NavigationBar(navContainer, switchTab, toggleZenMode);
 
   // Global Keyboard Shortcuts
-  window.addEventListener('keydown', (e: KeyboardEvent) => {
-    const target = e.target as HTMLElement;
+  const handleTabShortcut = (key: string): boolean => {
+    const tabMap: Record<string, TabId> = {
+      '1': 'orbitals',
+      '2': 'periodic-table',
+      '3': 'molecules',
+    };
+    const tab = tabMap[key];
+    if (tab) {
+      switchTab(tab);
+      return true;
+    }
+    return false;
+  };
+
+  const handleActionShortcut = (e: KeyboardEvent): boolean => {
+    const key = e.key.toLowerCase();
+    if (e.code === 'Space') {
+      if (activeTab === 'orbitals' || activeTab === 'molecules') {
+        const renderer = getActiveRenderer();
+        viewportHud.setAutoRotateState(renderer.toggleAutoRotate());
+      }
+      return true;
+    }
+    if (key === 'r') {
+      if (activeTab === 'orbitals' || activeTab === 'molecules') {
+        getActiveRenderer().resetCamera();
+      }
+      return true;
+    }
+    if (key === 'p') {
+      imageExporterModal.open();
+      return true;
+    }
+    if (key === 'h' || (e.key === 'Escape' && document.body.classList.contains('zen-mode'))) {
+      toggleZenMode();
+      return true;
+    }
+    return false;
+  };
+
+  const handleArrowShortcut = (key: string): boolean => {
+    if (activeTab !== 'orbitals') return false;
+    if (key !== 'ArrowUp' && key !== 'ArrowDown') return false;
+    const current = controlPanel.getParams();
+    const nextN = key === 'ArrowUp' ? current.n + 1 : current.n - 1;
+    if (nextN >= 1 && nextN <= 7) {
+      controlPanel.setParams({ n: nextN });
+      loadOrbital(controlPanel.getParams());
+    }
+    return true;
+  };
+
+  const handleKeyDown = (e: KeyboardEvent) => {
+    const target = e.target as HTMLElement | null;
     if (
       target &&
       (target.tagName === 'INPUT' ||
@@ -238,56 +293,14 @@ async function init() {
       return;
     }
 
-    if (e.key === '1') {
+    if (handleTabShortcut(e.key) || handleActionShortcut(e) || handleArrowShortcut(e.key)) {
       e.preventDefault();
-      switchTab('orbitals');
-    } else if (e.key === '2') {
-      e.preventDefault();
-      switchTab('periodic-table');
-    } else if (e.key === '3') {
-      e.preventDefault();
-      switchTab('molecules');
-    } else if (e.code === 'Space') {
-      e.preventDefault();
-      if (activeTab === 'orbitals' || activeTab === 'molecules') {
-        const renderer = getActiveRenderer();
-        const newState = renderer.toggleAutoRotate();
-        viewportHud.setAutoRotateState(newState);
-      }
-    } else if (e.key === 'r' || e.key === 'R') {
-      e.preventDefault();
-      if (activeTab === 'orbitals' || activeTab === 'molecules') {
-        getActiveRenderer().resetCamera(true);
-      }
-    } else if (e.key === 'p' || e.key === 'P') {
-      e.preventDefault();
-      imageExporterModal.open();
-    } else if (e.key === 'ArrowUp') {
-      if (activeTab === 'orbitals') {
-        e.preventDefault();
-        const current = controlPanel.getParams();
-        if (current.n < 7) {
-          controlPanel.setParams({ n: current.n + 1 });
-          loadOrbital(controlPanel.getParams());
-        }
-      }
-    } else if (e.key === 'ArrowDown') {
-      if (activeTab === 'orbitals') {
-        e.preventDefault();
-        const current = controlPanel.getParams();
-        if (current.n > 1) {
-          controlPanel.setParams({ n: current.n - 1 });
-          loadOrbital(controlPanel.getParams());
-        }
-      }
-    } else if (e.key === 'h' || e.key === 'H') {
-      e.preventDefault();
-      toggleZenMode();
-    } else if (e.key === 'Escape' && document.body.classList.contains('zen-mode')) {
-      e.preventDefault();
-      toggleZenMode();
     }
-  });
+  };
+
+  window.addEventListener('keydown', handleKeyDown);
+
+
 
   await loadOrbital(controlPanel.getParams());
   orbitalRenderer.start();

@@ -1,5 +1,6 @@
 import { getStrings } from '../i18n';
 import { icon } from './icons';
+import { trapModalFocus } from './modal-utils';
 
 export interface ExportOptions {
   width: number;
@@ -10,8 +11,8 @@ export interface ExportOptions {
 }
 
 export class ImageExporterModal {
-  private overlay: HTMLElement;
-  private onExport: (options: ExportOptions) => Promise<string>;
+  private readonly overlay: HTMLElement;
+  private readonly onExport: (options: ExportOptions) => Promise<string>;
   private previousActiveElement: HTMLElement | null = null;
   private keydownHandler: ((e: KeyboardEvent) => void) | null = null;
 
@@ -55,20 +56,8 @@ export class ImageExporterModal {
         this.close();
       } else if (e.key === 'Tab') {
         const modal = this.overlay.querySelector('.export-modal');
-        if (!modal) return;
-        const focusable = Array.from(modal.querySelectorAll<HTMLElement>(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-        )).filter((el) => !el.hasAttribute('disabled'));
-        if (focusable.length === 0) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
+        if (modal) {
+          trapModalFocus(modal, e);
         }
       }
     };
@@ -192,7 +181,7 @@ export class ImageExporterModal {
           break;
       }
 
-      const superSampling = parseFloat(ssSelect.value);
+      const superSampling = Number.parseFloat(ssSelect.value);
       const background = bgSelect.value as ExportOptions['background'];
       const format = fmtSelect.value as ExportOptions['format'];
 
@@ -203,7 +192,12 @@ export class ImageExporterModal {
       const dataUrl = await this.onExport({ width, height, superSampling, background, format });
 
       // Trigger download
-      const ext = format === 'image/jpeg' ? 'jpg' : format === 'image/webp' ? 'webp' : 'png';
+      let ext = 'png';
+      if (format === 'image/jpeg') {
+        ext = 'jpg';
+      } else if (format === 'image/webp') {
+        ext = 'webp';
+      }
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const filename = `atomic-explorer-${width}x${height}-${timestamp}.${ext}`;
 
@@ -212,7 +206,7 @@ export class ImageExporterModal {
       a.download = filename;
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
+      a.remove();
 
       exportBtn.disabled = false;
       exportBtn.textContent = origText;
