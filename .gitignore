@@ -10,6 +10,7 @@ crates/*/pkg/
 *.wasm.map
 *.tsbuildinfo
 .vite/
+lcov.info
 
 # Dependencies
 /node_modules/
