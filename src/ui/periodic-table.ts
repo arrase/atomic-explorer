@@ -532,29 +532,19 @@ export class PeriodicTableView {
 
     // Click on element cell
     grid.addEventListener('click', (e) => {
-      const cell = (e.target as HTMLElement).closest<HTMLElement>('.element-cell:not(.placeholder-cell)');
-      if (!cell) return;
-      const zStr = cell.dataset.z;
-      if (!zStr) return;
-      const z = Number.parseInt(zStr, 10);
-      const el = this.elements.find((item) => item.Z === z);
-      if (el) {
-        this.selectElement(el);
+      const data = this.getElementFromEvent(e);
+      if (data) {
+        this.selectElement(data.el);
       }
     });
 
     // Double-click to launch 3D orbital directly
     grid.addEventListener('dblclick', (e) => {
-      const cell = (e.target as HTMLElement).closest<HTMLElement>('.element-cell:not(.placeholder-cell)');
-      if (!cell) return;
-      const zStr = cell.dataset.z;
-      if (!zStr) return;
-      const z = Number.parseInt(zStr, 10);
-      const el = this.elements.find((item) => item.Z === z);
-      if (el) {
-        this.selectElement(el);
+      const data = this.getElementFromEvent(e);
+      if (data) {
+        this.selectElement(data.el);
         this.closeFullInspector();
-        this.onSelectElementOrbital(el);
+        this.onSelectElementOrbital(data.el);
       }
     });
 
@@ -593,22 +583,26 @@ export class PeriodicTableView {
     ExplanationModal.attachInfoButtons(this.container);
   }
 
-  private handleGridKeydown(e: KeyboardEvent, grid: HTMLElement): void {
-    const target = (e.target as HTMLElement).closest<HTMLElement>('.element-cell:not(.placeholder-cell)');
-    if (!target) return;
-
-    const zStr = target.dataset.z;
-    if (!zStr) return;
+  private getElementFromEvent(e: Event): { cell: HTMLElement; el: ElementData; z: number } | null {
+    const cell = (e.target as HTMLElement).closest<HTMLElement>('.element-cell:not(.placeholder-cell)');
+    const zStr = cell?.dataset.z;
+    if (!cell || !zStr) return null;
     const z = Number.parseInt(zStr, 10);
     const el = this.elements.find((item) => item.Z === z);
-    if (!el) return;
+    if (!el) return null;
+    return { cell, el, z };
+  }
+
+  private handleGridKeydown(e: KeyboardEvent, grid: HTMLElement): void {
+    const data = this.getElementFromEvent(e);
+    if (!data) return;
 
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      this.handleCellActivation(e.key, el);
+      this.handleCellActivation(e.key, data.el);
     } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
       e.preventDefault();
-      this.handleCellArrowNavigation(e.key, target, z, grid);
+      this.handleCellArrowNavigation(e.key, data.cell, data.z, grid);
     }
   }
 
