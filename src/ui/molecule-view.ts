@@ -1,7 +1,7 @@
 import moleculesData from '../../assets/data/molecules.json';
 import elementsData from '../../assets/data/elements.json';
 import { MoleculeRenderer, MoleculeData as BaseMoleculeData } from '../render/molecule-renderer';
-import { getStrings, getLanguage, onLanguageChange, I18nStrings, ConceptExplanation } from '../i18n';
+import { getStrings, getLanguage, onLanguageChange } from '../i18n';
 import { ElementData } from './periodic-table';
 import { ExplanationModal } from './info-modal';
 import { icon } from './icons';
@@ -233,7 +233,7 @@ export class MoleculeView {
     const infoCard = this.container.querySelector('#molecule-info') as HTMLElement;
     if (infoCard) {
       infoCard.innerHTML = this.renderMoleculeInfo();
-      this.attachInfoButtonEvents(infoCard);
+      ExplanationModal.attachInfoButtons(infoCard);
     }
   }
 
@@ -298,23 +298,7 @@ export class MoleculeView {
       btnToggleLobes.title = this.showLobes ? strings.hideLobes : strings.showLobes;
     });
 
-    this.attachInfoButtonEvents(this.container);
-  }
-
-  private attachInfoButtonEvents(parent: HTMLElement): void {
-    const infoBtns = parent.querySelectorAll('.btn-info-icon');
-    const strings = getStrings();
-    infoBtns.forEach((btn) => {
-      btn.addEventListener('click', (e: Event) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const explainKey = (btn as HTMLElement).dataset.explain as keyof I18nStrings;
-        if (explainKey && strings[explainKey]) {
-          const explanation = strings[explainKey] as ConceptExplanation;
-          ExplanationModal.show(explanation);
-        }
-      });
-    });
+    ExplanationModal.attachInfoButtons(this.container);
   }
 }
 

@@ -1,4 +1,4 @@
-import { ConceptExplanation, getStrings } from '../i18n';
+import { ConceptExplanation, getStrings, I18nStrings } from '../i18n';
 import { icon } from './icons';
 import { trapModalFocus } from './modal-utils';
 
@@ -93,6 +93,22 @@ export class ExplanationModal {
 
   public static showSimple(title: string, summary: string, detail: string): void {
     ExplanationModal.show({ title, summary, detail });
+  }
+
+  public static attachInfoButtons(parent: HTMLElement): void {
+    const infoBtns = parent.querySelectorAll('.btn-info-icon');
+    const strings = getStrings();
+    infoBtns.forEach((btn) => {
+      btn.addEventListener('click', (e: Event) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const explainKey = (btn as HTMLElement).dataset.explain as keyof I18nStrings;
+        if (explainKey && strings[explainKey]) {
+          const explanation = strings[explainKey] as ConceptExplanation;
+          ExplanationModal.show(explanation);
+        }
+      });
+    });
   }
 
   public static close(): void {

@@ -1,5 +1,5 @@
 import elementsData from '../../assets/data/elements.json';
-import { getStrings, getLanguage, onLanguageChange, I18nStrings, ConceptExplanation } from '../i18n';
+import { getStrings, getLanguage, onLanguageChange, I18nStrings } from '../i18n';
 import { ExplanationModal } from './info-modal';
 import { icon } from './icons';
 
@@ -492,7 +492,7 @@ export class PeriodicTableView {
         </div>
         ${this.renderInspectorContent()}
       `;
-      this.attachInfoButtonEvents(inspector);
+      ExplanationModal.attachInfoButtons(inspector);
     }
   }
 
@@ -590,23 +590,7 @@ export class PeriodicTableView {
       }
     });
 
-    this.attachInfoButtonEvents(this.container);
-  }
-
-  private attachInfoButtonEvents(parent: HTMLElement): void {
-    const infoBtns = parent.querySelectorAll('.btn-info-icon');
-    const strings = getStrings();
-    infoBtns.forEach((btn) => {
-      btn.addEventListener('click', (e: Event) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const explainKey = (btn as HTMLElement).dataset.explain as keyof I18nStrings;
-        if (explainKey && strings[explainKey]) {
-          const explanation = strings[explainKey] as ConceptExplanation;
-          ExplanationModal.show(explanation);
-        }
-      });
-    });
+    ExplanationModal.attachInfoButtons(this.container);
   }
 
   private handleGridKeydown(e: KeyboardEvent, grid: HTMLElement): void {
