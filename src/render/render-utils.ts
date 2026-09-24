@@ -186,7 +186,7 @@ export abstract class BaseThreeRenderer {
     if (!this.isShared) {
       window.addEventListener('resize', this.onWindowResize);
     }
-    this.onWindowResize();
+    this.renderer.setSize(window.innerWidth, window.innerHeight);
   }
 
   protected getEffectivePixelRatio(): number {

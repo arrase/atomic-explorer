@@ -350,6 +350,7 @@ export class OrbitalRenderer extends BaseThreeRenderer {
     this.minAlignDistance = 5.0;
 
     this.setupLighting();
+    this.onWindowResize();
   }
 
   private setupLighting(): void {
@@ -501,6 +502,7 @@ export class OrbitalRenderer extends BaseThreeRenderer {
     this.clearCurrentMesh();
     this.currentMode = 'isosurface';
     this.currentParams = { ...params };
+    this.renderer.setPixelRatio(this.getEffectivePixelRatio());
 
     const gridRes = this.getGridResolution(params.quality);
     const palette = PALETTE_CONFIG[params.colorPalette];
@@ -543,6 +545,7 @@ export class OrbitalRenderer extends BaseThreeRenderer {
     this.clearCurrentMesh();
     this.currentMode = 'raymarching';
     this.currentParams = { ...params };
+    this.renderer.setPixelRatio(this.getEffectivePixelRatio());
 
     const boxExtent = (4.0 * (params.n * params.n)) / params.zEff;
     const geometry = new THREE.BoxGeometry(boxExtent * 2, boxExtent * 2, boxExtent * 2);
@@ -748,6 +751,7 @@ export class OrbitalRenderer extends BaseThreeRenderer {
   public updateParams(params: Partial<OrbitalRenderParams>): void {
     const modeChanged = params.mode && params.mode !== this.currentMode;
     this.currentParams = { ...this.currentParams, ...params };
+    this.renderer.setPixelRatio(this.getEffectivePixelRatio());
     if (modeChanged) {
       this.setMode(params.mode!, this.currentParams);
     }
