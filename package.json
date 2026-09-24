@@ -14,7 +14,7 @@
     "three": "^0.186.0"
   },
   "devDependencies": {
-    "@types/node": "^26.5.1",
+    "@types/node": "^26.6.2",
     "@types/three": "^0.186.0",
     "esbuild": "^0.28.2",
     "rollup": "^4.63.3",
