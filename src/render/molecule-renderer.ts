@@ -129,7 +129,7 @@ export class MoleculeRenderer extends BaseThreeRenderer {
     data.hybrid_lobes.forEach((lobe) => {
       const lobeMesh = this.createTeardropLobe(
         new THREE.Color(lobe.color),
-        lobe.type === 'lone_pair' ? 0.75 : 0.65,
+        lobe.type === 'lone_pair' ? 0.5 : 0.42,
         lobe.scale
       );
       lobeMesh.position.set(...lobe.position);
@@ -261,7 +261,9 @@ export class MoleculeRenderer extends BaseThreeRenderer {
   }
 
   private createTeardropLobe(color: THREE.Color, opacity: number, scale: number): THREE.Mesh {
-    const radius = 0.7 * scale;
+    // The base radius must stay below the central atom radius, otherwise the
+    // lobe engulfs the nucleus and hides the atom it belongs to.
+    const radius = 0.52 * scale;
     const geometry = new THREE.SphereGeometry(radius, 32, 32);
     const pos = geometry.attributes.position;
     for (let i = 0; i < pos.count; i++) {
@@ -279,9 +281,11 @@ export class MoleculeRenderer extends BaseThreeRenderer {
 
     const material = new THREE.MeshPhysicalMaterial({
       color,
-      roughness: 0.1,
-      metalness: 0.1,
-      transmission: 0.4,
+      roughness: 0.12,
+      metalness: 0.05,
+      transmission: 0.55,
+      thickness: 1.2,
+      ior: 1.3,
       opacity,
       transparent: true,
       depthWrite: false,

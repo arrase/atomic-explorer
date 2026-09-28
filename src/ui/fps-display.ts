@@ -31,26 +31,30 @@ export class FPSDisplay {
   private readonly update = (): void => {
     this.frames++;
     const now = performance.now();
-    
+
     if (now >= this.lastTime + 1000) {
       const fps = Math.round((this.frames * 1000) / (now - this.lastTime));
-      
+
       this.fpsValues.push(fps);
       if (this.fpsValues.length > 10) {
         this.fpsValues.shift();
       }
-      
+
       const avgFps = Math.round(
         this.fpsValues.reduce((a, b) => a + b, 0) / this.fpsValues.length
       );
-      
+
       this.currentEl.textContent = String(fps);
       this.avgEl.textContent = String(avgFps);
-      
+      this.container.classList.remove('is-good', 'is-warn', 'is-bad');
+      this.container.classList.add(
+        avgFps >= 50 ? 'is-good' : avgFps >= 25 ? 'is-warn' : 'is-bad'
+      );
+
       this.frames = 0;
       this.lastTime = now;
     }
-    
+
     requestAnimationFrame(this.update);
   };
 }

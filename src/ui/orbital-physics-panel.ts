@@ -1,6 +1,7 @@
 import { ExtendedOrbitalParams } from './controls';
 import { getStrings, onLanguageChange } from '../i18n';
 import { ExplanationModal } from './info-modal';
+import { escapeHtml } from './modal-utils';
 import { icon } from './icons';
 import { RadialDistributionChart } from './radial-distribution-chart';
 
@@ -50,7 +51,7 @@ export class OrbitalPhysicsPanel {
       const peak = this.radialChart.getPeakRadius();
       const peakVal = this.panelElement.querySelector('#val-peak-radius') as HTMLElement;
       if (peakVal) {
-        peakVal.innerHTML = `${peak.rBohr.toFixed(2)} a₀ <small>(${peak.rPm.toFixed(1)} pm)</small>`;
+        peakVal.innerHTML = `${peak.rBohr.toFixed(2)} a₀<small>${peak.rPm.toFixed(1)} pm</small>`;
       }
     }
 
@@ -67,7 +68,7 @@ export class OrbitalPhysicsPanel {
     if (radialVal) radialVal.textContent = String(radialNodes);
     if (angularVal) angularVal.textContent = String(angularNodes);
     if (totalVal) totalVal.textContent = String(totalNodes);
-    if (radiusVal) radiusVal.innerHTML = `${rExpBohr.toFixed(2)} a₀ <small>(${rExpPm.toFixed(1)} pm)</small>`;
+    if (radiusVal) radiusVal.innerHTML = `${rExpBohr.toFixed(2)} a₀<small>${rExpPm.toFixed(1)} pm</small>`;
     if (energyVal) energyVal.textContent = `${energyEv.toFixed(2)} eV`;
     if (seriesVal) seriesVal.textContent = seriesName;
     if (zeffVal) zeffVal.textContent = params.zEff.toFixed(2);
@@ -131,9 +132,9 @@ export class OrbitalPhysicsPanel {
 
     this.container.innerHTML = `
       <!-- Dock Handle / Expand Pill when Right Panel is Collapsed on Desktop -->
-      <button class="dock-tab-pill dock-right-pill ${this.isCollapsed ? 'visible' : ''}" id="btn-expand-physics" title="${strings.expandPanel}" aria-label="${strings.expandPanel}" aria-expanded="${!this.isCollapsed}" aria-controls="orbital-physics-panel">
+      <button type="button" class="dock-tab-pill dock-right-pill ${this.isCollapsed ? 'visible' : ''}" id="btn-expand-physics" title="${escapeHtml(strings.expandPanel)}" aria-label="${escapeHtml(strings.expandPanel)}" aria-expanded="${!this.isCollapsed}" aria-controls="orbital-physics-panel">
         ${icon('chevron-left', 'pill-chevron')}
-        <span>${strings.physicsPanelTitle}</span>
+        <span>${escapeHtml(strings.physicsPanelTitle)}</span>
         ${icon('chart')}
       </button>
 
@@ -143,58 +144,58 @@ export class OrbitalPhysicsPanel {
           <div class="physics-header-top">
             <div class="panel-title-group">
               <span class="panel-header-icon">${icon('chart')}</span>
-              <h3>${strings.physicsPanelTitle}</h3>
+              <h3>${escapeHtml(strings.physicsPanelTitle)}</h3>
             </div>
             <div class="panel-header-actions">
-              <button class="panel-icon-btn panel-collapse-btn desktop-only" id="btn-collapse-physics" title="${strings.collapsePanel}" aria-label="${strings.collapsePanel}" aria-expanded="${!this.isCollapsed}" aria-controls="orbital-physics-panel">
+              <button type="button" class="panel-icon-btn panel-collapse-btn desktop-only" id="btn-collapse-physics" title="${escapeHtml(strings.collapsePanel)}" aria-label="${escapeHtml(strings.collapsePanel)}" aria-expanded="${!this.isCollapsed}" aria-controls="orbital-physics-panel">
                 ${icon('chevron-right')}
               </button>
-              <button class="panel-close-btn mobile-only" id="btn-close-physics" aria-label="Close">
+              <button type="button" class="panel-close-btn mobile-only" id="btn-close-physics" aria-label="${escapeHtml(strings.infoModalClose)}">
                 ${icon('close')}
               </button>
             </div>
           </div>
           <div class="active-state-badge">
-            <span class="badge-label">${strings.activeState}:</span>
-            <span class="badge-value" id="val-active-state">${notation} (n=${n}, l=${l}, m=${m})</span>
+            <span class="badge-label">${escapeHtml(strings.activeState)}</span>
+            <span class="badge-value" id="val-active-state">${escapeHtml(notation)} (n=${n}, l=${l}, m=${m})</span>
           </div>
         </div>
 
         <div class="physics-section radial-section">
-          <div class="radial-section-header">
-            <h4>${strings.radialDistributionTitle}</h4>
-            <button class="btn-info-icon" data-explain="explainRadialDistribution" aria-label="Info">${icon('info')}</button>
+          <div class="section-title">
+            <h4>${escapeHtml(strings.radialDistributionTitle)}</h4>
+            <button type="button" class="btn-info-icon" data-explain="explainRadialDistribution" aria-label="Info">${icon('info')}</button>
           </div>
           <div class="radial-chart-wrapper" id="radial-chart-container"></div>
           <div class="radial-stats-row">
             <div class="radial-stat-badge">
-              <span class="stat-label">${strings.peakRadius}:</span>
-              <span class="stat-value" id="val-peak-radius">--</span>
+              <span class="stat-label">${escapeHtml(strings.peakRadius)}</span>
+              <span class="stat-value numeric" id="val-peak-radius">--</span>
             </div>
           </div>
         </div>
 
         <div class="physics-section nodes-section">
-          <h4>${strings.nodalBreakdown}</h4>
+          <h4 class="section-title">${escapeHtml(strings.nodalBreakdown)}</h4>
           <div class="nodes-grid">
-            <div class="node-item">
+            <div class="stat-tile node-item">
               <div class="node-header">
-                <span class="node-label">${strings.radialNodes}</span>
-                <button class="btn-info-icon" data-node="radial" aria-label="Info">${icon('info')}</button>
+                <span class="node-label">${escapeHtml(strings.radialNodes)}</span>
+                <button type="button" class="btn-info-icon" data-node="radial" aria-label="${escapeHtml(strings.radialNodes)}">${icon('info')}</button>
               </div>
               <span class="node-value" id="val-radial-nodes">${radialNodes}</span>
             </div>
-            <div class="node-item">
+            <div class="stat-tile node-item">
               <div class="node-header">
-                <span class="node-label">${strings.angularNodes}</span>
-                <button class="btn-info-icon" data-node="angular" aria-label="Info">${icon('info')}</button>
+                <span class="node-label">${escapeHtml(strings.angularNodes)}</span>
+                <button type="button" class="btn-info-icon" data-node="angular" aria-label="${escapeHtml(strings.angularNodes)}">${icon('info')}</button>
               </div>
               <span class="node-value" id="val-angular-nodes">${angularNodes}</span>
             </div>
-            <div class="node-item">
+            <div class="stat-tile node-item">
               <div class="node-header">
-                <span class="node-label">${strings.totalNodes}</span>
-                <button class="btn-info-icon" data-node="total" aria-label="Info">${icon('info')}</button>
+                <span class="node-label">${escapeHtml(strings.totalNodes)}</span>
+                <button type="button" class="btn-info-icon" data-node="total" aria-label="${escapeHtml(strings.totalNodes)}">${icon('info')}</button>
               </div>
               <span class="node-value" id="val-total-nodes">${totalNodes}</span>
             </div>
@@ -203,17 +204,17 @@ export class OrbitalPhysicsPanel {
 
         <div class="physics-section expectation-section">
           <div class="expectation-grid">
-            <div class="expectation-item">
+            <div class="stat-tile expectation-item">
               <div class="node-header">
-                <span class="node-label">${strings.expectationRadius}</span>
-                <button class="btn-info-icon" data-phys="radius" aria-label="Info">${icon('info')}</button>
+                <span class="node-label">${escapeHtml(strings.expectationRadius)}</span>
+                <button type="button" class="btn-info-icon" data-phys="radius" aria-label="${escapeHtml(strings.expectationRadius)}">${icon('info')}</button>
               </div>
-              <span class="node-value" id="val-exp-radius">${rExpBohr.toFixed(2)} a₀ <small>(${rExpPm.toFixed(1)} pm)</small></span>
+              <span class="node-value" id="val-exp-radius">${rExpBohr.toFixed(2)} a₀<small>${rExpPm.toFixed(1)} pm</small></span>
             </div>
-            <div class="expectation-item">
+            <div class="stat-tile expectation-item">
               <div class="node-header">
-                <span class="node-label">${strings.hydrogenicEnergy}</span>
-                <button class="btn-info-icon" data-phys="energy" aria-label="Info">${icon('info')}</button>
+                <span class="node-label">${escapeHtml(strings.hydrogenicEnergy)}</span>
+                <button type="button" class="btn-info-icon" data-phys="energy" aria-label="${escapeHtml(strings.hydrogenicEnergy)}">${icon('info')}</button>
               </div>
               <span class="node-value" id="val-energy">${energyEv.toFixed(2)} eV</span>
             </div>
@@ -221,25 +222,25 @@ export class OrbitalPhysicsPanel {
         </div>
 
         <div class="physics-section formula-section">
-          <div class="formula-header">
-            <h4>${strings.wavefunctionFormula}</h4>
-            <button class="btn-info-icon" data-formula="wavefunction" aria-label="Info">${icon('info')}</button>
+          <div class="section-title">
+            <h4>${escapeHtml(strings.wavefunctionFormula)}</h4>
+            <button type="button" class="btn-info-icon" data-formula="wavefunction" aria-label="${escapeHtml(strings.wavefunctionFormula)}">${icon('info')}</button>
           </div>
           <div class="formula-display">
-            <code>&psi;_{n,l,m}(r,&theta;,&phi;) = R_{n,l}(r) &middot; Y_l^m(&theta;,&phi;)</code>
+            <code>&psi;<sub>n,l,m</sub>(r,&theta;,&phi;) = R<sub>n,l</sub>(r) &middot; Y<sub>l</sub><sup>m</sup>(&theta;,&phi;)</code>
           </div>
           <div class="series-badge">
-            <span>${strings.spectralSeries}: <strong id="val-series">${seriesName}</strong></span>
+            <span>${escapeHtml(strings.spectralSeries)}: <strong id="val-series">${escapeHtml(seriesName)}</strong></span>
           </div>
         </div>
 
         <div class="physics-section shielding-section">
-          <div class="shielding-header">
-            <h4>${strings.shieldingTitle}</h4>
-            <button class="btn-info-icon" data-explain="explainZeff" aria-label="Info">${icon('info')}</button>
+          <div class="section-title">
+            <h4>${escapeHtml(strings.shieldingTitle)}</h4>
+            <button type="button" class="btn-info-icon" data-explain="explainZeff" aria-label="Info">${icon('info')}</button>
           </div>
           <p class="shielding-note">
-            Z_eff = <strong id="val-zeff">${zEff.toFixed(2)}</strong> &mdash; ${strings.shieldingNoteDesc}
+            Z<sub>eff</sub> = <strong id="val-zeff">${zEff.toFixed(2)}</strong> &mdash; ${escapeHtml(strings.shieldingNoteDesc)}
           </p>
         </div>
       </div>
@@ -257,7 +258,7 @@ export class OrbitalPhysicsPanel {
       const peak = this.radialChart.getPeakRadius();
       const peakVal = this.container.querySelector('#val-peak-radius') as HTMLElement;
       if (peakVal) {
-        peakVal.innerHTML = `${peak.rBohr.toFixed(2)} a₀ <small>(${peak.rPm.toFixed(1)} pm)</small>`;
+        peakVal.innerHTML = `${peak.rBohr.toFixed(2)} a₀<small>${peak.rPm.toFixed(1)} pm</small>`;
       }
     }
 
@@ -304,21 +305,18 @@ export class OrbitalPhysicsPanel {
 
     const strings = getStrings();
 
-    const infoBtns = this.container.querySelectorAll<HTMLElement>('.btn-info-icon');
+    // The `data-explain` buttons reuse the shared handler (which also derives a
+    // meaningful aria-label from the concept title).
+    ExplanationModal.attachInfoButtons(this.container);
+
+    // These are contextual explanations built from the live parameters, so they
+    // carry their own explicit labels and handler.
+    const infoBtns = this.container.querySelectorAll<HTMLElement>('.btn-info-icon:not([data-explain])');
     infoBtns.forEach((btn) => {
+      btn.setAttribute('type', 'button');
       btn.addEventListener('click', (e: Event) => {
         e.preventDefault();
         e.stopPropagation();
-
-        const explainKey = btn.dataset.explain;
-        if (explainKey === 'explainZeff') {
-          ExplanationModal.show(strings.explainZeff);
-          return;
-        }
-        if (explainKey === 'explainRadialDistribution') {
-          ExplanationModal.show(strings.explainRadialDistribution);
-          return;
-        }
 
         const nodeType = btn.dataset.node;
         if (nodeType === 'radial') {

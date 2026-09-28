@@ -9,6 +9,8 @@ export interface ViewportHUDCallbacks {
 
 export class ViewportHUD {
   private readonly container: HTMLElement;
+  private readonly inner: HTMLElement;
+  private readonly extraSlot: HTMLElement;
   private readonly callbacks: ViewportHUDCallbacks;
   private isAutoRotating: boolean = false;
   private scaleText: string = '1 a₀ = 52.9 pm';
@@ -20,20 +22,34 @@ export class ViewportHUD {
     this.container.className = 'viewport-hud';
     parent.appendChild(this.container);
 
+    this.inner = document.createElement('div');
+    this.inner.className = 'hud-inner';
+    this.container.appendChild(this.inner);
+
+    // Persistent slot for host-owned content (the FPS readout) so that
+    // re-rendering the toolbar on language change does not destroy it.
+    this.extraSlot = document.createElement('div');
+    this.extraSlot.className = 'hud-extra';
+    this.container.appendChild(this.extraSlot);
+
     this.render();
     onLanguageChange(() => this.render());
+  }
+
+  public getExtraSlot(): HTMLElement {
+    return this.extraSlot;
   }
 
   private render(): void {
     const strings = getStrings();
 
-    this.container.innerHTML = `
+    this.inner.innerHTML = `
       <div class="hud-group">
         <button type="button" class="hud-btn" id="hud-btn-reset" title="${strings.hudResetCamera}" aria-label="${strings.hudResetCamera}" data-tooltip="${strings.hudResetCamera}">
           ${icon('rotate-ccw')}
         </button>
 
-        <button type="button" class="hud-btn ${this.isAutoRotating ? 'active' : ''}" id="hud-btn-turntable" title="${strings.hudTurntable}" aria-label="${strings.hudTurntable}" data-tooltip="${strings.hudTurntable}">
+        <button type="button" class="hud-btn ${this.isAutoRotating ? 'active' : ''}" id="hud-btn-turntable" title="${strings.hudTurntable}" aria-label="${strings.hudTurntable}" aria-pressed="${this.isAutoRotating}" data-tooltip="${strings.hudTurntable}">
           ${icon('turntable')}
         </button>
       </div>

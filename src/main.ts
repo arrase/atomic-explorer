@@ -32,7 +32,6 @@ async function calculateValenceQuantumNumbers(Z: number) {
 async function init() {
   const canvas = document.getElementById('orbital-canvas') as HTMLCanvasElement;
   const uiOverlay = document.getElementById('ui-overlay') as HTMLElement;
-  const fpsCounter = document.getElementById('fps-counter') as HTMLElement;
 
   const renderer = new THREE.WebGLRenderer({
     canvas,
@@ -43,7 +42,7 @@ async function init() {
     preserveDrawingBuffer: true,
   });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  renderer.setClearColor(new THREE.Color('#0a0a1a'));
+  renderer.setClearColor(new THREE.Color('#08090d'));
 
   const orbitalRenderer = new OrbitalRenderer({ canvas, renderer });
   const moleculeRenderer = new MoleculeRenderer({ canvas, renderer });
@@ -62,11 +61,14 @@ async function init() {
   };
 
   Object.entries(viewLayers).forEach(([id, layer]) => {
-    layer.className = `view-layer ${id}-layer ${id === activeTab ? 'active' : ''}`;
+    // The id is the target of the nav tab's `aria-controls`, and the panel is
+    // labelled by the tab so screen readers announce the pair correctly.
+    layer.id = `${id}-layer`;
+    layer.className = `view-layer ${id}-layer${id === activeTab ? ' active' : ''}`;
+    layer.setAttribute('role', 'tabpanel');
+    layer.setAttribute('aria-labelledby', `nav-tab-${id}`);
     uiOverlay.appendChild(layer);
   });
-
-  new FPSDisplay(fpsCounter);
 
   const orientationGizmo = new OrientationGizmo(uiOverlay);
   orbitalRenderer.setGizmo(orientationGizmo);
@@ -166,6 +168,9 @@ async function init() {
       toggleZenMode();
     },
   });
+
+  // The FPS readout lives inside the HUD so the side panels can never cover it.
+  new FPSDisplay(viewportHud.getExtraSlot());
 
   const switchTab = (newTab: TabId) => {
     activeTab = newTab;
@@ -281,6 +286,18 @@ async function init() {
     return true;
   };
 
+  const closeOpenDrawers = (): boolean => {
+    const open = document.querySelectorAll('.mobile-open');
+    open.forEach((el) => el.classList.remove('mobile-open'));
+    document
+      .querySelectorAll('.mobile-drawer-backdrop.active')
+      .forEach((el) => el.classList.remove('active'));
+    document
+      .querySelectorAll('.mobile-float-btn')
+      .forEach((el) => el.setAttribute('aria-expanded', 'false'));
+    return open.length > 0;
+  };
+
   const handleKeyDown = (e: KeyboardEvent) => {
     const target = e.target as HTMLElement | null;
     if (
@@ -290,6 +307,11 @@ async function init() {
         target.tagName === 'TEXTAREA' ||
         target.isContentEditable)
     ) {
+      return;
+    }
+
+    if (e.key === 'Escape' && closeOpenDrawers()) {
+      e.preventDefault();
       return;
     }
 

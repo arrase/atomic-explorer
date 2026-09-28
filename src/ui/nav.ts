@@ -51,11 +51,13 @@ export class NavigationBar {
           <span class="nav-logo">${icon('atom', 'nav-logo-icon')}</span>
           <span class="nav-title">${strings.title}</span>
         </div>
-        <div class="nav-tabs" id="nav-tabs-menu" role="tablist" aria-label="${strings.title}">
+        <div class="nav-tabs" id="nav-tabs-menu">
+          <div class="nav-tablist" role="tablist" aria-label="${strings.title}">
           ${tabs
             .map(
               (tab) => `
             <button
+              type="button"
               class="nav-tab ${tab.id === this.activeTab ? 'active' : ''}"
               id="nav-tab-${tab.id}"
               data-tab="${tab.id}"
@@ -70,17 +72,19 @@ export class NavigationBar {
           `
             )
             .join('')}
-          <button class="nav-tab nav-glossary-btn" id="nav-glossary-btn" title="${strings.btnGlossary}">
+          </div>
+          <button type="button" class="btn-ghost nav-aux-btn nav-glossary-btn" id="nav-glossary-btn" title="${strings.btnGlossary}">
             <span class="tab-icon">${icon('book')}</span>
             <span class="tab-label">${strings.btnGlossary}</span>
           </button>
-          <button class="nav-tab nav-intro-btn" id="nav-intro-btn" title="${strings.btnIntro}">
+          <button type="button" class="btn-ghost nav-aux-btn nav-intro-btn" id="nav-intro-btn" title="${strings.btnIntro}">
             <span class="tab-icon">${icon('help')}</span>
             <span class="tab-label">${strings.btnIntro}</span>
           </button>
         </div>
         <div class="nav-actions">
-          <button class="nav-action-btn nav-zen-btn" id="nav-zen-btn" title="${strings.zenMode}" aria-label="${strings.zenMode}">
+          <span class="nav-divider" aria-hidden="true"></span>
+          <button type="button" class="nav-action-btn nav-zen-btn" id="nav-zen-btn" title="${strings.zenMode}" aria-label="${strings.zenMode}">
             <span class="tab-icon">${icon('zen')}</span>
           </button>
           <div class="nav-lang-switcher">

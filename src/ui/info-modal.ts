@@ -1,6 +1,6 @@
 import { ConceptExplanation, getStrings, I18nStrings } from '../i18n';
 import { icon } from './icons';
-import { trapModalFocus } from './modal-utils';
+import { escapeHtml, trapModalFocus } from './modal-utils';
 
 export class ExplanationModal {
   private static overlayElement: HTMLElement | null = null;
@@ -96,16 +96,29 @@ export class ExplanationModal {
   }
 
   public static attachInfoButtons(parent: HTMLElement): void {
-    const infoBtns = parent.querySelectorAll('.btn-info-icon');
+    const infoBtns = parent.querySelectorAll<HTMLElement>('.btn-info-icon');
     const strings = getStrings();
+
     infoBtns.forEach((btn) => {
+      const explainKey = btn.dataset.explain as keyof I18nStrings | undefined;
+      const concept = explainKey ? (strings[explainKey] as ConceptExplanation | undefined) : undefined;
+
+      // Give every affordance a distinct, meaningful name instead of 15
+      // identical "Info" labels.
+      if (concept?.title) {
+        const label = escapeHtml(concept.title);
+        btn.setAttribute('aria-label', label);
+        btn.title = concept.title;
+      }
+      if (!btn.getAttribute('type')) {
+        btn.setAttribute('type', 'button');
+      }
+
       btn.addEventListener('click', (e: Event) => {
         e.preventDefault();
         e.stopPropagation();
-        const explainKey = (btn as HTMLElement).dataset.explain as keyof I18nStrings;
-        if (explainKey && strings[explainKey]) {
-          const explanation = strings[explainKey] as ConceptExplanation;
-          ExplanationModal.show(explanation);
+        if (explainKey && concept) {
+          ExplanationModal.show(concept);
         }
       });
     });

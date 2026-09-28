@@ -4,6 +4,7 @@ import { MoleculeRenderer, MoleculeData as BaseMoleculeData } from '../render/mo
 import { getStrings, getLanguage, onLanguageChange } from '../i18n';
 import { ElementData } from './periodic-table';
 import { ExplanationModal } from './info-modal';
+import { escapeHtml } from './modal-utils';
 import { icon } from './icons';
 
 export interface LocalizedMoleculeData extends BaseMoleculeData {
@@ -70,59 +71,59 @@ export class MoleculeView {
       <div class="mobile-drawer-backdrop" id="molecule-drawer-backdrop"></div>
 
       <div class="mobile-floating-actions">
-        <button class="mobile-float-btn" id="btn-show-molecule" title="${strings.moleculesVseprTitle}">
+        <button type="button" class="mobile-float-btn" id="btn-show-molecule" title="${escapeHtml(strings.moleculesVseprTitle)}" aria-label="${escapeHtml(strings.moleculesVseprTitle)}" aria-expanded="false" aria-controls="molecule-panel">
           <span class="btn-icon">${icon('molecule')}</span>
-          <span class="btn-label">${strings.moleculesVseprTitle}</span>
+          <span class="btn-label">${escapeHtml(strings.moleculesVseprTitle)}</span>
         </button>
       </div>
 
       <!-- Dock Handle / Expand Pill when Left Panel is Collapsed on Desktop -->
-      <button class="dock-tab-pill dock-left-pill ${this.isCollapsed ? 'visible' : ''}" id="btn-expand-molecule" title="${strings.expandPanel}">
+      <button type="button" class="dock-tab-pill dock-left-pill ${this.isCollapsed ? 'visible' : ''}" id="btn-expand-molecule" title="${escapeHtml(strings.expandPanel)}" aria-label="${escapeHtml(strings.expandPanel)}" aria-expanded="${!this.isCollapsed}" aria-controls="molecule-panel">
         ${icon('molecule')}
-        <span>${strings.moleculesVseprTitle}</span>
+        <span>${escapeHtml(strings.moleculesVseprTitle)}</span>
         ${icon('chevron-right', 'pill-chevron')}
       </button>
 
-      <div class="molecule-overlay-panel ${this.isCollapsed ? 'collapsed' : ''}">
+      <div class="molecule-overlay-panel ${this.isCollapsed ? 'collapsed' : ''}" id="molecule-panel">
         <div class="mobile-drawer-handle"></div>
         <div class="panel-header">
           <div class="panel-title-group">
             <span class="panel-header-icon">${icon('molecule')}</span>
-            <h3>${strings.moleculesVseprTitle}</h3>
+            <h3>${escapeHtml(strings.moleculesVseprTitle)}</h3>
           </div>
           <div class="panel-header-actions">
-            <button class="panel-icon-btn panel-collapse-btn desktop-only" id="btn-collapse-molecule" title="${strings.collapsePanel}" aria-label="${strings.collapsePanel}">
+            <button type="button" class="panel-icon-btn panel-collapse-btn desktop-only" id="btn-collapse-molecule" title="${escapeHtml(strings.collapsePanel)}" aria-label="${escapeHtml(strings.collapsePanel)}" aria-expanded="${!this.isCollapsed}" aria-controls="molecule-panel">
               ${icon('chevron-left')}
             </button>
-            <button class="panel-close-btn mobile-only" id="btn-close-molecule" aria-label="Close">${icon('close')}</button>
+            <button type="button" class="panel-close-btn mobile-only" id="btn-close-molecule" aria-label="${escapeHtml(strings.infoModalClose)}">${icon('close')}</button>
           </div>
         </div>
 
         <div class="molecule-gallery-section">
           <div class="molecule-gallery-header">
-            <span class="gallery-title">${strings.moleculeGallery}</span>
+            <span class="gallery-title">${escapeHtml(strings.moleculeGallery)}</span>
             <span class="gallery-count">${this.molecules.length}</span>
           </div>
-          <div class="molecule-gallery" role="listbox" aria-label="${strings.moleculeGallery}">
+          <div class="molecule-gallery" role="listbox" aria-label="${escapeHtml(strings.moleculeGallery)}">
             ${this.molecules
               .map((m) => {
                 const isActive = m.id === this.currentMolecule.id;
                 return `
                   <div
                     class="molecule-card ${isActive ? 'active' : ''}"
-                    data-molecule-id="${m.id}"
+                    data-molecule-id="${escapeHtml(m.id)}"
                     role="option"
                     aria-selected="${isActive}"
-                    tabindex="0"
+                    tabindex="${isActive ? '0' : '-1'}"
                   >
                     <div class="card-header-row">
-                      <span class="card-formula-badge">${m.formula}</span>
-                      <span class="card-hybrid-pill">${m.hybridization}</span>
+                      <span class="card-formula-badge">${escapeHtml(m.formula)}</span>
+                      <span class="card-hybrid-pill">${escapeHtml(m.hybridization)}</span>
                     </div>
                     <div class="card-body-content">
-                      <div class="card-molecule-name">${this.getMoleculeName(m)}</div>
+                      <div class="card-molecule-name">${escapeHtml(this.getMoleculeName(m))}</div>
                       <div class="card-vsepr-geom">
-                        <span class="geom-pill">${this.getMoleculeGeometry(m)}</span>
+                        <span class="geom-pill">${escapeHtml(this.getMoleculeGeometry(m))}</span>
                       </div>
                     </div>
                   </div>
@@ -133,13 +134,13 @@ export class MoleculeView {
         </div>
 
         <div class="molecule-view-actions">
-          <button class="btn-secondary btn-action-toggle ${this.showAngles ? 'active' : ''}" id="btn-toggle-angles" title="${this.showAngles ? strings.hideAngles : strings.showAngles}">
+          <button type="button" class="btn-action-toggle ${this.showAngles ? 'active' : ''}" id="btn-toggle-angles" aria-pressed="${this.showAngles}" title="${escapeHtml(this.showAngles ? strings.hideAngles : strings.showAngles)}">
             ${icon('angle')}
-            <span>${this.showAngles ? strings.hideAngles : strings.showAngles}</span>
+            <span>${escapeHtml(this.showAngles ? strings.hideAngles : strings.showAngles)}</span>
           </button>
-          <button class="btn-secondary btn-action-toggle ${this.showLobes ? 'active' : ''}" id="btn-toggle-lobes" title="${this.showLobes ? strings.hideLobes : strings.showLobes}">
+          <button type="button" class="btn-action-toggle ${this.showLobes ? 'active' : ''}" id="btn-toggle-lobes" aria-pressed="${this.showLobes}" title="${escapeHtml(this.showLobes ? strings.hideLobes : strings.showLobes)}">
             ${this.showLobes ? icon('eye-off') : icon('eye')}
-            <span>${this.showLobes ? strings.hideLobes : strings.showLobes}</span>
+            <span>${escapeHtml(this.showLobes ? strings.hideLobes : strings.showLobes)}</span>
           </button>
         </div>
 
@@ -149,10 +150,10 @@ export class MoleculeView {
 
         <div class="vsepr-guide-card">
           <div class="vsepr-guide-header">
-            <h4>${strings.vseprGuideTitle}</h4>
-            <button class="btn-info-icon" data-explain="explainVsepr" aria-label="Info">${icon('info')}</button>
+            <h4>${escapeHtml(strings.vseprGuideTitle)}</h4>
+            <button type="button" class="btn-info-icon" data-explain="explainVsepr" aria-label="Info">${icon('info')}</button>
           </div>
-          <p>${strings.vseprGuideText}</p>
+          <p>${escapeHtml(strings.vseprGuideText)}</p>
         </div>
       </div>
     `;
@@ -169,39 +170,44 @@ export class MoleculeView {
 
     return `
       <div class="mol-header">
-        <span class="mol-formula">${m.formula}</span>
-        <h2 class="mol-name">${name}</h2>
+        <span class="mol-formula">${escapeHtml(m.formula)}</span>
+        <h2 class="mol-name">${escapeHtml(name)}</h2>
       </div>
       <div class="mol-details">
-        <div class="detail-row">
-          <span>${strings.vseprGeometry} <button class="btn-info-icon" data-explain="explainVsepr" aria-label="Info">${icon('info')}</button>:</span>
-          <strong>${geometry}</strong>
-        </div>
-        <div class="detail-row">
-          <span>${strings.hybridization} <button class="btn-info-icon" data-explain="explainHybridization" aria-label="Info">${icon('info')}</button>:</span>
-          <strong><code>${m.hybridization}</code></strong>
-        </div>
-        <div class="detail-row">
-          <span>${strings.bondAngle} <button class="btn-info-icon" data-explain="explainBondAngle" aria-label="Info">${icon('info')}</button>:</span>
-          <strong class="highlight-angle">${m.bond_angle}</strong>
-        </div>
+        ${this.infoDetailRow(strings.vseprGeometry, 'explainVsepr', escapeHtml(geometry))}
+        ${this.infoDetailRow(strings.hybridization, 'explainHybridization', `<code>${escapeHtml(m.hybridization)}</code>`)}
+        ${this.infoDetailRow(strings.bondAngle, 'explainBondAngle', escapeHtml(String(m.bond_angle)), 'highlight-angle')}
       </div>
-      <p class="mol-description">${description}</p>
+      <p class="mol-description">${escapeHtml(description)}</p>
+    `;
+  }
+
+  private infoDetailRow(label: string, explainKey: string, valueHtml: string, valueClass = ''): string {
+    return `
+      <div class="detail-row">
+        <span class="detail-row-label">
+          ${escapeHtml(label)}
+          <button type="button" class="btn-info-icon" data-explain="${explainKey}" aria-label="Info">${icon('info')}</button>
+        </span>
+        <strong class="${valueClass}">${valueHtml}</strong>
+      </div>
     `;
   }
 
   private toggleDrawer(): void {
     const molPanel = this.container.querySelector('.molecule-overlay-panel') as HTMLElement;
-    const backdrop = this.container.querySelector('#molecule-drawer-backdrop') as HTMLElement;
-    const btnShowMol = this.container.querySelector('#btn-show-molecule') as HTMLElement;
 
-    const isOpen = molPanel.classList.contains('mobile-open');
-    if (isOpen) {
+    if (molPanel.classList.contains('mobile-open')) {
       this.closeDrawer();
     } else {
+      const backdrop = this.container.querySelector('#molecule-drawer-backdrop') as HTMLElement;
+      const btnShowMol = this.container.querySelector('#btn-show-molecule') as HTMLElement;
       molPanel.classList.add('mobile-open');
+      molPanel.removeAttribute('aria-hidden');
       backdrop.classList.add('active');
       btnShowMol.classList.add('active');
+      btnShowMol.setAttribute('aria-expanded', 'true');
+      this.container.querySelector<HTMLElement>('#btn-close-molecule')?.focus();
     }
   }
 
@@ -213,6 +219,7 @@ export class MoleculeView {
     molPanel.classList.remove('mobile-open');
     backdrop.classList.remove('active');
     btnShowMol.classList.remove('active');
+    btnShowMol.setAttribute('aria-expanded', 'false');
   }
 
   private selectMolecule(id: string): void {
@@ -222,12 +229,12 @@ export class MoleculeView {
     this.currentMolecule = selected;
     this.renderer.loadMolecule(this.currentMolecule);
 
-    const cards = this.container.querySelectorAll('.molecule-card');
+    const cards = this.container.querySelectorAll<HTMLElement>('.molecule-card');
     cards.forEach((card) => {
-      const cardEl = card as HTMLElement;
-      const isMatch = cardEl.dataset.moleculeId === id;
-      cardEl.classList.toggle('active', isMatch);
-      cardEl.setAttribute('aria-selected', isMatch ? 'true' : 'false');
+      const isMatch = card.dataset.moleculeId === id;
+      card.classList.toggle('active', isMatch);
+      card.setAttribute('aria-selected', isMatch ? 'true' : 'false');
+      card.tabIndex = isMatch ? 0 : -1;
     });
 
     const infoCard = this.container.querySelector('#molecule-info') as HTMLElement;
@@ -267,35 +274,67 @@ export class MoleculeView {
       });
     }
 
-    const cards = this.container.querySelectorAll('.molecule-card');
-    cards.forEach((card) => {
-      const cardEl = card as HTMLElement;
-      const molId = cardEl.dataset.moleculeId;
-      if (molId) {
-        cardEl.addEventListener('click', () => this.selectMolecule(molId));
-        cardEl.addEventListener('keydown', (e: KeyboardEvent) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            this.selectMolecule(molId);
-          }
-        });
-      }
+    const gallery = this.container.querySelector<HTMLElement>('.molecule-gallery');
+    const cards = Array.from(this.container.querySelectorAll<HTMLElement>('.molecule-card'));
+
+    cards.forEach((card, index) => {
+      const molId = card.dataset.moleculeId;
+      if (!molId) return;
+
+      card.addEventListener('click', () => this.selectMolecule(molId));
+      card.addEventListener('keydown', (e: KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          this.selectMolecule(molId);
+          return;
+        }
+        // Roving focus across the gallery grid.
+        const cols = gallery
+          ? getComputedStyle(gallery).gridTemplateColumns.split(' ').filter(Boolean).length || 1
+          : 1;
+        let nextIndex = -1;
+        if (e.key === 'ArrowRight') nextIndex = index + 1;
+        else if (e.key === 'ArrowLeft') nextIndex = index - 1;
+        else if (e.key === 'ArrowDown') nextIndex = index + cols;
+        else if (e.key === 'ArrowUp') nextIndex = index - cols;
+        if (nextIndex < 0 || nextIndex >= cards.length) return;
+
+        e.preventDefault();
+        const next = cards[nextIndex];
+        this.selectMolecule(next.dataset.moleculeId!);
+        next.focus();
+      });
     });
+
+    if (gallery) {
+      gallery.addEventListener('keydown', (e: KeyboardEvent) => {
+        if (e.key !== 'Home' && e.key !== 'End') return;
+        e.preventDefault();
+        const target = e.key === 'Home' ? cards[0] : cards.at(-1);
+        if (!target) return;
+        this.selectMolecule(target.dataset.moleculeId!);
+        target.focus();
+      });
+    }
 
     btnToggleAngles.addEventListener('click', () => {
       const strings = getStrings();
       this.showAngles = this.renderer.toggleAngles();
+      const label = this.showAngles ? strings.hideAngles : strings.showAngles;
       btnToggleAngles.classList.toggle('active', this.showAngles);
-      btnToggleAngles.innerHTML = `${icon('angle')} <span>${this.showAngles ? strings.hideAngles : strings.showAngles}</span>`;
-      btnToggleAngles.title = this.showAngles ? strings.hideAngles : strings.showAngles;
+      btnToggleAngles.setAttribute('aria-pressed', String(this.showAngles));
+      btnToggleAngles.innerHTML = `${icon('angle')} <span>${escapeHtml(label)}</span>`;
+      btnToggleAngles.title = label;
     });
 
     btnToggleLobes.addEventListener('click', () => {
       const strings = getStrings();
       this.showLobes = this.renderer.toggleLobes();
+      const label = this.showLobes ? strings.hideLobes : strings.showLobes;
       btnToggleLobes.classList.toggle('active', this.showLobes);
-      btnToggleLobes.innerHTML = `${this.showLobes ? icon('eye-off') : icon('eye')} <span>${this.showLobes ? strings.hideLobes : strings.showLobes}</span>`;
-      btnToggleLobes.title = this.showLobes ? strings.hideLobes : strings.showLobes;
+      btnToggleLobes.setAttribute('aria-pressed', String(this.showLobes));
+      btnToggleLobes.innerHTML = `${this.showLobes ? icon('eye-off') : icon('eye')} <span>${escapeHtml(label)}</span>`;
+      btnToggleLobes.title = label;
     });
 
     ExplanationModal.attachInfoButtons(this.container);

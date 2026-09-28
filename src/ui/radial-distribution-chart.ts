@@ -89,8 +89,15 @@ function findRadialNodes(n: number, l: number, zEff: number): number[] {
   return nodes;
 }
 
+const FONT = 'Inter, -apple-system, BlinkMacSystemFont, sans-serif';
+
+/** Plot insets, in CSS pixels. The bottom room fits the ticks + axis title. */
+const PAD = { top: 20, right: 14, bottom: 32, left: 42 } as const;
+
 interface ChartLayout {
   w: number;
+  h: number;
+  plotW: number;
   plotH: number;
   padLeft: number;
   padRight: number;
@@ -100,6 +107,24 @@ interface ChartLayout {
   toX: (r: number) => number;
   toY: (p: number) => number;
 }
+
+/** Palette mirrored from the CSS design tokens. */
+const CHART = {
+  gridLine: 'rgba(255, 255, 255, 0.06)',
+  axisLine: 'rgba(255, 255, 255, 0.12)',
+  tick: '#7f8899',
+  axisLabel: '#a9b1c2',
+  curve: '#4f8ff7',
+  curveAlt: '#8ab4ff',
+  areaTop: 'rgba(79, 143, 247, 0.28)',
+  areaBottom: 'rgba(79, 143, 247, 0.02)',
+  peak: '#8ab4ff',
+  expectation: '#f5b544',
+  node: '#f87171',
+  tooltipBg: 'rgba(16, 19, 25, 0.96)',
+  tooltipBorder: 'rgba(255, 255, 255, 0.17)',
+  text: '#eef1f7',
+} as const;
 
 export class RadialDistributionChart {
 
@@ -204,13 +229,15 @@ export class RadialDistributionChart {
 
   private readonly handleMouseMove = (e: MouseEvent): void => {
     const rect = this.canvas.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const padLeft = 44;
-    const padRight = 16;
+    if (rect.width <= 0) return;
+
+    const padLeft = PAD.left;
+    const padRight = PAD.right;
     const plotWidth = rect.width - padLeft - padRight;
+    const x = e.clientX - rect.left;
 
     if (x >= padLeft && x <= rect.width - padRight && plotWidth > 0) {
-      const rMax = Math.max(2.4 * this.expR, 4.0 / this.zEff);
+      const rMax = this.currentRMax();
       const ratio = (x - padLeft) / plotWidth;
       this.hoverR = Math.max(0, Math.min(rMax, ratio * rMax));
     } else {
@@ -223,6 +250,10 @@ export class RadialDistributionChart {
     this.hoverR = null;
     this.draw();
   };
+
+  private currentRMax(): number {
+    return Math.max(2.4 * this.expR, 4.0 / this.zEff);
+  }
 
   public draw(): void {
     const rect = this.container.getBoundingClientRect();
@@ -244,10 +275,10 @@ export class RadialDistributionChart {
     const w = rect.width;
     const h = rect.height;
 
-    const padLeft = 44;
-    const padRight = 16;
-    const padTop = 22;
-    const padBottom = 28;
+    const padLeft = PAD.left;
+    const padRight = PAD.right;
+    const padTop = PAD.top;
+    const padBottom = PAD.bottom;
 
     const plotW = w - padLeft - padRight;
     const plotH = h - padTop - padBottom;
@@ -256,7 +287,7 @@ export class RadialDistributionChart {
 
     ctx.clearRect(0, 0, w, h);
 
-    const rMax = Math.max(2.4 * this.expR, 4.0 / this.zEff);
+    const rMax = this.currentRMax();
 
     // Sample points across plot width
     const pointCount = Math.max(120, Math.floor(plotW * 1.5));
@@ -273,12 +304,13 @@ export class RadialDistributionChart {
     }
 
     if (pMax <= 0) pMax = 1.0;
-    const yMax = pMax * 1.18;
+    // Head-room for the marker labels that sit above the curve.
+    const yMax = pMax * 1.22;
 
     const toX = (r: number) => padLeft + (r / rMax) * plotW;
     const toY = (p: number) => padTop + plotH - (p / yMax) * plotH;
 
-    const layout: ChartLayout = { w, plotH, padLeft, padRight, padTop, rMax, yMax, toX, toY };
+    const layout: ChartLayout = { w, h, plotW, plotH, padLeft, padRight, padTop, rMax, yMax, toX, toY };
     this.drawGrid(layout);
 
     // Area Fill under Curve
@@ -291,9 +323,8 @@ export class RadialDistributionChart {
     ctx.closePath();
 
     const areaGrad = ctx.createLinearGradient(0, padTop, 0, padTop + plotH);
-    areaGrad.addColorStop(0, 'rgba(0, 229, 255, 0.35)');
-    areaGrad.addColorStop(0.6, 'rgba(32, 128, 255, 0.18)');
-    areaGrad.addColorStop(1, 'rgba(124, 58, 237, 0.02)');
+    areaGrad.addColorStop(0, CHART.areaTop);
+    areaGrad.addColorStop(1, CHART.areaBottom);
     ctx.fillStyle = areaGrad;
     ctx.fill();
 
@@ -305,12 +336,11 @@ export class RadialDistributionChart {
     }
 
     const strokeGrad = ctx.createLinearGradient(padLeft, 0, w - padRight, 0);
-    strokeGrad.addColorStop(0, '#00e5ff');
-    strokeGrad.addColorStop(0.5, '#38bdf8');
-    strokeGrad.addColorStop(1, '#a855f7');
-
-    ctx.lineWidth = 2.5;
+    strokeGrad.addColorStop(0, CHART.curve);
+    strokeGrad.addColorStop(1, CHART.curveAlt);
+    ctx.lineWidth = 2;
     ctx.strokeStyle = strokeGrad;
+    ctx.lineJoin = 'round';
     ctx.stroke();
 
     this.drawMarkers(layout);
@@ -322,13 +352,14 @@ export class RadialDistributionChart {
     const ctx = this.ctx;
 
     ctx.lineWidth = 1;
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-    ctx.fillStyle = '#8080a0';
-    ctx.font = '10px Inter, -apple-system, sans-serif';
+
+    // Horizontal grid lines
+    ctx.strokeStyle = CHART.gridLine;
+    ctx.fillStyle = CHART.tick;
+    ctx.font = '10px ' + FONT;
     ctx.textAlign = 'right';
     ctx.textBaseline = 'middle';
 
-    // Horizontal grid lines
     const yTicks = 4;
     for (let i = 0; i <= yTicks; i++) {
       const yVal = (i / yTicks) * yMax;
@@ -339,8 +370,7 @@ export class RadialDistributionChart {
       ctx.lineTo(w - padRight, yPos);
       ctx.stroke();
 
-      const label = yVal.toFixed(yMax < 0.1 ? 3 : 2);
-      ctx.fillText(label, padLeft - 6, yPos);
+      ctx.fillText(yVal.toFixed(yMax < 0.1 ? 3 : 2), padLeft - 6, yPos);
     }
 
     // Vertical grid lines
@@ -356,99 +386,113 @@ export class RadialDistributionChart {
       ctx.lineTo(xPos, padTop + plotH);
       ctx.stroke();
 
-      ctx.fillText(`${xVal.toFixed(1)}`, xPos, padTop + plotH + 6);
+      ctx.fillText(xVal.toFixed(1), xPos, padTop + plotH + 6);
     }
 
-    // Axis Labels
-    const strings = getStrings();
-    ctx.fillStyle = '#a0a0c0';
-    ctx.font = '10px Inter, -apple-system, sans-serif';
-    ctx.textAlign = 'right';
-    ctx.fillText(strings.chartRadiusAxis, w - padRight, padTop + plotH + 6);
+    // Baseline
+    ctx.strokeStyle = CHART.axisLine;
+    ctx.beginPath();
+    ctx.moveTo(padLeft, padTop + plotH);
+    ctx.lineTo(w - padRight, padTop + plotH);
+    ctx.stroke();
 
+    // Axis titles. The radius label is centred on its own reserved row below
+    // the tick numbers instead of overprinting the last tick.
+    const strings = getStrings();
+    ctx.fillStyle = CHART.axisLabel;
+    ctx.font = '10px ' + FONT;
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'center';
+    ctx.fillText(strings.chartRadiusAxis, padLeft + (w - padLeft - padRight) / 2, padTop + plotH + 19);
+
+    ctx.save();
+    ctx.translate(10, padTop - 6);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'bottom';
-    ctx.fillText(strings.chartProbAxis, padLeft, padTop - 6);
+    ctx.fillText(strings.chartProbAxis, 0, 0);
+    ctx.restore();
   }
 
+  /**
+   * Lays out the marker labels in a single row above the plot. Each label is
+   * nudged horizontally until it no longer overlaps its neighbour, which is
+   * what previously caused the `<r>` / `r_max` / node captions to stack on top
+   * of each other.
+   */
   private drawMarkers(layout: ChartLayout): void {
     const { plotH, padTop, rMax, toX, toY } = layout;
     const ctx = this.ctx;
     const strings = getStrings();
+    const rowY = padTop + 8;
 
+    type Label = { x: number; text: string; color: string };
+    const labels: Label[] = [];
 
-    // Radial Nodes Markers (P(r) = 0)
-    this.radialNodes.forEach((nodeR) => {
-      if (nodeR <= rMax) {
-        const nx = toX(nodeR);
-        const ny = toY(0);
+    // Radial nodes (P(r) = 0). The caption is drawn once, above the first
+    // node — repeating it for every node just produced "nodo nodo nodo".
+    this.radialNodes.forEach((nodeR, i) => {
+      if (nodeR > rMax) return;
+      const nx = toX(nodeR);
 
-        ctx.save();
-        ctx.setLineDash([3, 3]);
-        ctx.strokeStyle = 'rgba(244, 63, 94, 0.7)';
-        ctx.lineWidth = 1.2;
-        ctx.beginPath();
-        ctx.moveTo(nx, padTop);
-        ctx.lineTo(nx, ny);
-        ctx.stroke();
-        ctx.restore();
+      ctx.save();
+      ctx.setLineDash([3, 3]);
+      ctx.strokeStyle = 'rgba(248, 113, 113, 0.55)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(nx, padTop);
+      ctx.lineTo(nx, toY(0));
+      ctx.stroke();
+      ctx.restore();
 
-        ctx.fillStyle = '#f43f5e';
-        ctx.beginPath();
-        ctx.arc(nx, ny, 3.5, 0, Math.PI * 2);
-        ctx.fill();
+      ctx.fillStyle = CHART.node;
+      ctx.beginPath();
+      ctx.arc(nx, toY(0), 3, 0, Math.PI * 2);
+      ctx.fill();
 
-        ctx.fillStyle = '#fca5a5';
-        ctx.font = '9px monospace';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'bottom';
-        ctx.fillText(strings.chartNodeLabel, nx, ny - 4);
+      if (i === 0) {
+        labels.push({ x: nx, text: strings.chartNodeLabel, color: CHART.node });
       }
     });
 
-    // Expectation Radius <r> Marker
+    // Expectation radius <r>
     if (this.expR <= rMax) {
       const ex = toX(this.expR);
       const ey = toY(calculateRadialProbabilityDensity(this.n, this.l, this.zEff, this.expR));
 
       ctx.save();
       ctx.setLineDash([4, 4]);
-      ctx.strokeStyle = 'rgba(245, 158, 11, 0.85)';
-      ctx.lineWidth = 1.4;
+      ctx.strokeStyle = 'rgba(245, 181, 68, 0.6)';
+      ctx.lineWidth = 1.2;
       ctx.beginPath();
       ctx.moveTo(ex, padTop);
       ctx.lineTo(ex, padTop + plotH);
       ctx.stroke();
       ctx.restore();
 
-      ctx.fillStyle = '#fbbf24';
-      ctx.font = 'bold 9px Inter, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
-      ctx.fillText(`⟨r⟩ ${this.expR.toFixed(2)}`, ex, padTop + 2);
-
-      ctx.fillStyle = '#f59e0b';
+      ctx.fillStyle = CHART.expectation;
       ctx.beginPath();
       ctx.arc(ex, ey, 3, 0, Math.PI * 2);
       ctx.fill();
+
+      labels.push({ x: ex, text: `⟨r⟩ ${this.expR.toFixed(2)}`, color: CHART.expectation });
     }
 
-    // Peak Radius r_max Marker
+    // Peak radius r_max
     if (this.peakR <= rMax) {
       const px = toX(this.peakR);
       const py = toY(calculateRadialProbabilityDensity(this.n, this.l, this.zEff, this.peakR));
 
       ctx.save();
       ctx.setLineDash([4, 4]);
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.85)';
-      ctx.lineWidth = 1.4;
+      ctx.strokeStyle = 'rgba(138, 180, 255, 0.6)';
+      ctx.lineWidth = 1.2;
       ctx.beginPath();
       ctx.moveTo(px, padTop);
       ctx.lineTo(px, padTop + plotH);
       ctx.stroke();
       ctx.restore();
 
-      ctx.fillStyle = '#38bdf8';
+      ctx.fillStyle = CHART.peak;
       ctx.beginPath();
       ctx.moveTo(px, py - 5);
       ctx.lineTo(px + 4, py);
@@ -457,11 +501,53 @@ export class RadialDistributionChart {
       ctx.closePath();
       ctx.fill();
 
-      ctx.fillStyle = '#38bdf8';
-      ctx.font = 'bold 9px Inter, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'bottom';
-      ctx.fillText(`r_max ${this.peakR.toFixed(2)}`, px, py - 6);
+      labels.push({ x: px, text: `r_max ${this.peakR.toFixed(2)}`, color: CHART.peak });
+    }
+
+    this.drawLabelRow(labels, rowY, layout);
+  }
+
+  /** Anti-collision label placement: clamp to the plot, then push apart. */
+  private drawLabelRow(labels: { x: number; text: string; color: string }[], rowY: number, layout: ChartLayout): void {
+    if (labels.length === 0) return;
+
+    const ctx = this.ctx;
+    ctx.font = '600 10px ' + FONT;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+
+    const left = layout.padLeft;
+    const right = layout.w - layout.padRight;
+    const gap = 6;
+
+    const boxes = labels
+      .map((l) => {
+        const width = ctx.measureText(l.text).width;
+        return { ...l, width, start: l.x - width / 2 };
+      })
+      .sort((a, b) => a.x - b.x);
+
+    // Clamp into the plot area.
+    for (const b of boxes) {
+      b.start = Math.max(left, Math.min(right - b.width, b.start));
+    }
+
+    // Resolve overlaps left-to-right, then a single reverse pass for the
+    // overflow pushed past the right edge.
+    for (let i = 1; i < boxes.length; i++) {
+      const prev = boxes[i - 1];
+      const min = prev.start + prev.width + gap;
+      if (boxes[i].start < min) boxes[i].start = min;
+    }
+    for (let i = boxes.length - 1; i >= 0; i--) {
+      const next = boxes[i + 1];
+      const max = next ? next.start - gap - boxes[i].width : Infinity;
+      if (boxes[i].start > max) boxes[i].start = max;
+    }
+
+    for (const b of boxes) {
+      ctx.fillStyle = b.color;
+      ctx.fillText(b.text, b.start, rowY);
     }
   }
 
@@ -470,7 +556,6 @@ export class RadialDistributionChart {
     if (this.hoverR === null || this.hoverR > rMax) return;
     const ctx = this.ctx;
 
-
     const hx = toX(this.hoverR);
     const hp = calculateRadialProbabilityDensity(this.n, this.l, this.zEff, this.hoverR);
     const hy = toY(hp);
@@ -478,53 +563,54 @@ export class RadialDistributionChart {
 
     // Crosshair line
     ctx.save();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
     ctx.lineWidth = 1;
-    ctx.setLineDash([2, 2]);
+    ctx.setLineDash([2, 3]);
     ctx.beginPath();
     ctx.moveTo(hx, padTop);
     ctx.lineTo(hx, padTop + plotH);
     ctx.stroke();
     ctx.restore();
 
-    // Glowing dot at hover curve point
-    ctx.fillStyle = '#ffffff';
+    // Marker at the hovered curve point
+    ctx.fillStyle = CHART.text;
     ctx.beginPath();
-    ctx.arc(hx, hy, 4.5, 0, Math.PI * 2);
+    ctx.arc(hx, hy, 4, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = '#2080ff';
+    ctx.strokeStyle = CHART.curve;
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Hover Card Badge
-    const tooltipText1 = `r = ${this.hoverR.toFixed(2)} a₀ (${hPm.toFixed(1)} pm)`;
-    const tooltipText2 = `P(r) = ${hp.toFixed(4)}`;
+    // Tooltip card
+    const line1 = `r = ${this.hoverR.toFixed(2)} a₀`;
+    const line2 = `${hPm.toFixed(1)} pm · P(r) = ${hp.toFixed(4)}`;
 
-    ctx.font = '10px monospace';
-    const tw = Math.max(ctx.measureText(tooltipText1).width, ctx.measureText(tooltipText2).width) + 16;
-    const th = 34;
+    ctx.font = '10px ' + FONT;
+    const tw = Math.max(ctx.measureText(line1).width, ctx.measureText(line2).width) + 20;
+    const th = 40;
 
-    let tx = hx + 10;
-    if (tx + tw > w - padRight) {
-      tx = hx - tw - 10;
-    }
-    const ty = Math.max(padTop + 4, Math.min(padTop + plotH - th - 4, hy - th / 2));
+    let tx = hx + 12;
+    if (tx + tw > w - padRight) tx = hx - tw - 12;
+    tx = Math.max(layout.padLeft, tx);
+    const ty = Math.max(padTop + 16, Math.min(padTop + plotH - th - 4, hy - th / 2));
 
-    ctx.fillStyle = 'rgba(14, 14, 28, 0.88)';
-    ctx.strokeStyle = 'rgba(64, 192, 255, 0.4)';
+    ctx.fillStyle = CHART.tooltipBg;
+    ctx.strokeStyle = CHART.tooltipBorder;
     ctx.lineWidth = 1;
     ctx.beginPath();
-    ctx.roundRect(tx, ty, tw, th, 6);
+    ctx.roundRect(tx, ty, tw, th, 8);
     ctx.fill();
     ctx.stroke();
 
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = CHART.text;
     ctx.textBaseline = 'top';
     ctx.textAlign = 'left';
-    ctx.fillText(tooltipText1, tx + 8, ty + 5);
+    ctx.font = '600 10px ' + FONT;
+    ctx.fillText(line1, tx + 10, ty + 7);
 
-    ctx.fillStyle = '#40c0ff';
-    ctx.fillText(tooltipText2, tx + 8, ty + 18);
+    ctx.fillStyle = CHART.axisLabel;
+    ctx.font = '10px ' + FONT;
+    ctx.fillText(line2, tx + 10, ty + 22);
   }
 
   public destroy(): void {

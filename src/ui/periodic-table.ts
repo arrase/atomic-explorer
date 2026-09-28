@@ -2,6 +2,14 @@ import elementsData from '../../assets/data/elements.json';
 import { getStrings, getLanguage, onLanguageChange, I18nStrings } from '../i18n';
 import { ExplanationModal } from './info-modal';
 import { icon } from './icons';
+import {
+  ELECTRONEGATIVITY_GRADIENT,
+  RADIUS_GRADIENT,
+  getCategoryColor,
+  getElectronegativityColor,
+  getLegendCategoryOrder,
+  getRadiusColor,
+} from './element-colors';
 
 export interface ElementData {
   Z: number;
@@ -42,6 +50,15 @@ const GRID_RANGES: readonly GridRange[] = [
   { maxZ: 103, row: 11, colOffset: -85 },
   { maxZ: 118, row: 8, colOffset: -99 },
 ];
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
 export class PeriodicTableView {
   private readonly container: HTMLElement;
@@ -95,7 +112,7 @@ export class PeriodicTableView {
         </div>
 
         <div class="periodic-grid-container">
-          <div class="periodic-grid" id="periodic-grid">
+          <div class="periodic-grid" id="periodic-grid" role="listbox" aria-label="${escapeHtml(strings.periodicTrendsGuideTitle)}" aria-orientation="horizontal">
             ${this.renderGridCells()}
           </div>
           <div class="periodic-scroll-hint">
@@ -180,7 +197,7 @@ export class PeriodicTableView {
           </div>
           <div class="legend-gradient-wrapper">
             <span class="legend-val-min">0.7 (Fr)</span>
-            <div class="legend-gradient-track en-gradient"></div>
+            <div class="legend-gradient-track" style="background: ${ELECTRONEGATIVITY_GRADIENT}"></div>
             <span class="legend-val-max">4.0 (F)</span>
           </div>
         </div>
@@ -193,26 +210,21 @@ export class PeriodicTableView {
           </div>
           <div class="legend-gradient-wrapper">
             <span class="legend-val-min">30 pm (He)</span>
-            <div class="legend-gradient-track radius-gradient"></div>
+            <div class="legend-gradient-track" style="background: ${RADIUS_GRADIENT}"></div>
             <span class="legend-val-max">260 pm (Cs)</span>
           </div>
         </div>
       `;
     } else {
+      const chips = getLegendCategoryOrder()
+        .map(
+          (key) =>
+            `<span class="cat-chip" style="--cat: ${getCategoryColor(key)}">${this.getCategoryName(key, strings)}</span>`
+        )
+        .join('');
       return `
         <div class="periodic-legend-bar category-legend-bar">
-          <div class="category-chips">
-            <span class="cat-chip" style="--chip-color: rgba(40, 160, 220, 0.8)">${strings.catNonMetal}</span>
-            <span class="cat-chip" style="--chip-color: rgba(160, 60, 220, 0.8)">${strings.catNobleGas}</span>
-            <span class="cat-chip" style="--chip-color: rgba(240, 90, 90, 0.8)">${strings.catAlkaliMetal}</span>
-            <span class="cat-chip" style="--chip-color: rgba(240, 160, 60, 0.8)">${strings.catAlkalineEarth}</span>
-            <span class="cat-chip" style="--chip-color: rgba(40, 180, 140, 0.8)">${strings.catMetalloid}</span>
-            <span class="cat-chip" style="--chip-color: rgba(200, 200, 40, 0.8)">${strings.catHalogen}</span>
-            <span class="cat-chip" style="--chip-color: rgba(120, 140, 220, 0.8)">${strings.catTransitionMetal}</span>
-            <span class="cat-chip" style="--chip-color: rgba(100, 180, 240, 0.8)">${strings.catPostTransitionMetal}</span>
-            <span class="cat-chip" style="--chip-color: rgba(220, 140, 180, 0.8)">${strings.catLanthanide}</span>
-            <span class="cat-chip" style="--chip-color: rgba(200, 100, 160, 0.8)">${strings.catActinide}</span>
-          </div>
+          <div class="category-chips">${chips}</div>
         </div>
       `;
     }
@@ -290,15 +302,15 @@ export class PeriodicTableView {
 
         return `
           <div class="element-cell ${isDimmed ? 'dimmed' : ''} ${isSelected ? 'selected' : ''}"
-               role="button"
-               tabindex="0"
-               aria-label="${ariaLabel}"
-               aria-pressed="${isSelected ? 'true' : 'false'}"
+               role="option"
+               tabindex="${isSelected ? '0' : '-1'}"
+               aria-selected="${isSelected ? 'true' : 'false'}"
+               aria-label="${escapeHtml(ariaLabel)}"
                data-z="${el.Z}"
                data-row="${gridPos.row}"
                data-col="${gridPos.col}"
                data-block="${block}"
-               style="grid-column: ${gridPos.col}; grid-row: ${gridPos.row}; background-color: ${color};">
+               style="grid-column: ${gridPos.col}; grid-row: ${gridPos.row}; --cat: ${color};">
             <span class="el-z">${el.Z}</span>
             <span class="el-symbol">${el.symbol}</span>
             <span class="el-name">${name}</span>
@@ -321,31 +333,12 @@ export class PeriodicTableView {
 
   private getElementColor(el: ElementData): string {
     if (this.currentColorScheme === 'category') {
-      const categoryColors: Record<string, string> = {
-        'no metal': 'rgba(40, 160, 220, 0.7)',
-        'gas noble': 'rgba(160, 60, 220, 0.7)',
-        'metal alcalino': 'rgba(240, 90, 90, 0.7)',
-        'alcalinotérreo': 'rgba(240, 160, 60, 0.7)',
-        'metaloide': 'rgba(40, 180, 140, 0.7)',
-        'halógeno': 'rgba(200, 200, 40, 0.7)',
-        'metal de transición': 'rgba(120, 140, 220, 0.7)',
-        'metal del bloque p': 'rgba(100, 180, 240, 0.7)',
-        'lantánido': 'rgba(220, 140, 180, 0.7)',
-        'actínido': 'rgba(200, 100, 160, 0.7)',
-      };
-      return categoryColors[el.category] || 'rgba(100, 100, 120, 0.7)';
-    } else if (this.currentColorScheme === 'electronegativity') {
-      if (el.electronegativity === null) return 'rgba(60, 60, 70, 0.6)';
-      const t = Math.min(1, Math.max(0, (el.electronegativity - 0.7) / (4.0 - 0.7)));
-      const r = Math.round(t * 255);
-      const b = Math.round((1 - t) * 255);
-      return `rgba(${r}, 100, ${b}, 0.75)`;
-    } else {
-      const t = Math.min(1, Math.max(0, (el.radius_pm - 30) / (260 - 30)));
-      const g = Math.round(t * 220);
-      const b = Math.round((1 - t) * 240);
-      return `rgba(50, ${g}, ${b}, 0.75)`;
+      return getCategoryColor(el.category);
     }
+    if (this.currentColorScheme === 'electronegativity') {
+      return getElectronegativityColor(el.electronegativity);
+    }
+    return getRadiusColor(el.radius_pm);
   }
 
   private renderQuickInspectorContent(): string {
@@ -405,47 +398,39 @@ export class PeriodicTableView {
       <div class="inspector-card">
         <div class="inspector-header">
           <div class="insp-header-title">
-            <span class="insp-z">Z = ${el.Z}${strings.explainAtomicNumber ? ` <button class="btn-info-icon" data-explain="explainAtomicNumber" aria-label="Info">${icon('info')}</button>` : ''}</span>
-            <h2 class="insp-symbol">${el.symbol}</h2>
-            <span class="insp-name">${elementName}</span>
-            <span class="insp-category">${categoryName}</span>
+            <span class="insp-z">Z = ${el.Z} <button type="button" class="btn-info-icon" data-explain="explainAtomicNumber" aria-label="Info">${icon('info')}</button></span>
+            <h2 class="insp-symbol">${escapeHtml(el.symbol)}</h2>
+            <span class="insp-name">${escapeHtml(elementName)}</span>
+            <span class="insp-category">${escapeHtml(categoryName)}</span>
           </div>
-          <button class="btn-primary btn-inspector-view-3d" id="btn-view-orbital">
-            ${icon('atom')}
-            <span>${strings.btnView3DOrbital}</span>
-          </button>
         </div>
 
+        <button type="button" class="btn-primary btn-inspector-view-3d" id="btn-view-orbital">
+          ${icon('atom')}
+          <span>${escapeHtml(strings.btnView3DOrbital)}</span>
+        </button>
+
         <div class="inspector-details">
-          <div class="detail-row">
-            <span>${strings.atomicMass} <button class="btn-info-icon" data-explain="explainAtomicMass" aria-label="Info">${icon('info')}</button>:</span>
-            <strong>${el.atomic_mass} u</strong>
-          </div>
-          <div class="detail-row">
-            <span>${strings.electronConfig} <button class="btn-info-icon" data-explain="explainElectronConfig" aria-label="Info">${icon('info')}</button>:</span>
-            <strong><code>${el.electron_config_str}</code></strong>
-          </div>
-          <div class="detail-row">
-            <span>${strings.atomicRadius} <button class="btn-info-icon" data-explain="explainAtomicRadius" aria-label="Info">${icon('info')}</button>:</span>
-            <strong>${el.radius_pm} pm</strong>
-          </div>
-          <div class="detail-row">
-            <span>${strings.electronegativity} <button class="btn-info-icon" data-explain="explainElectronegativity" aria-label="Info">${icon('info')}</button>:</span>
-            <strong>${el.electronegativity ?? 'N/A'}</strong>
-          </div>
-          <div class="detail-row">
-            <span>${strings.ionizationEnergy} <button class="btn-info-icon" data-explain="explainIonizationEnergy" aria-label="Info">${icon('info')}</button>:</span>
-            <strong>${el.ionization_energy ? `${el.ionization_energy} kJ/mol` : 'N/A'}</strong>
-          </div>
-          <div class="detail-row">
-            <span>${strings.oxidationStates}:</span>
-            <strong>${el.oxidation_states && el.oxidation_states.length > 0 ? el.oxidation_states.map(s => s > 0 ? `+${s}` : `${s}`).join(', ') : 'N/A'}</strong>
-          </div>
-          <div class="detail-row">
-            <span>${strings.discovery}:</span>
-            <strong>${discoveryStr}</strong>
-          </div>
+          ${this.detailRow(strings.atomicMass, 'explainAtomicMass', `${el.atomic_mass} u`)}
+          ${this.detailRow(strings.electronConfig, 'explainElectronConfig', `<code>${escapeHtml(el.electron_config_str)}</code>`)}
+          ${this.detailRow(strings.atomicRadius, 'explainAtomicRadius', `${el.radius_pm} pm`)}
+          ${this.detailRow(strings.electronegativity, 'explainElectronegativity', escapeHtml(String(el.electronegativity ?? 'N/A')))}
+          ${this.detailRow(strings.ionizationEnergy, 'explainIonizationEnergy', el.ionization_energy ? `${el.ionization_energy} kJ/mol` : 'N/A')}
+          ${this.detailRow(strings.oxidationStates, null, escapeHtml(el.oxidation_states && el.oxidation_states.length > 0 ? el.oxidation_states.map(s => s > 0 ? `+${s}` : `${s}`).join(', ') : 'N/A'))}
+          ${this.detailRow(strings.discovery, null, escapeHtml(discoveryStr))}
         </div>
+      </div>
+    `;
+  }
+
+  private detailRow(label: string, explainKey: string | null, valueHtml: string): string {
+    const infoBtn = explainKey
+      ? `<button type="button" class="btn-info-icon" data-explain="${explainKey}" aria-label="Info">${icon('info')}</button>`
+      : '';
+    return `
+      <div class="detail-row">
+        <span class="detail-row-label">${escapeHtml(label)}${infoBtn}</span>
+        <strong>${valueHtml}</strong>
       </div>
     `;
   }
@@ -474,7 +459,9 @@ export class PeriodicTableView {
       grid.querySelectorAll<HTMLElement>('.element-cell').forEach((c) => {
         const isMatch = c.dataset.z === String(el.Z);
         c.classList.toggle('selected', isMatch);
-        c.setAttribute('aria-pressed', isMatch ? 'true' : 'false');
+        c.setAttribute('aria-selected', isMatch ? 'true' : 'false');
+        // Roving tabindex: the whole grid is a single tab stop.
+        c.tabIndex = isMatch ? 0 : -1;
       });
     }
 
@@ -620,6 +607,8 @@ export class PeriodicTableView {
     const nextCell = this.findNextCell(key, target, currentZ, cells);
 
     if (nextCell) {
+      target.tabIndex = -1;
+      nextCell.tabIndex = 0;
       nextCell.focus();
       const nextZ = Number.parseInt(nextCell.dataset.z!, 10);
       const nextEl = this.elements.find((item) => item.Z === nextZ);

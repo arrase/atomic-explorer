@@ -12,7 +12,7 @@ export interface ResolvedRenderer {
   isShared: boolean;
 }
 
-export function initRendererTarget(target: RendererTarget, clearColorHex: string = '#0a0a1a'): ResolvedRenderer {
+export function initRendererTarget(target: RendererTarget, clearColorHex: string = '#08090d'): ResolvedRenderer {
   const isShared = target instanceof THREE.WebGLRenderer || 'renderer' in target;
   if (target instanceof THREE.WebGLRenderer) {
     return { renderer: target, isShared };
@@ -139,7 +139,7 @@ export function captureWebGLSnapshot(
   } else if (options.background === 'transparent') {
     renderer.setClearColor(0x000000, 0.0);
   } else {
-    renderer.setClearColor(0x0a0a1a, 1.0);
+    renderer.setClearColor(0x08090d, 1.0);
   }
 
   renderer.render(scene, camera);
@@ -168,7 +168,7 @@ export abstract class BaseThreeRenderer {
   private animationId: number = 0;
   private cameraTransitionId: number = 0;
 
-  constructor(target: RendererTarget, initialCameraPos: THREE.Vector3, clearColorHex: string = '#0a0a1a') {
+  constructor(target: RendererTarget, initialCameraPos: THREE.Vector3, clearColorHex: string = '#08090d') {
     const { renderer, isShared } = initRendererTarget(target, clearColorHex);
     this.renderer = renderer;
     this.isShared = isShared;

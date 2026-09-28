@@ -1,8 +1,9 @@
 import { OrbitalParams } from '../core/wasm-bridge';
 import { RenderMode, QualityPreset, ColorPalette } from '../render/orbital-renderer';
-import { getStrings, onLanguageChange, I18nStrings, ConceptExplanation } from '../i18n';
+import { getStrings, onLanguageChange, I18nStrings } from '../i18n';
 import { ExplanationModal } from './info-modal';
 import { OrbitalPhysicsPanel } from './orbital-physics-panel';
+import { escapeHtml } from './modal-utils';
 import { icon } from './icons';
 
 export interface ExtendedOrbitalParams extends OrbitalParams {
@@ -96,20 +97,20 @@ export class ControlPanel {
       <div class="mobile-drawer-backdrop" id="controls-drawer-backdrop"></div>
 
       <div class="mobile-floating-actions">
-        <button class="mobile-float-btn" id="btn-show-controls" title="${strings.orbitalControls}" aria-label="${strings.orbitalControls}" aria-expanded="false" aria-controls="controls-panel">
+        <button type="button" class="mobile-float-btn" id="btn-show-controls" title="${escapeHtml(strings.orbitalControls)}" aria-label="${escapeHtml(strings.orbitalControls)}" aria-expanded="false" aria-controls="controls-panel">
           <span class="btn-icon">${icon('sliders')}</span>
-          <span class="btn-label">${strings.quantumSection}</span>
+          <span class="btn-label">${escapeHtml(strings.quantumSection)}</span>
         </button>
-        <button class="mobile-float-btn" id="btn-show-physics" title="${strings.physicsPanelTitle}" aria-label="${strings.physicsPanelTitle}" aria-expanded="false" aria-controls="orbital-physics-panel">
+        <button type="button" class="mobile-float-btn" id="btn-show-physics" title="${escapeHtml(strings.physicsPanelTitle)}" aria-label="${escapeHtml(strings.physicsPanelTitle)}" aria-expanded="false" aria-controls="orbital-physics-panel">
           <span class="btn-icon">${icon('chart')}</span>
-          <span class="btn-label">${strings.physicsPanelTitle}</span>
+          <span class="btn-label">${escapeHtml(strings.physicsPanelTitle)}</span>
         </button>
       </div>
 
       <!-- Dock Handle / Expand Pill when Left Panel is Collapsed on Desktop -->
-      <button class="dock-tab-pill dock-left-pill ${this.isCollapsed ? 'visible' : ''}" id="btn-expand-controls" title="${strings.expandPanel}" aria-label="${strings.expandPanel}" aria-expanded="${!this.isCollapsed}" aria-controls="controls-panel">
+      <button type="button" class="dock-tab-pill dock-left-pill ${this.isCollapsed ? 'visible' : ''}" id="btn-expand-controls" title="${escapeHtml(strings.expandPanel)}" aria-label="${escapeHtml(strings.expandPanel)}" aria-expanded="${!this.isCollapsed}" aria-controls="controls-panel">
         ${icon('sliders')}
-        <span>${strings.quantumSection}</span>
+        <span>${escapeHtml(strings.quantumSection)}</span>
         ${icon('chevron-right', 'pill-chevron')}
       </button>
 
@@ -141,22 +142,62 @@ export class ControlPanel {
       <div class="panel-header">
         <div class="panel-title-group">
           <span class="panel-header-icon">${icon('atom')}</span>
-          <h3>${strings.orbitalControls}</h3>
+          <h3>${escapeHtml(strings.orbitalControls)}</h3>
         </div>
         <div class="panel-header-actions">
-          <button class="btn-export-hdr" id="btn-open-export" title="${strings.exportImage}">
+          <button type="button" class="btn-export-hdr" id="btn-open-export" title="${escapeHtml(strings.exportImage)}" aria-label="${escapeHtml(strings.exportImage)}">
             ${icon('camera')}
-            <span>${strings.exportImage}</span>
+            <span>${escapeHtml(strings.exportImage)}</span>
           </button>
-          <button class="panel-icon-btn panel-collapse-btn desktop-only" id="btn-collapse-controls" title="${strings.collapsePanel}" aria-label="${strings.collapsePanel}" aria-expanded="${!this.isCollapsed}" aria-controls="controls-panel">
+          <button type="button" class="panel-icon-btn panel-collapse-btn desktop-only" id="btn-collapse-controls" title="${escapeHtml(strings.collapsePanel)}" aria-label="${escapeHtml(strings.collapsePanel)}" aria-expanded="${!this.isCollapsed}" aria-controls="controls-panel">
             ${icon('chevron-left')}
           </button>
-          <button class="panel-close-btn mobile-only" id="btn-close-controls" aria-label="Close">
+          <button type="button" class="panel-close-btn mobile-only" id="btn-close-controls" aria-label="${escapeHtml(strings.infoModalClose)}">
             ${icon('close')}
           </button>
         </div>
       </div>
     `;
+  }
+
+  /**
+   * Renders a labelled control row. The info affordance lives outside the
+   * `<label>` so the text node is not split by a button (which previously
+   * produced the broken "Label ⓘ:" rendering).
+   */
+  private controlRow(opts: {
+    id: string;
+    label: string;
+    valueId?: string;
+    valueHtml?: string;
+    explainKey?: string;
+    control: string;
+  }): string {
+    const infoBtn = opts.explainKey
+      ? `<button type="button" class="btn-info-icon" data-explain="${opts.explainKey}" aria-label="Info">${icon('info')}</button>`
+      : '';
+    const badge =
+      opts.valueId && opts.valueHtml !== undefined
+        ? `<span class="val-badge" id="${opts.valueId}">${opts.valueHtml}</span>`
+        : '';
+    return `
+      <div class="control-group">
+        <div class="control-label-row">
+          <label class="control-label" for="${opts.id}">${escapeHtml(opts.label)}${badge}</label>
+          ${infoBtn}
+        </div>
+        ${opts.control}
+      </div>
+    `;
+  }
+
+  private slider(id: string, min: number, max: number, value: number, step: number): string {
+    const pct = max === min ? 0 : ((value - min) / (max - min)) * 100;
+    return `<input type="range" id="${id}" min="${min}" max="${max}" value="${value}" step="${step}" style="--fill: ${pct}%" />`;
+  }
+
+  private select(id: string, options: string): string {
+    return `<select id="${id}">${options}</select>`;
   }
 
   private renderQuantumSection(strings: I18nStrings): string {
@@ -167,64 +208,57 @@ export class ControlPanel {
 
     const typeValue = this.currentParams.useRealOrbital ? 'real' : 'eigen';
     const typeOptions =
-      renderOption('real', strings.modeRealOrbital, typeValue) +
-      renderOption('eigen', strings.modeEigenstate, typeValue);
+      renderOption('real', escapeHtml(strings.modeRealOrbital), typeValue) +
+      renderOption('eigen', escapeHtml(strings.modeEigenstate), typeValue);
 
     return `
       <div class="control-accordion-section ${isOpen ? 'open' : ''}" data-section="quantum">
         <button type="button" class="accordion-header" id="accordion-header-quantum" data-toggle="quantum" aria-expanded="${isOpen ? 'true' : 'false'}" aria-controls="accordion-body-quantum">
           <span class="accordion-title">
             ${icon('atom')}
-            <span>${strings.quantumSection}</span>
+            <span>${escapeHtml(strings.quantumSection)}</span>
           </span>
           <span class="accordion-chevron">${icon('chevron-down')}</span>
         </button>
 
         <div class="accordion-body" id="accordion-body-quantum" role="region" aria-labelledby="accordion-header-quantum">
           <div class="control-grid">
-            <div class="control-group">
-              <label for="n-select">
-                <span>${strings.principalQuantum}: <span id="n-val" class="val-badge">${this.currentParams.n}</span></span>
-                <button class="btn-info-icon" data-explain="explainN" aria-label="Info">${icon('info')}</button>
-              </label>
-              <input type="range" id="n-select" min="1" max="7" value="${this.currentParams.n}" step="1" />
-            </div>
-
-            <div class="control-group">
-              <label for="l-select">
-                <span>${strings.azimuthalQuantum}: <span id="l-val" class="val-badge">${this.currentParams.l}</span></span>
-                <button class="btn-info-icon" data-explain="explainL" aria-label="Info">${icon('info')}</button>
-              </label>
-              <input type="range" id="l-select" min="0" max="${this.currentParams.n - 1}" value="${this.currentParams.l}" step="1" />
-            </div>
-
-            <div class="control-group">
-              <label for="m-select">
-                <span>${strings.magneticQuantum}: <span id="m-val" class="val-badge">${this.currentParams.m}</span></span>
-                <button class="btn-info-icon" data-explain="explainM" aria-label="Info">${icon('info')}</button>
-              </label>
-              <input type="range" id="m-select" min="${-this.currentParams.l}" max="${this.currentParams.l}" value="${this.currentParams.m}" step="1" />
-            </div>
-
-            <div class="control-group">
-              <label for="spin-select">
-                <span>${strings.spinQuantum}:</span>
-                <button class="btn-info-icon" data-explain="explainS" aria-label="Info">${icon('info')}</button>
-              </label>
-              <select id="spin-select">
-                ${spinOptions}
-              </select>
-            </div>
-
-            <div class="control-group">
-              <label for="type-select">
-                <span>${strings.orbitalType}:</span>
-                <button class="btn-info-icon" data-explain="explainOrbitalType" aria-label="Info">${icon('info')}</button>
-              </label>
-              <select id="type-select">
-                ${typeOptions}
-              </select>
-            </div>
+            ${this.controlRow({
+              id: 'n-select',
+              label: strings.principalQuantum,
+              valueId: 'n-val',
+              valueHtml: String(this.currentParams.n),
+              explainKey: 'explainN',
+              control: this.slider('n-select', 1, 7, this.currentParams.n, 1),
+            })}
+            ${this.controlRow({
+              id: 'l-select',
+              label: strings.azimuthalQuantum,
+              valueId: 'l-val',
+              valueHtml: String(this.currentParams.l),
+              explainKey: 'explainL',
+              control: this.slider('l-select', 0, this.currentParams.n - 1, this.currentParams.l, 1),
+            })}
+            ${this.controlRow({
+              id: 'm-select',
+              label: strings.magneticQuantum,
+              valueId: 'm-val',
+              valueHtml: String(this.currentParams.m),
+              explainKey: 'explainM',
+              control: this.slider('m-select', -this.currentParams.l, this.currentParams.l, this.currentParams.m, 1),
+            })}
+            ${this.controlRow({
+              id: 'spin-select',
+              label: strings.spinQuantum,
+              explainKey: 'explainS',
+              control: this.select('spin-select', spinOptions),
+            })}
+            ${this.controlRow({
+              id: 'type-select',
+              label: strings.orbitalType,
+              explainKey: 'explainOrbitalType',
+              control: this.select('type-select', typeOptions),
+            })}
           </div>
         </div>
       </div>
@@ -238,20 +272,21 @@ export class ControlPanel {
         <button type="button" class="accordion-header" id="accordion-header-nuclear" data-toggle="nuclear" aria-expanded="${isOpen ? 'true' : 'false'}" aria-controls="accordion-body-nuclear">
           <span class="accordion-title">
             ${icon('chart')}
-            <span>${strings.nuclearSection}</span>
+            <span>${escapeHtml(strings.nuclearSection)}</span>
           </span>
           <span class="accordion-chevron">${icon('chevron-down')}</span>
         </button>
 
         <div class="accordion-body" id="accordion-body-nuclear" role="region" aria-labelledby="accordion-header-nuclear">
           <div class="control-grid">
-            <div class="control-group">
-              <label for="zeff-input">
-                <span>${strings.zEffCharge}: <span id="zeff-val" class="val-badge">${this.currentParams.zEff.toFixed(2)}</span></span>
-                <button class="btn-info-icon" data-explain="explainZeff" aria-label="Info">${icon('info')}</button>
-              </label>
-              <input type="range" id="zeff-input" min="0.1" max="118" value="${this.currentParams.zEff}" step="0.1" />
-            </div>
+            ${this.controlRow({
+              id: 'zeff-input',
+              label: strings.zEffCharge,
+              valueId: 'zeff-val',
+              valueHtml: this.currentParams.zEff.toFixed(2),
+              explainKey: 'explainZeff',
+              control: this.slider('zeff-input', 0.1, 118, this.currentParams.zEff, 0.1),
+            })}
           </div>
         </div>
       </div>
@@ -261,13 +296,13 @@ export class ControlPanel {
   private renderRenderSection(strings: I18nStrings, isCustom: boolean): string {
     const isOpen = this.openSections.render;
     const modeOptions = MODE_OPTIONS.map((opt) =>
-      renderOption(opt.value, strings[opt.labelKey] as string, this.currentParams.mode)
+      renderOption(opt.value, escapeHtml(strings[opt.labelKey] as string), this.currentParams.mode)
     ).join('');
     const qualityOptions = QUALITY_OPTIONS.map((opt) =>
-      renderOption(opt.value, strings[opt.labelKey] as string, this.currentParams.quality)
+      renderOption(opt.value, escapeHtml(strings[opt.labelKey] as string), this.currentParams.quality)
     ).join('');
     const paletteOptions = PALETTE_OPTIONS.map((opt) =>
-      renderOption(opt.value, strings[opt.labelKey] as string, this.currentParams.colorPalette)
+      renderOption(opt.value, escapeHtml(strings[opt.labelKey] as string), this.currentParams.colorPalette)
     ).join('');
 
     return `
@@ -275,50 +310,39 @@ export class ControlPanel {
         <button type="button" class="accordion-header" id="accordion-header-render" data-toggle="render" aria-expanded="${isOpen ? 'true' : 'false'}" aria-controls="accordion-body-render">
           <span class="accordion-title">
             ${icon('sliders')}
-            <span>${strings.renderSection}</span>
+            <span>${escapeHtml(strings.renderSection)}</span>
           </span>
           <span class="accordion-chevron">${icon('chevron-down')}</span>
         </button>
 
         <div class="accordion-body" id="accordion-body-render" role="region" aria-labelledby="accordion-header-render">
           <div class="control-grid">
-            <div class="control-group">
-              <label for="mode-select">
-                <span>${strings.mode}:</span>
-                <button class="btn-info-icon" data-explain="explainMode" aria-label="Info">${icon('info')}</button>
-              </label>
-              <select id="mode-select">
-                ${modeOptions}
-              </select>
-            </div>
-
-            <div class="control-group">
-              <label for="quality-select">
-                <span>${strings.quality}:</span>
-                <button class="btn-info-icon" data-explain="explainQuality" aria-label="Info">${icon('info')}</button>
-              </label>
-              <select id="quality-select">
-                ${qualityOptions}
-              </select>
-            </div>
-
-            <div class="control-group">
-              <label for="palette-select">
-                <span>${strings.colorPalette}:</span>
-                <button class="btn-info-icon" data-explain="explainPalette" aria-label="Info">${icon('info')}</button>
-              </label>
-              <select id="palette-select">
-                ${paletteOptions}
-              </select>
-            </div>
-
-            <div class="control-group">
-              <label for="contrast-input">
-                <span>${strings.contrastControl}: <span id="contrast-val" class="val-badge">${this.currentParams.contrast}</span></span>
-                <button class="btn-info-icon" data-explain="explainContrast" aria-label="Info">${icon('info')}</button>
-              </label>
-              <input type="range" id="contrast-input" min="0" max="100" value="${this.currentParams.contrast}" step="1" />
-            </div>
+            ${this.controlRow({
+              id: 'mode-select',
+              label: strings.mode,
+              explainKey: 'explainMode',
+              control: this.select('mode-select', modeOptions),
+            })}
+            ${this.controlRow({
+              id: 'quality-select',
+              label: strings.quality,
+              explainKey: 'explainQuality',
+              control: this.select('quality-select', qualityOptions),
+            })}
+            ${this.controlRow({
+              id: 'palette-select',
+              label: strings.colorPalette,
+              explainKey: 'explainPalette',
+              control: this.select('palette-select', paletteOptions),
+            })}
+            ${this.controlRow({
+              id: 'contrast-input',
+              label: strings.contrastControl,
+              valueId: 'contrast-val',
+              valueHtml: String(this.currentParams.contrast),
+              explainKey: 'explainContrast',
+              control: this.slider('contrast-input', 0, 100, this.currentParams.contrast, 1),
+            })}
 
             ${this.renderCustomTuningPanel(strings, isCustom)}
           </div>
@@ -330,34 +354,35 @@ export class ControlPanel {
   private renderCustomTuningPanel(strings: I18nStrings, isCustom: boolean): string {
     const hiddenClass = isCustom ? '' : 'hidden';
     const scaleOptions = SCALE_OPTIONS.map((opt) =>
-      renderOption(opt.value, strings[opt.labelKey] as string, String(this.currentParams.resolutionScale))
+      renderOption(opt.value, escapeHtml(strings[opt.labelKey] as string), String(this.currentParams.resolutionScale))
     ).join('');
 
     return `
       <div class="custom-tuning-panel ${hiddenClass}" id="custom-tuning">
-        <div class="control-group">
-          <label for="pts-input">${strings.pointCount}: <span id="pts-val" class="val-badge">${this.currentParams.pointCount.toLocaleString()}</span></label>
-          <input type="range" id="pts-input" min="10000" max="2500000" value="${this.currentParams.pointCount}" step="10000" />
-        </div>
-
-        <div class="control-group">
-          <label for="steps-input">${strings.raymarchingSteps}: <span id="steps-val" class="val-badge">${this.currentParams.raymarchingSteps}</span></label>
-          <input type="range" id="steps-input" min="32" max="512" value="${this.currentParams.raymarchingSteps}" step="16" />
-        </div>
-
-        <div class="control-group">
-          <label for="scale-select">${strings.superSampling}:</label>
-          <select id="scale-select">
-            ${scaleOptions}
-          </select>
-        </div>
+        ${this.controlRow({
+          id: 'pts-input',
+          label: strings.pointCount,
+          valueId: 'pts-val',
+          valueHtml: this.currentParams.pointCount.toLocaleString(),
+          control: this.slider('pts-input', 10000, 2500000, this.currentParams.pointCount, 10000),
+        })}
+        ${this.controlRow({
+          id: 'steps-input',
+          label: strings.raymarchingSteps,
+          valueId: 'steps-val',
+          valueHtml: String(this.currentParams.raymarchingSteps),
+          control: this.slider('steps-input', 32, 512, this.currentParams.raymarchingSteps, 16),
+        })}
+        ${this.controlRow({
+          id: 'scale-select',
+          label: strings.superSampling,
+          control: this.select('scale-select', scaleOptions),
+        })}
       </div>
     `;
   }
 
   private attachEventListeners(): void {
-    const strings = getStrings();
-
     const controlPanel = this.container.querySelector('.control-panel') as HTMLElement;
     const physicsContainer = this.container.querySelector('.physics-panel-container') as HTMLElement;
     const backdrop = this.container.querySelector('#controls-drawer-backdrop') as HTMLElement;
@@ -416,25 +441,29 @@ export class ControlPanel {
       btnShowPhysics.setAttribute('aria-expanded', 'false');
     };
 
-    btnShowControls.addEventListener('click', () => {
-      const isOpen = controlPanel.classList.contains('mobile-open');
+    const openDrawer = (panel: HTMLElement, trigger: HTMLElement) => {
       closeAllDrawers();
-      if (!isOpen) {
-        controlPanel.classList.add('mobile-open');
-        backdrop.classList.add('active');
-        btnShowControls.classList.add('active');
-        btnShowControls.setAttribute('aria-expanded', 'true');
+      panel.classList.add('mobile-open');
+      backdrop.classList.add('active');
+      trigger.classList.add('active');
+      trigger.setAttribute('aria-expanded', 'true');
+    };
+
+    btnShowControls.addEventListener('click', () => {
+      if (controlPanel.classList.contains('mobile-open')) {
+        closeAllDrawers();
+      } else {
+        openDrawer(controlPanel, btnShowControls);
+        controlPanel.querySelector<HTMLElement>('#btn-close-controls')?.focus();
       }
     });
 
     btnShowPhysics.addEventListener('click', () => {
-      const isOpen = physicsContainer.classList.contains('mobile-open');
-      closeAllDrawers();
-      if (!isOpen) {
-        physicsContainer.classList.add('mobile-open');
-        backdrop.classList.add('active');
-        btnShowPhysics.classList.add('active');
-        btnShowPhysics.setAttribute('aria-expanded', 'true');
+      if (physicsContainer.classList.contains('mobile-open')) {
+        closeAllDrawers();
+      } else {
+        openDrawer(physicsContainer, btnShowPhysics);
+        physicsContainer.querySelector<HTMLElement>('#btn-close-physics')?.focus();
       }
     });
 
@@ -471,18 +500,20 @@ export class ControlPanel {
       if (this.onExportClick) this.onExportClick();
     });
 
-    const infoBtns = this.container.querySelectorAll('.btn-info-icon');
-    infoBtns.forEach((btn) => {
-      btn.addEventListener('click', (e: Event) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const explainKey = (btn as HTMLElement).dataset.explain as keyof I18nStrings;
-        if (explainKey && strings[explainKey]) {
-          const explanation = strings[explainKey] as ConceptExplanation;
-          ExplanationModal.show(explanation);
-        }
-      });
-    });
+    ExplanationModal.attachInfoButtons(this.container);
+
+    /** Keeps the range track fill in sync with the current value. */
+    const syncRangeFill = (input: HTMLInputElement) => {
+      const min = Number.parseFloat(input.min);
+      const max = Number.parseFloat(input.max);
+      const value = Number.parseFloat(input.value);
+      if (Number.isNaN(min) || Number.isNaN(max) || max === min) return;
+      const pct = ((value - min) / (max - min)) * 100;
+      input.style.setProperty('--fill', `${Math.max(0, Math.min(100, pct))}%`);
+    };
+
+    const allRanges = this.container.querySelectorAll<HTMLInputElement>('input[type="range"]');
+    allRanges.forEach(syncRangeFill);
 
     const updateControls = () => {
       const n = Number.parseInt(nInput.value, 10);
@@ -547,6 +578,9 @@ export class ControlPanel {
 
       this.physicsPanel!.updateParams(this.currentParams);
       this.onChange(this.currentParams);
+
+      // m/l bounds change as n changes, so the fills must be recomputed.
+      allRanges.forEach(syncRangeFill);
     };
 
     nInput.addEventListener('input', updateControls);
