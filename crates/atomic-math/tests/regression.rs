@@ -3,9 +3,10 @@
 //! Each test below corresponds to a defect found by auditing the renderer and
 //! the maths engine against analytic values.
 
-use atomic_math::*;
 use atomic_math::grid::evaluate_isosurface_grid_internal;
 use atomic_math::spherical_harmonics::real_orbital_angular;
+use atomic_math::wavefunctions::radial_truncation_radius;
+use atomic_math::*;
 
 const PI: f64 = std::f64::consts::PI;
 
@@ -109,13 +110,7 @@ fn real_orbital_set_is_orthonormal() {
 fn f_xz2_is_x_times_3z2_minus_r2() {
     // On the unit sphere sin(th)cos(ph) = x and cos(th) = z, so
     // x(3z^2 - r^2) with r = 1 becomes x(3z^2 - 1).
-    let samples: [(f64, f64); 5] = [
-        (0.6, 0.3),
-        (1.1, 2.0),
-        (2.0, 4.0),
-        (0.9, 5.5),
-        (1.7, 1.2),
-    ];
+    let samples: [(f64, f64); 5] = [(0.6, 0.3), (1.1, 2.0), (2.0, 4.0), (0.9, 5.5), (1.7, 1.2)];
     for (theta, phi) in samples {
         let x = theta.sin() * phi.cos();
         let z = theta.cos();
@@ -187,7 +182,13 @@ fn voxels_above_isolevel(grid: &[f32], isolevel: f32) -> Vec<usize> {
 
 #[test]
 fn contrast_does_not_change_the_isosurface() {
-    let cases = [(2u32, 1u32, 0i32), (3, 0, 0), (4, 1, 0), (7, 0, 0), (4, 3, 0)];
+    let cases = [
+        (2u32, 1u32, 0i32),
+        (3, 0, 0),
+        (4, 1, 0),
+        (7, 0, 0),
+        (4, 3, 0),
+    ];
     for (n, l, m) in cases {
         let qn = QuantumNumbers { n, l, m };
         let mode = OrbitalMode::RealChemist(real_orbital_kind_from_lm(l, m).unwrap());
@@ -200,12 +201,19 @@ fn contrast_does_not_change_the_isosurface() {
         );
         for contrast in [5.0f32, 20.0, 100.0] {
             let grid = evaluate_isosurface_grid_internal(
-                &qn, &mode, 1.0, 64, bounds as f32, contrast, isolevel,
+                &qn,
+                &mode,
+                1.0,
+                64,
+                bounds as f32,
+                contrast,
+                isolevel,
             )
             .unwrap();
             let selected = voxels_above_isolevel(&grid, isolevel);
             assert_eq!(
-                selected, reference,
+                selected,
+                reference,
                 "contrast={contrast} changed the isosurface of n={n} l={l} \
                  ({} vs {} voxels)",
                 selected.len(),
@@ -222,11 +230,12 @@ fn contrast_remap_is_monotonic_and_anchored() {
     let res = 48usize;
     let bounds = 36.0f32;
     let isolevel = 0.05f32;
-    let reference = evaluate_isosurface_grid_internal(&qn, &mode, 1.0, res, bounds, 0.0, isolevel)
-        .unwrap();
+    let reference =
+        evaluate_isosurface_grid_internal(&qn, &mode, 1.0, res, bounds, 0.0, isolevel).unwrap();
     for contrast in [10.0f32, 100.0] {
-        let grid = evaluate_isosurface_grid_internal(&qn, &mode, 1.0, res, bounds, contrast, isolevel)
-            .unwrap();
+        let grid =
+            evaluate_isosurface_grid_internal(&qn, &mode, 1.0, res, bounds, contrast, isolevel)
+                .unwrap();
         // The remap must be a pointwise non-decreasing function of |density|:
         // ordering the voxels by |field| must give the same ordering as by
         // |reference field| (the un-remapped normalized density).
@@ -301,7 +310,8 @@ fn sampled_cloud_reproduces_the_analytic_mean_radius() {
         let pts = sample_points(&QuantumNumbers { n, l, m }, &mode, z, npts, 987_654_321).unwrap();
         let mean: f64 = pts
             .iter()
-            .map(|(p, _)| {
+            .map(|p| {
+                let p = p.position;
                 ((p[0] as f64).powi(2) + (p[1] as f64).powi(2) + (p[2] as f64).powi(2)).sqrt()
             })
             .sum::<f64>()
@@ -318,12 +328,13 @@ fn sampled_cloud_reproduces_the_analytic_mean_radius() {
 
 #[test]
 fn sampling_box_does_not_truncate_the_density() {
-    // Mass beyond the sampling box r_max = 16n/Z must be negligible for every
-    // supported (n, l, Z_eff).
+    // The box the sampler actually uses discards at most one part in a billion of
+    // the probability, for every supported (n, l, Z_eff). This is what makes the
+    // tight box legitimate: it must never clip a real feature.
     for n in 1..=7u32 {
         for l in 0..n {
             for z in [0.1f64, 1.0, 7.0, 60.0] {
-                let r_max = (2.0 * (n * n) as f64 + 16.0 * n as f64) / z;
+                let r_max = radial_truncation_radius(n, l, z, 1e-9).unwrap();
                 let r_far = 80.0 * (n * n) as f64 / z;
                 let integrate = |rmax: f64| -> f64 {
                     let steps = 200_000;
@@ -347,9 +358,9 @@ fn sampling_box_does_not_truncate_the_density() {
                 let total = integrate(r_far);
                 let discarded = 1.0 - inside / total;
                 assert!(
-                    discarded < 1e-6,
+                    discarded < 1e-9,
                     "n={n} l={l} z={z}: {discarded:.3e} of the density falls outside the \
-                     sampling box r_max = (2n^2+16n)/Z"
+                     sampling box r_max = {r_max}"
                 );
             }
         }
@@ -357,13 +368,65 @@ fn sampling_box_does_not_truncate_the_density() {
 }
 
 #[test]
+fn tight_sampling_box_shrinks_the_work_without_shrinking_the_orbital() {
+    // The point of the tight box: it must never grow, it should be meaningfully
+    // smaller for compact orbitals, and above all it must not change the sampled
+    // distribution. The gain is modest by nature - a hydrogenic tail really does
+    // extend far - but it is free.
+    for n in 1..=7u32 {
+        for l in 0..n {
+            for z in [0.1f64, 1.0, 7.0, 60.0] {
+                let conservative = wavefunctions::conservative_sampling_radius(n, z);
+                let tight = radial_truncation_radius(n, l, z, 1e-9).unwrap();
+                assert!(
+                    tight <= conservative,
+                    "n={n} l={l} z={z}: tight box {tight} grew past the cap {conservative}"
+                );
+                assert!(
+                    tight > analytic_mean_r(n, l, z) * 0.5,
+                    "n={n} l={l} z={z}: tight box {tight} is smaller than the orbital itself"
+                );
+            }
+        }
+    }
+
+    // 1s is the default state the app opens on, and the most compact: 2.3x fewer
+    // wasted candidates.
+    let tight_1s = radial_truncation_radius(1, 0, 1.0, 1e-9).unwrap();
+    assert!(
+        tight_1s < 0.8 * wavefunctions::conservative_sampling_radius(1, 1.0),
+        "1s box {tight_1s} is not meaningfully tighter"
+    );
+
+    // And the sampled distribution is unchanged by the tighter box.
+    let qn = QuantumNumbers { n: 1, l: 0, m: 0 };
+    let mode = OrbitalMode::RealChemist(RealOrbitalKind::S);
+    let npts = 200_000usize;
+    let pts = sample_points(&qn, &mode, 1.0, npts, 24_681_357).unwrap();
+    let mean: f64 = pts
+        .iter()
+        .map(|p| {
+            let p = p.position;
+            ((p[0] as f64).powi(2) + (p[1] as f64).powi(2) + (p[2] as f64).powi(2)).sqrt()
+        })
+        .sum::<f64>()
+        / npts as f64;
+    let expected = analytic_mean_r(1, 0, 1.0);
+    assert!(
+        (mean - expected).abs() / expected < 0.01,
+        "tight box changed <r> to {mean}, expected {expected}"
+    );
+}
+
+#[test]
 fn sampling_box_clears_the_outermost_radial_node() {
     // The box has to extend past the outermost node of the Laguerre polynomial,
-    // otherwise the outermost lobe of an ns orbital is cut in half.
+    // otherwise the outermost lobe of an ns orbital is cut in half. This still
+    // holds for the tight box, which is what the sampler uses.
     for n in 2..=7u32 {
-        let r_box = 2.0 * (n * n) as f64 + 16.0 * n as f64;
-        // locate sign changes of R_1s... use r_nl for l = 0
         let z = 1.0;
+        let r_box = radial_truncation_radius(n, 0, z, 1e-9).unwrap();
+        // locate sign changes of R_n0 with r_nl for l = 0
         let mut last_sign_change = 0.0f64;
         let steps = 200_000;
         let r_far = 4.0 * (n * n) as f64 + 16.0 * n as f64;
@@ -379,10 +442,117 @@ fn sampling_box_clears_the_outermost_radial_node() {
         }
         assert!(
             last_sign_change > 0.0 && r_box > last_sign_change * 1.05,
-            "n={n}: sampling box (2n^2+16n)/Z = {r_box} does not clear the outermost radial node \
+            "n={n}: sampling box {r_box} does not clear the outermost radial node \
              at {last_sign_change}"
         );
     }
+}
+
+// ---------------------------------------------------------------------------
+// Per-point density: the transfer function of the point cloud is built from the
+// |psi|^2 the sampler reports, so that value has to be the real one.
+// ---------------------------------------------------------------------------
+
+#[test]
+fn sampled_density_is_the_true_probability_density() {
+    let cases: &[(u32, u32, i32, bool, f64)] = &[
+        (1, 0, 0, true, 1.0),
+        (2, 1, 0, true, 1.0),
+        (3, 2, 0, true, 2.0),
+        (4, 3, 1, true, 1.0),
+        (2, 1, 1, false, 1.0),
+        (4, 2, 0, true, 2.0),
+    ];
+
+    for &(n, l, m, real, z) in cases {
+        let qn = QuantumNumbers { n, l, m };
+        let mode = if real {
+            OrbitalMode::RealChemist(real_orbital_kind_from_lm(l, m).unwrap())
+        } else {
+            OrbitalMode::PureEigenstate
+        };
+        let pts = sample_points(&qn, &mode, z, 4000, 20_260_929).unwrap();
+
+        for p in &pts {
+            let pos = p.position;
+            let r = ((pos[0] as f64).powi(2) + (pos[1] as f64).powi(2) + (pos[2] as f64).powi(2))
+                .sqrt();
+            if r < 1e-6 {
+                continue;
+            }
+            let theta = (pos[2] as f64 / r).clamp(-1.0, 1.0).acos();
+            let phi = (pos[1] as f64).atan2(pos[0] as f64);
+            let expected = probability_density(&qn, &mode, z, r, theta, phi).unwrap();
+            let rel = (p.density - expected).abs() / expected.max(1e-300);
+            assert!(
+                rel < 1e-5,
+                "n={n} l={l} m={m} real={real} z={z}: reported |psi|^2 = {} but the \
+                 wavefunction gives {expected}",
+                p.density
+            );
+        }
+    }
+}
+
+#[test]
+fn peak_density_bounds_every_sampled_point() {
+    // The renderer divides by the peak and expects the result inside [0, 1];
+    // if the peak ever fell short, the transfer function would clip real data.
+    for n in 1..=7u32 {
+        for l in 0..n {
+            for m in 0..=l as i32 {
+                let real = real_orbital_kind_from_lm(l, m).is_some();
+                let qn = QuantumNumbers { n, l, m };
+                let mode = if real {
+                    OrbitalMode::RealChemist(real_orbital_kind_from_lm(l, m).unwrap())
+                } else {
+                    OrbitalMode::PureEigenstate
+                };
+                for &z in &[0.3f64, 1.0, 2.0, 47.0] {
+                    let peak = psi_peak_density(&qn, &mode, z).unwrap();
+                    let pts = sample_points(&qn, &mode, z, 2000, 55_55).unwrap();
+                    for p in &pts {
+                        assert!(
+                            p.density <= peak * (1.0 + 1e-9),
+                            "n={n} l={l} m={m} z={z}: |psi|^2 = {} exceeds peak {peak}",
+                            p.density
+                        );
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[test]
+fn diffuse_orbitals_really_do_have_a_dynamic_range_beyond_f32() {
+    // The reason the cloud needs a log transfer function rather than a linear
+    // one: a diffuse orbital spans many decades between core and halo. If this
+    // ever stops being true the visualisation is no longer being honest about
+    // what it is compressing.
+    let qn = QuantumNumbers { n: 4, l: 2, m: 0 };
+    let mode = OrbitalMode::RealChemist(real_orbital_kind_from_lm(2, 0).unwrap());
+    let z = 2.0; // the Ag valence 4d_z^2 cloud
+    let peak = psi_peak_density(&qn, &mode, z).unwrap();
+    let pts = sample_points(&qn, &mode, z, 200_000, 4242).unwrap();
+
+    let mut max_rel = 0.0f64;
+    let mut min_visible = 1.0f64;
+    for p in &pts {
+        let rel = p.density / peak;
+        max_rel = max_rel.max(rel);
+        if rel > 1e-4 {
+            min_visible = min_visible.min(rel);
+        }
+    }
+    assert!(
+        max_rel > 0.05,
+        "the cloud never approaches its own peak (max {max_rel})"
+    );
+    assert!(
+        min_visible < 1e-3,
+        "the visible part of the cloud never drops 3 decades below the peak ({min_visible})"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -427,12 +597,15 @@ fn pure_eigenstate_density_is_phi_independent() {
             let qn = QuantumNumbers { n: l + 1, l, m };
             for r in [1.0f64, 4.0, 9.0] {
                 for theta in [0.3f64, 1.1, 2.4] {
-                    let d0 = probability_density(&qn, &OrbitalMode::PureEigenstate, 1.0, r, theta, 0.0)
-                        .unwrap();
-                    let d1 = probability_density(&qn, &OrbitalMode::PureEigenstate, 1.0, r, theta, 1.9)
-                        .unwrap();
-                    let d2 = probability_density(&qn, &OrbitalMode::PureEigenstate, 1.0, r, theta, 5.1)
-                        .unwrap();
+                    let d0 =
+                        probability_density(&qn, &OrbitalMode::PureEigenstate, 1.0, r, theta, 0.0)
+                            .unwrap();
+                    let d1 =
+                        probability_density(&qn, &OrbitalMode::PureEigenstate, 1.0, r, theta, 1.9)
+                            .unwrap();
+                    let d2 =
+                        probability_density(&qn, &OrbitalMode::PureEigenstate, 1.0, r, theta, 5.1)
+                            .unwrap();
                     assert!(
                         (d0 - d1).abs() <= 1e-12 * d0.max(1.0)
                             && (d0 - d2).abs() <= 1e-12 * d0.max(1.0),
@@ -476,7 +649,11 @@ fn pure_eigenstate_density_is_the_phi_average_of_the_real_orbital() {
             }
             let avg = acc / n_phi as f64;
             let d = probability_density(
-                &QuantumNumbers { n: l + 1, l, m: m_pure },
+                &QuantumNumbers {
+                    n: l + 1,
+                    l,
+                    m: m_pure,
+                },
                 &pure,
                 1.0,
                 3.0,
@@ -518,14 +695,14 @@ fn slater_rules_match_textbook_values() {
         (26, 4, 0, 3.75),
         // Slater treats nd/nf electrons differently: same-group electrons shield
         // 1.00 (not 0.35) and every electron in a group to the left shields 1.00.
-        (21, 3, 2, 3.00), // Sc 3d1
-        (22, 3, 2, 3.00), // Ti 3d2
-        (26, 3, 2, 3.00), // Fe 3d6
-        (29, 3, 2, 2.00), // Cu 3d10
-        (30, 3, 2, 3.00), // Zn 3d10
-        (39, 4, 2, 3.00), // Y 4d1
-        (47, 4, 2, 2.00), // Ag 4d10
-        (79, 5, 2, 2.00), // Au 5d10 (Slater's known failure mode for heavy d/f)
+        (21, 3, 2, 3.00),  // Sc 3d1
+        (22, 3, 2, 3.00),  // Ti 3d2
+        (26, 3, 2, 3.00),  // Fe 3d6
+        (29, 3, 2, 2.00),  // Cu 3d10
+        (30, 3, 2, 3.00),  // Zn 3d10
+        (39, 4, 2, 3.00),  // Y 4d1
+        (47, 4, 2, 2.00),  // Ag 4d10
+        (79, 5, 2, 2.00),  // Au 5d10 (Slater's known failure mode for heavy d/f)
         (58, 4, 3, 12.00), // Ce 4f1
     ];
     for &(z, n, l, expected) in cases {
@@ -583,7 +760,10 @@ fn ground_state_configuration_sums_to_the_atomic_number() {
     for z in 1u32..=118 {
         let config = slater::get_electron_configuration(z);
         let total: u32 = config.iter().map(|c| c.2).sum();
-        assert_eq!(total, z, "ground-state configuration of Z={z} sums to {total}");
+        assert_eq!(
+            total, z,
+            "ground-state configuration of Z={z} sums to {total}"
+        );
     }
 }
 

@@ -4,6 +4,7 @@ import { ExplanationModal } from './info-modal';
 import { escapeHtml } from './modal-utils';
 import { icon } from './icons';
 import { RadialDistributionChart } from './radial-distribution-chart';
+import { bohrToPm, energyLevelEv, meanRadiusBohr } from '../core/physics-constants';
 
 const SUBSHELL_NAMES = ['s', 'p', 'd', 'f', 'g'];
 
@@ -90,9 +91,9 @@ export class OrbitalPhysicsPanel {
     const totalNodes = n - 1;
     const notationHtml = this.getOrbitalNotationHtml(n, l, m, useRealOrbital);
 
-    const rExpBohr = (0.5 / zEff) * (3 * n * n - l * (l + 1));
-    const rExpPm = rExpBohr * 52.917721;
-    const energyEv = (-13.605693 * (zEff * zEff)) / (n * n);
+    const rExpBohr = meanRadiusBohr(n, l, zEff);
+    const rExpPm = bohrToPm(rExpBohr);
+    const energyEv = energyLevelEv(n, zEff);
 
     const strings = getStrings();
     const seriesMap: Record<number, string> = {

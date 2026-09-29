@@ -340,5 +340,3 @@ export class MoleculeView {
     ExplanationModal.attachInfoButtons(this.container);
   }
 }
-
-

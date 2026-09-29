@@ -240,7 +240,10 @@ pub fn sto_radial_wavefunction(n: u32, z_eff: f64, r: f64) -> Result<f64, String
         return Err("Principal quantum number n must be greater than 0".into());
     }
     if z_eff <= 0.0 {
-        return Err(format!("Effective nuclear charge Z_eff ({}) must be positive", z_eff));
+        return Err(format!(
+            "Effective nuclear charge Z_eff ({}) must be positive",
+            z_eff
+        ));
     }
     if r < 0.0 {
         return Err(format!("Radius r ({}) cannot be negative", r));
@@ -257,4 +260,3 @@ pub fn sto_radial_wavefunction(n: u32, z_eff: f64, r: f64) -> Result<f64, String
     let radial_factor = r.powf(n_eff - 1.0);
     Ok(norm * radial_factor * (-zeta * r).exp())
 }
-

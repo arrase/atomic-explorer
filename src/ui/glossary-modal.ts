@@ -1,6 +1,6 @@
 import { getStrings, onLanguageChange, GlossaryItem } from '../i18n';
 import { icon } from './icons';
-import { trapModalFocus } from './modal-utils';
+import { escapeHtml, trapModalFocus } from './modal-utils';
 
 export class GlossaryModal {
   private overlayElement: HTMLElement | null = null;
@@ -139,7 +139,7 @@ export class GlossaryModal {
               id="glossary-search-input"
               class="glossary-search-input"
               placeholder="${strings.glossarySearchPlaceholder}"
-              value="${this.escapeHtml(this.searchQuery)}"
+              value="${escapeHtml(this.searchQuery)}"
             />
             ${
               this.searchQuery
@@ -162,9 +162,9 @@ export class GlossaryModal {
               <button
                 type="button"
                 class="category-tag ${this.activeCategory === cat ? 'active' : ''}"
-                data-category="${this.escapeHtml(cat)}"
+                data-category="${escapeHtml(cat)}"
               >
-                ${this.escapeHtml(cat)}
+                ${escapeHtml(cat)}
               </button>
             `
               )
@@ -269,13 +269,13 @@ export class GlossaryModal {
       <div class="glossary-item-card ${isExpanded ? 'expanded' : ''}" data-id="${item.id}">
         <div class="glossary-item-header">
           <div class="glossary-item-title-group">
-            <h3 class="glossary-item-term">${this.escapeHtml(item.term)}</h3>
-            <span class="glossary-item-badge">${this.escapeHtml(item.category)}</span>
+            <h3 class="glossary-item-term">${escapeHtml(item.term)}</h3>
+            <span class="glossary-item-badge">${escapeHtml(item.category)}</span>
           </div>
           <span class="glossary-item-toggle">${isExpanded ? icon('chevron-up') : icon('chevron-down')}</span>
         </div>
-        <p class="glossary-item-definition">${this.escapeHtml(item.definition)}</p>
-        ${isExpanded ? `<div class="glossary-item-details"><p>${this.escapeHtml(item.details)}</p></div>` : ''}
+        <p class="glossary-item-definition">${escapeHtml(item.definition)}</p>
+        ${isExpanded ? `<div class="glossary-item-details"><p>${escapeHtml(item.details)}</p></div>` : ''}
       </div>
     `;
   }
@@ -295,14 +295,5 @@ export class GlossaryModal {
         }
       });
     });
-  }
-
-  private escapeHtml(str: string): string {
-    return str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
   }
 }

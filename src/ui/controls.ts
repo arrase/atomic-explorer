@@ -16,6 +16,23 @@ export interface ExtendedOrbitalParams extends OrbitalParams {
   contrast: number;
 }
 
+/**
+ * Highest principal quantum number the UI offers.
+ *
+ * The engine supports more, but n <= 7 keeps the hydrogenic radial functions
+ * numerically comfortable and the s/p/d/f orbital shapes the ones users ask for.
+ */
+const MAX_N = 7;
+
+/**
+ * Highest azimuthal quantum number with a real chemist representation.
+ *
+ * Mirrors the `real_orbital_kind_from_lm` table in
+ * `crates/atomic-math/src/lib.rs`, which only tabulates s, p, d and f. Asking for
+ * a real orbital beyond it is an error, not a blank, so the UI must not offer it.
+ */
+const MAX_REAL_ORBITAL_L = 3;
+
 function renderOption(value: string, label: string, selectedValue: string): string {
   return `<option value="${value}" ${selectedValue === value ? 'selected' : ''}>${label}</option>`;
 }
@@ -229,7 +246,7 @@ export class ControlPanel {
               valueId: 'n-val',
               valueHtml: String(this.currentParams.n),
               explainKey: 'explainN',
-              control: this.slider('n-select', 1, 7, this.currentParams.n, 1),
+              control: this.slider('n-select', 1, MAX_N, this.currentParams.n, 1),
             })}
             ${this.controlRow({
               id: 'l-select',
@@ -237,7 +254,7 @@ export class ControlPanel {
               valueId: 'l-val',
               valueHtml: String(this.currentParams.l),
               explainKey: 'explainL',
-              control: this.slider('l-select', 0, this.currentParams.n - 1, this.currentParams.l, 1),
+              control: this.slider('l-select', 0, this.maxL(), this.currentParams.l, 1),
             })}
             ${this.controlRow({
               id: 'm-select',
@@ -519,10 +536,16 @@ export class ControlPanel {
       const n = Number.parseInt(nInput.value, 10);
       nVal.textContent = String(n);
 
-      lInput.max = String(n - 1);
+      const useRealOrbital = typeSelect.value === 'real';
+
+      // A real chemist orbital is only tabulated up to l = 3; past that the WASM
+      // side has no representation and the call would fail. The pure eigenstate
+      // form is defined for every l, so the cap only applies in real mode.
+      const maxL = useRealOrbital ? Math.min(n - 1, MAX_REAL_ORBITAL_L) : n - 1;
+      lInput.max = String(maxL);
       let l = Number.parseInt(lInput.value, 10);
-      if (l >= n) {
-        l = n - 1;
+      if (l > maxL) {
+        l = maxL;
         lInput.value = String(l);
       }
       lVal.textContent = String(l);
@@ -537,7 +560,6 @@ export class ControlPanel {
 
       const s = Number.parseFloat(spinSelect.value);
       const mode = modeSelect.value as RenderMode;
-      const useRealOrbital = typeSelect.value === 'real';
       const quality = qualitySelect.value as QualityPreset;
       const colorPalette = paletteSelect.value as ColorPalette;
       const zEff = Number.parseFloat(zeffInput.value);
@@ -635,12 +657,14 @@ export class ControlPanel {
 
   public setParams(params: Partial<ExtendedOrbitalParams>): void {
     this.currentParams = { ...this.currentParams, ...params };
-    
-    this.currentParams.n = Math.max(1, Math.min(7, Math.floor(this.currentParams.n)));
-    const maxL = this.currentParams.n - 1;
-    if (this.currentParams.l > maxL) {
-      this.currentParams.l = maxL;
-    }
+
+    const n = Math.max(1, Math.min(MAX_N, Math.floor(this.currentParams.n)));
+    this.currentParams.n = n;
+    // See MAX_REAL_ORBITAL_L: real chemist orbitals stop at l = 3.
+    const maxL = this.currentParams.useRealOrbital
+      ? Math.min(n - 1, MAX_REAL_ORBITAL_L)
+      : n - 1;
+    this.currentParams.l = Math.max(0, Math.min(maxL, Math.floor(this.currentParams.l)));
     const maxM = this.currentParams.l;
     if (Math.abs(this.currentParams.m) > maxM) {
       this.currentParams.m = this.currentParams.m < 0 ? -maxM : maxM;
@@ -651,5 +675,15 @@ export class ControlPanel {
 
   public getParams(): ExtendedOrbitalParams {
     return this.currentParams;
+  }
+
+  /**
+   * Highest `l` the current orbital type can use: bounded by `n` always, and by
+   * the real chemist table in real-orbital mode.
+   */
+  private maxL(): number {
+    return this.currentParams.useRealOrbital
+      ? Math.min(this.currentParams.n - 1, MAX_REAL_ORBITAL_L)
+      : this.currentParams.n - 1;
   }
 }

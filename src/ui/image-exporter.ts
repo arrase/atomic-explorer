@@ -1,6 +1,6 @@
 import { getStrings } from '../i18n';
 import { icon } from './icons';
-import { trapModalFocus } from './modal-utils';
+import { escapeHtml, trapModalFocus } from './modal-utils';
 
 export interface ExportOptions {
   width: number;
@@ -81,7 +81,7 @@ export class ImageExporterModal {
             <span class="panel-header-icon">${icon('camera')}</span>
             <h3 id="export-modal-title">${strings.exportTitle}</h3>
           </div>
-          <button class="btn-close-modal" id="btn-close-export" aria-label="Close">${icon('close')}</button>
+          <button class="btn-close-modal" id="btn-close-export" aria-label="${escapeHtml(strings.exportClose)}">${icon('close')}</button>
         </div>
 
         <div class="export-modal-body">
@@ -147,11 +147,14 @@ export class ImageExporterModal {
     closeBtn.addEventListener('click', () => this.close());
     cancelBtn.addEventListener('click', () => this.close());
 
-    this.overlay.addEventListener('click', (e: MouseEvent) => {
+    // Assigned rather than added: `render` runs on every open but the overlay
+    // element itself is never replaced, so addEventListener would stack up a
+    // new delegated handler each time the modal is opened.
+    this.overlay.onclick = (e: MouseEvent) => {
       if (e.target === this.overlay) {
         this.close();
       }
-    });
+    };
 
     exportBtn.addEventListener('click', async () => {
       const resSelect = this.overlay.querySelector('#export-res-select') as HTMLSelectElement;
@@ -189,28 +192,32 @@ export class ImageExporterModal {
       const origText = exportBtn.textContent;
       exportBtn.textContent = getStrings().exportGenerating;
 
-      const dataUrl = await this.onExport({ width, height, superSampling, background, format });
+      try {
+        const dataUrl = await this.onExport({ width, height, superSampling, background, format });
 
-      // Trigger download
-      let ext = 'png';
-      if (format === 'image/jpeg') {
-        ext = 'jpg';
-      } else if (format === 'image/webp') {
-        ext = 'webp';
+        // Trigger download
+        const ext = format === 'image/jpeg' ? 'jpg' : format === 'image/webp' ? 'webp' : 'png';
+        const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+        const filename = `atomic-explorer-${width}x${height}-${timestamp}.${ext}`;
+
+        const a = document.createElement('a');
+        a.href = dataUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        this.close();
+      } catch (error) {
+        // A capture can fail outright - most often because the requested buffer
+        // exceeds what the GPU can allocate - and without this the button would
+        // stay disabled reading "Generating" forever.
+        console.error('[atomic-explorer] image export failed', error);
+        exportBtn.textContent = getStrings().exportFailed;
+      } finally {
+        exportBtn.disabled = false;
+        exportBtn.textContent = origText;
       }
-      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const filename = `atomic-explorer-${width}x${height}-${timestamp}.${ext}`;
-
-      const a = document.createElement('a');
-      a.href = dataUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-
-      exportBtn.disabled = false;
-      exportBtn.textContent = origText;
-      this.close();
     });
   }
 }

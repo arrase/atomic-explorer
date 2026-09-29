@@ -1,4 +1,7 @@
-use crate::math_utils::constants::{BOHR_RADIUS_M, COULOMB_CONST, ELEMENTARY_CHARGE, HBAR, RYDBERG_CONST_M1, RYDBERG_ENERGY_EV, SPEED_OF_LIGHT};
+use crate::math_utils::constants::{
+    BOHR_RADIUS_M, COULOMB_CONST, ELEMENTARY_CHARGE, HBAR, RYDBERG_CONST_M1, RYDBERG_ENERGY_EV,
+    SPEED_OF_LIGHT,
+};
 use crate::wavefunctions::r_nl;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -19,7 +22,10 @@ pub fn calculate_energy_ev(z_eff: f64, n: u32) -> Result<f64, String> {
         return Err("Principal quantum number n must be greater than 0".into());
     }
     if z_eff <= 0.0 {
-        return Err(format!("Effective nuclear charge Z_eff ({}) must be positive", z_eff));
+        return Err(format!(
+            "Effective nuclear charge Z_eff ({}) must be positive",
+            z_eff
+        ));
     }
     let n_f = n as f64;
     Ok(-RYDBERG_ENERGY_EV * z_eff * z_eff / (n_f * n_f))
@@ -47,7 +53,10 @@ pub fn calculate_transition(z_eff: f64, n1: u32, n2: u32) -> Result<TransitionRe
         return Err("Initial and final quantum numbers must be different".into());
     }
     if z_eff <= 0.0 {
-        return Err(format!("Effective nuclear charge Z_eff ({}) must be positive", z_eff));
+        return Err(format!(
+            "Effective nuclear charge Z_eff ({}) must be positive",
+            z_eff
+        ));
     }
 
     let e1 = calculate_energy_ev(z_eff, n1)?;
@@ -148,4 +157,3 @@ pub fn spontaneous_emission_rate(
 
     Ok(prefactor * line_strength * r_int_m * r_int_m)
 }
-

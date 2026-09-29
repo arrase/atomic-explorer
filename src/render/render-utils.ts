@@ -108,8 +108,24 @@ export interface SnapshotOptions {
   superSampling: number;
   format: 'image/png' | 'image/jpeg' | 'image/webp';
   background: 'dark' | 'black' | 'white' | 'transparent';
+  /** Fired once the drawing buffer has been resized, before the capture. */
+  onBeforeRender?: () => void;
 }
 
+/**
+ * Largest supersampling factor the GPU can actually back with a framebuffer.
+ *
+ * The drawing buffer is `width * superSampling` across, and exceeding
+ * MAX_RENDERBUFFER_SIZE yields an incomplete framebuffer, which on most drivers
+ * loses the WebGL context outright rather than failing the draw call.
+ */
+function maxUsableSuperSampling(renderer: THREE.WebGLRenderer, width: number, height: number): number {
+  const gl = renderer.getContext();
+  const limit = gl.getParameter(gl.MAX_RENDERBUFFER_SIZE) as number;
+  const longest = Math.max(width, height, 1);
+  if (!Number.isFinite(limit) || limit <= 0) return 1;
+  return Math.max(1, Math.min(limit / longest));
+}
 
 export function captureWebGLSnapshot(
   renderer: THREE.WebGLRenderer,
@@ -125,8 +141,12 @@ export function captureWebGLSnapshot(
 
   const targetWidth = Math.round(options.width);
   const targetHeight = Math.round(options.height);
+  const superSampling = Math.min(
+    options.superSampling,
+    maxUsableSuperSampling(renderer, targetWidth, targetHeight)
+  );
 
-  renderer.setPixelRatio(options.superSampling);
+  renderer.setPixelRatio(superSampling);
   renderer.setSize(targetWidth, targetHeight, false);
 
   camera.aspect = targetWidth / targetHeight;
@@ -141,6 +161,10 @@ export function captureWebGLSnapshot(
   } else {
     renderer.setClearColor(0x08090d, 1.0);
   }
+
+  // Anything that sizes itself in device pixels (point sprites) has to follow
+  // the export resolution, not the on-screen one.
+  options.onBeforeRender?.();
 
   renderer.render(scene, camera);
   const dataUrl = renderer.domElement.toDataURL(options.format, 0.95);
@@ -160,7 +184,6 @@ export abstract class BaseThreeRenderer {
   protected readonly isShared: boolean;
   protected autoRotate: boolean = false;
   protected autoRotateSpeed: number = 2.0;
-  protected minAlignDistance: number = 2.0;
   protected defaultCameraPos: THREE.Vector3;
   protected defaultTarget: THREE.Vector3 = new THREE.Vector3(0, 0, 0);
   protected gizmo: OrientationGizmo | null = null;
@@ -193,15 +216,57 @@ export abstract class BaseThreeRenderer {
     return Math.min(window.devicePixelRatio, 2.0);
   }
 
+  /**
+   * Applies the pixel ratio only when it actually changed.
+   *
+   * `WebGLRenderer.setPixelRatio` always calls `setSize`, and assigning
+   * `canvas.width` recreates the drawing buffer, so calling it on every
+   * parameter tick would blank the canvas for the duration of a slider drag.
+   */
+  protected syncPixelRatio(): void {
+    const ratio = this.getEffectivePixelRatio();
+    if (this.renderer.getPixelRatio() !== ratio) {
+      this.renderer.setPixelRatio(ratio);
+    }
+  }
+
   public readonly onWindowResize = (): void => {
     this.camera.aspect = window.innerWidth / window.innerHeight;
     this.camera.updateProjectionMatrix();
-    this.renderer.setPixelRatio(this.getEffectivePixelRatio());
+    this.syncPixelRatio();
     this.renderer.setSize(window.innerWidth, window.innerHeight);
+    this.onViewportChanged();
   };
 
+  /**
+   * Hook for renderers whose geometry is sized in device pixels, so they can
+   * follow window resizes and high-resolution exports.
+   */
+  protected onViewportChanged(): void {}
+
+  /**
+   * Hook for renderers that must keep the depth range in step with the camera.
+   *
+   * Called once per frame and once before a snapshot, which is where a renderer
+   * that derives its scale from the scene has to refit its clipping planes.
+   */
+  protected updateClipping(): void {}
+
   public async captureSnapshot(options: SnapshotOptions): Promise<string> {
-    return captureWebGLSnapshot(this.renderer, this.scene, this.camera, options, this.onWindowResize);
+    return captureWebGLSnapshot(
+      this.renderer,
+      this.scene,
+      this.camera,
+      {
+        ...options,
+        onBeforeRender: () => {
+          this.onViewportChanged();
+          this.updateClipping();
+        },
+      },
+      // onWindowResize already calls onViewportChanged.
+      () => this.onWindowResize(),
+    );
   }
 
   public setGizmo(gizmo: OrientationGizmo | null): void {
@@ -236,13 +301,13 @@ export abstract class BaseThreeRenderer {
 
   public alignCameraTo(dir: THREE.Vector3, up: THREE.Vector3): void {
     const dist = this.camera.position.distanceTo(this.controls.target);
-    const targetPos = this.controls.target.clone().addScaledVector(dir, Math.max(dist, this.minAlignDistance));
+    const targetPos = this.controls.target.clone().addScaledVector(dir, dist);
     this.animateCameraTo(targetPos, up, this.controls.target.clone(), 400);
   }
 
   public alignCameraToInstant(dir: THREE.Vector3, up: THREE.Vector3): void {
     const dist = this.camera.position.distanceTo(this.controls.target);
-    const targetPos = this.controls.target.clone().addScaledVector(dir, Math.max(dist, this.minAlignDistance));
+    const targetPos = this.controls.target.clone().addScaledVector(dir, dist);
     setCameraInstant(this.camera, this.controls, targetPos, up, undefined, () => this.gizmo?.update());
   }
 
@@ -288,6 +353,7 @@ export abstract class BaseThreeRenderer {
       this.gizmo.update();
     }
 
+    this.updateClipping();
     this.renderer.render(this.scene, this.camera);
   };
 

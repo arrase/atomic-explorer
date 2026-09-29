@@ -1,4 +1,5 @@
 import { getStrings } from '../i18n';
+import { bohrToPm, meanRadiusBohr } from '../core/physics-constants';
 
 function factorial(n: number): number {
   if (n <= 1) return 1;
@@ -170,7 +171,7 @@ export class RadialDistributionChart {
     this.l = l;
     this.zEff = zEff;
 
-    this.expR = (0.5 / this.zEff) * (3 * n * n - l * (l + 1));
+    this.expR = meanRadiusBohr(n, l, this.zEff);
     this.radialNodes = findRadialNodes(n, l, this.zEff);
     this.calculatePeak();
     this.draw();
@@ -179,7 +180,7 @@ export class RadialDistributionChart {
   public getPeakRadius(): { rBohr: number; rPm: number } {
     return {
       rBohr: this.peakR,
-      rPm: this.peakR * 52.917721,
+      rPm: bohrToPm(this.peakR),
     };
   }
 
@@ -559,7 +560,7 @@ export class RadialDistributionChart {
     const hx = toX(this.hoverR);
     const hp = calculateRadialProbabilityDensity(this.n, this.l, this.zEff, this.hoverR);
     const hy = toY(hp);
-    const hPm = this.hoverR * 52.917721;
+    const hPm = bohrToPm(this.hoverR);
 
     // Crosshair line
     ctx.save();

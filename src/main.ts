@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { sampleOrbitalPoints, getSlaterZEff } from './core/wasm-bridge';
+import { ANGSTROM_IN_BOHR, meanRadiusBohr, bohrToPm } from './core/physics-constants';
 import { OrbitalRenderer } from './render/orbital-renderer';
 import { MoleculeRenderer } from './render/molecule-renderer';
 import { OrientationGizmo } from './render/orientation-gizmo';
@@ -84,11 +85,13 @@ async function init() {
   const updatePhysicalScaleText = () => {
     if (activeTab === 'orbitals') {
       const p = controlPanel.getParams();
-      const meanRadiusA0 = (0.5 / p.zEff) * (3 * p.n * p.n - p.l * (p.l + 1));
-      const meanRadiusPm = meanRadiusA0 * 52.917721;
-      viewportHud.updateScale(`⟨r⟩ ${meanRadiusA0.toFixed(2)} a₀ (${meanRadiusPm.toFixed(1)} pm)`);
+      const meanA0 = meanRadiusBohr(p.n, p.l, p.zEff);
+      const meanPm = bohrToPm(meanA0);
+      viewportHud.updateScale(`⟨r⟩ ${meanA0.toFixed(2)} a₀ (${meanPm.toFixed(1)} pm)`);
     } else if (activeTab === 'molecules') {
-      viewportHud.updateScale(`1 Å = 100 pm (1.89 a₀)`);
+      viewportHud.updateScale(
+        `1 Å = 100 pm (${ANGSTROM_IN_BOHR.toFixed(2)} a₀)`
+      );
     }
   };
 
@@ -101,7 +104,7 @@ async function init() {
         orbitalRenderer.updateParams(params);
         const points = await sampleOrbitalPoints(params);
         if (requestId === currentLoadRequestId) {
-          orbitalRenderer.setPointCloud(points);
+          await orbitalRenderer.setPointCloud(points, params);
         }
       } else if (params.mode === 'isosurface') {
         if (requestId === currentLoadRequestId) {
@@ -109,9 +112,14 @@ async function init() {
         }
       } else if (params.mode === 'raymarching') {
         if (requestId === currentLoadRequestId) {
-          orbitalRenderer.updateRaymarching(params);
+          await orbitalRenderer.updateRaymarching(params);
         }
       }
+    } catch (error) {
+      // The WASM engine rejects unsupported states rather than clamping them, so
+      // a bad parameter set would otherwise reject out of the DOM event handler
+      // and leave the canvas blank with nothing in the console.
+      console.error('[atomic-explorer] failed to load orbital', params, error);
     } finally {
       if (requestId === currentLoadRequestId) {
         document.body.classList.remove('loading');
@@ -322,8 +330,6 @@ async function init() {
 
   window.addEventListener('keydown', handleKeyDown);
 
-
-
   await loadOrbital(controlPanel.getParams());
   orbitalRenderer.start();
 
@@ -335,4 +341,7 @@ async function init() {
   }
 }
 
-window.addEventListener('DOMContentLoaded', init);
+window.addEventListener('DOMContentLoaded', () => {
+  // A rejected boot promise is otherwise invisible: no UI, no console output.
+  init().catch((error) => console.error('[atomic-explorer] startup failed', error));
+});

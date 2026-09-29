@@ -82,8 +82,90 @@ pub fn gamma(z: f64) -> f64 {
     (2.0 * std::f64::consts::PI).sqrt() * t.powf(zm1 + 0.5) * (-t).exp() * x
 }
 
+/// Golden-section maximisation of an unimodal function on `[lo, hi]`.
+///
+/// Used to polish the peak of a smooth wavefunction after a coarse grid scan:
+/// the scan localises the basin, this finds the maximum to machine precision.
+/// Returns `(argmax, value)`.
+pub fn maximize_unimodal<F: FnMut(f64) -> f64>(
+    mut f: F,
+    lo: f64,
+    hi: f64,
+    iterations: usize,
+) -> (f64, f64) {
+    const INV_PHI: f64 = 0.618_033_988_749_894_9;
+
+    let mut lo = lo;
+    let mut hi = hi;
+    let mut c = hi - INV_PHI * (hi - lo);
+    let mut d = lo + INV_PHI * (hi - lo);
+    let mut fc = f(c);
+    let mut fd = f(d);
+
+    for _ in 0..iterations {
+        if fc > fd {
+            hi = d;
+            d = c;
+            fd = fc;
+            c = hi - INV_PHI * (hi - lo);
+            fc = f(c);
+        } else {
+            lo = c;
+            c = d;
+            fc = fd;
+            d = lo + INV_PHI * (hi - lo);
+            fd = f(d);
+        }
+    }
+
+    if fc > fd {
+        (c, fc)
+    } else {
+        (d, fd)
+    }
+}
+
+/// Peak of `f` on `[lo, hi]`, located by a coarse scan and then polished.
+///
+/// The scan only has to land inside the basin of the largest sampled value,
+/// which is all a fixed-step grid can be trusted to do; `maximize_unimodal`
+/// then walks that basin down to machine precision. Returns `(argmax, value)`.
+///
+/// Never returns less than the coarse scan found, so a multimodal function
+/// still yields its global best sample rather than whatever local maximum the
+/// polish happened to converge to.
+pub fn maximize_on_interval<F: Fn(f64) -> f64>(
+    f: F,
+    lo: f64,
+    hi: f64,
+    scan_steps: usize,
+) -> (f64, f64) {
+    if hi <= lo {
+        // Degenerate or reversed interval: the only sensible answer is f(lo).
+        return (lo, f(lo));
+    }
+
+    let step = (hi - lo) / (scan_steps.max(1) as f64);
+    let mut best = (lo, f(lo));
+    for i in 1..=scan_steps {
+        let x = lo + (i as f64) * step;
+        let value = f(x);
+        if value > best.1 {
+            best = (x, value);
+        }
+    }
+
+    let (argmax, value) =
+        maximize_unimodal(f, (best.0 - step).max(lo), (best.0 + step).min(hi), 40);
+    if value > best.1 {
+        (argmax, value)
+    } else {
+        best
+    }
+}
+
 pub fn associated_legendre(l: u32, m: i32, x: f64) -> Result<f64, String> {
-    if x < -1.0 || x > 1.0 {
+    if !(-1.0..=1.0).contains(&x) {
         return Err(format!(
             "Associated legendre argument x ({}) magnitude cannot exceed 1.0",
             x
@@ -128,4 +210,3 @@ pub fn associated_legendre(l: u32, m: i32, x: f64) -> Result<f64, String> {
 
     Ok(p_l)
 }
-

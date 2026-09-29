@@ -517,14 +517,6 @@ export class MoleculeRenderer extends BaseThreeRenderer {
     return this.showAngles;
   }
 
-  public isShowingAngles(): boolean {
-    return this.showAngles;
-  }
-
-  public isShowingLobes(): boolean {
-    return this.showLobes;
-  }
-
   public clear(): void {
     const clearGroup = (group: THREE.Group) => {
       while (group.children.length > 0) {

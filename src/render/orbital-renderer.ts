@@ -1,7 +1,12 @@
 import * as THREE from 'three';
 import { MarchingCubes } from 'three/addons/objects/MarchingCubes.js';
 import { BaseThreeRenderer, RendererTarget } from './render-utils';
-import { evaluateIsosurfaceGrid } from '../core/wasm-bridge';
+import {
+  SAMPLE_STRIDE,
+  evaluateIsosurfaceGrid,
+  getOrbitalPeakDensity,
+  resolveOrbitalGeometry,
+} from '../core/wasm-bridge';
 
 export type RenderMode = 'points' | 'isosurface' | 'raymarching';
 export type QualityPreset = 'low' | 'medium' | 'high' | 'ultra' | 'extreme' | 'custom';
@@ -25,7 +30,65 @@ export interface OrbitalRenderParams {
 
 export type { RendererTarget };
 
+/** Breathing room between the framed orbital and the edge of the viewport. */
+const FRAME_MARGIN = 1.12;
 
+/**
+ * Framing used before any orbital has been loaded.
+ *
+ * The scene starts empty, so this only has to be a sane default: the first
+ * `applyFraming` replaces it with a radius derived from the real wavefunction.
+ */
+const INITIAL_FRAME_RADIUS = 16;
+const INITIAL_FRAME_DISTANCE = 46.8;
+
+/**
+ * Fraction of the electron probability the point cloud is required to show.
+ *
+ * The transfer function's floor is derived from this: the cloud is drawn down
+ * to whatever density still contains this much probability, so a compact 1s and
+ * a diffuse 7s are both drawn at the same statistical standard. Nothing is
+ * hidden arbitrarily, and the same slider means the same thing for every
+ * orbital.
+ *
+ * Deliberately a little below the FRAMING_QUANTILE the camera is fitted to.
+ * The visible set {|psi|^2 >= floor} always reaches slightly past the radius
+ * that holds the same probability, because in the tail the density is low in
+ * every direction at once; framing from the smaller of the two lets that soft
+ * rim bleed off the edge of the viewport instead of being cut off by it.
+ */
+const VISIBLE_QUANTILE = 0.97;
+
+/** Guard rails for the derived floor, in case the sample is degenerate. */
+const MIN_DENSITY_FLOOR = 1e-8;
+const MAX_DENSITY_FLOOR = 0.05;
+
+/**
+ * Opacity of a single dot sitting at the peak of the density.
+ *
+ * Chosen against the ink budget of the densest part of an average cloud: a dot
+ * covers about a tenth of its bounding disc, so `POINT_OPACITY * dot_size^2`
+ * sets how much of the body ends up opaque, and this lands it near half
+ * coverage. Higher values make the body solid but let isolated samples in the
+ * halo show up as hard speckles.
+ */
+const POINT_OPACITY = 0.75;
+
+/**
+ * Dot diameter in CSS px at REFERENCE_POINT_COUNT samples on a
+ * REFERENCE_VIEWPORT_HEIGHT_PX tall viewport, before clamping.
+ *
+ * Ink on screen is `count * dot_area * opacity`, and the dot area is fixed at
+ * this reference, so raising the quality preset buys a smoother cloud instead of
+ * a brighter one. The value is sized so that the body of an average orbital
+ * lands near half coverage: fewer, fatter dots at low counts, more, finer ones
+ * at high counts, with the same apparent density.
+ */
+const BASE_DOT_SIZE_PX = 4.6;
+const MIN_DOT_SIZE_PX = 0.8;
+const MAX_DOT_SIZE_PX = 9;
+const REFERENCE_POINT_COUNT = 60_000;
+const REFERENCE_VIEWPORT_HEIGHT_PX = 900;
 
 export const PALETTE_CONFIG: Record<ColorPalette, { id: number; posColor: number; negColor: number }> = {
   default: { id: 0, posColor: 0x00ccff, negColor: 0xff6611 },
@@ -34,27 +97,81 @@ export const PALETTE_CONFIG: Record<ColorPalette, { id: number; posColor: number
   spectrum: { id: 3, posColor: 0x22ccff, negColor: 0xff2255 },
 };
 
-// Shader for Point Cloud rendering with Wavefunction Phase Sign (+/-)
+// Point cloud rendering.
+//
+// The cloud is a Monte Carlo sample of |psi|^2, so the *number* of dots per unit
+// volume already is the probability density. The only thing the shader has to
+// add is a transfer function: |psi|^2 spans up to ~20 decades between the core
+// of a hydrogenic orbital and the halo of a contracted one, and drawing every
+// accepted sample with the same opacity is what turns a diffuse orbital into a
+// white blob. Mapping the density onto opacity logarithmically keeps the core,
+// the lobes and the halo simultaneously readable without inventing structure:
+// the mapping is monotone, so it can only re-weight, never create or destroy,
+// features of the real density.
 const pointVertexShader = `
   attribute float a_sign;
-  varying float vDistance;
+  attribute float a_density;
+  varying float vWeight;
   varying float vSign;
-  uniform float u_pointSizeScale;
-  uniform float u_spatialScale;
+  varying float vRadiusNorm;
+
+  uniform float u_contrast;
+  uniform float u_floor;
+  uniform float u_pointRadius;
+  uniform float u_radiusRef;
+  uniform float u_viewportHalfHeight;
 
   void main() {
     vSign = a_sign;
+    vRadiusNorm = length(position) / u_radiusRef;
+
+    // Same contrast curve the isosurface and raymarching modes use, so a given
+    // slider setting means the same thing in all three render modes. It lifts
+    // the faint tail, i.e. it buys extra visibility of the diffuse cloud.
+    float d = u_contrast > 0.0
+      ? log(1.0 + u_contrast * a_density) / log(1.0 + u_contrast)
+      : a_density;
+
+    // Log window between the derived floor and the peak, shaped with a
+    // smoothstep. This is the whole reason diffuse orbitals stay readable: a
+    // linear map of |psi|^2 would either burn the core to white or crush the
+    // lobes into noise, because the two differ by up to 20 decades. The ramp is
+    // monotone, so it re-weights the real density without inventing structure,
+    // and the smoothstep edges make the body read as a solid shape instead of
+    // as fog.
+    float t = clamp(1.0 - log(max(d, 1e-30)) / log(u_floor), 0.0, 1.0);
+    vWeight = t * t * (3.0 - 2.0 * t);
+
+    // Drop the samples below the floor in the vertex stage: they are
+    // invisible by construction, and skipping them saves the fill rate the
+    // invisible outer shell would otherwise cost.
+    if (vWeight <= 0.0) {
+      gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
+      gl_PointSize = 0.0;
+      return;
+    }
+
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
     gl_Position = projectionMatrix * mvPosition;
-    vDistance = length(position);
-    float dynamicSize = u_pointSizeScale * clamp(u_spatialScale * 0.35, 1.0, 4.0) * (10.0 / -mvPosition.z);
-    gl_PointSize = clamp(dynamicSize, 2.0, 96.0);
+
+    // Perspective attenuation derived from the projection matrix, so a dot is
+    // the same size in CSS pixels at any display density, camera or FOV.
+    // projectionMatrix[1][1] is 1 / tan(fovY / 2).
+    float pixels = u_pointRadius * projectionMatrix[1][1] * u_viewportHalfHeight
+                 / max(-mvPosition.z, 1e-4);
+    // Denser samples get slightly larger dots, so the core reads as a solid
+    // body while the halo stays fine grained.
+    gl_PointSize = clamp(pixels * mix(0.7, 1.35, vWeight), 1.0, 96.0);
   }
 `;
 
 const pointFragmentShader = `
-  varying float vDistance;
+  varying float vWeight;
   varying float vSign;
+  varying float vRadiusNorm;
+
+  uniform float u_alphaScale;
+  uniform float u_opacity;
   uniform int u_palette;
   uniform bool u_useReal;
 
@@ -66,9 +183,7 @@ const pointFragmentShader = `
     return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
   }
 
-  vec3 getPointPaletteColor(float dist, float signVal, int paletteId, bool useReal) {
-    float t = clamp(dist / 15.0, 0.0, 1.0);
-
+  vec3 getPointPaletteColor(float t, float signVal, int paletteId, bool useReal) {
     // For pure eigenstates: signVal carries the continuous quantum phase Arg(psi) in [-PI, PI]
     if (!useReal) {
       float hue = fract((signVal + PI) / (2.0 * PI));
@@ -103,9 +218,14 @@ const pointFragmentShader = `
     float dist = length(coord);
     if (dist > 0.5) discard;
 
-    float alpha = pow(1.0 - (dist * 2.0), 1.2);
-    vec3 finalColor = getPointPaletteColor(vDistance, vSign, u_palette, u_useReal);
-    gl_FragColor = vec4(finalColor, alpha * 0.92);
+    // Soft radial falloff, squared so the dot has no visible rim.
+    float falloff = 1.0 - dist * 2.0;
+    float alpha = falloff * falloff * vWeight * u_opacity * u_alphaScale;
+    if (alpha < 0.002) discard;
+
+    float t = clamp(vRadiusNorm, 0.0, 1.0);
+    vec3 finalColor = getPointPaletteColor(t, vSign, u_palette, u_useReal);
+    gl_FragColor = vec4(finalColor, alpha);
   }
 `;
 
@@ -210,6 +330,12 @@ const raymarchFragmentShader = `
     float st = sin(theta);
     float cp = useReal ? cos(phi) : 1.0;
     float sp = useReal ? sin(phi) : 1.0;
+
+    // Real chemist orbitals are only tabulated up to l = 3, and a pure eigenstate
+    // is (up to the shared 1/sqrt(2) factor below) the phi average of the real
+    // set. Returning 0 for l > 3 renders nothing rather than falling through to
+    // the s-like default below, which would silently draw a sphere for a g orbital.
+    if (l > 3) return 0.0;
 
     float y = 0.5 * sqrt(1.0 / PI);
 
@@ -325,9 +451,19 @@ const raymarchFragmentShader = `
 
 export class OrbitalRenderer extends BaseThreeRenderer {
   private pointsMesh: THREE.Points | null = null;
+  private pointsMaterial: THREE.ShaderMaterial | null = null;
   private marchingCubesGroup: THREE.Group | null = null;
   private raymarchingMesh: THREE.Mesh | null = null;
   private raymarchingMaterial: THREE.ShaderMaterial | null = null;
+
+  /** Radius of the orbital currently on screen, and the distance framing it. */
+  private frameRadius = INITIAL_FRAME_RADIUS;
+  private frameDistance = INITIAL_FRAME_DISTANCE;
+  private readonly drawingBufferSize = new THREE.Vector2();
+  private updateToken = 0;
+
+  /** Direction "Reset View" returns to, independent of where the user has orbited to. */
+  private readonly defaultCameraDir = new THREE.Vector3(1, 1, 1).normalize();
 
   private currentMode: RenderMode = 'points';
   private currentParams: OrbitalRenderParams = {
@@ -347,7 +483,9 @@ export class OrbitalRenderer extends BaseThreeRenderer {
   constructor(target: RendererTarget) {
     super(target, new THREE.Vector3(16, 16, 16));
     this.autoRotateSpeed = 1.5;
-    this.minAlignDistance = 5.0;
+    this.frameRadius = INITIAL_FRAME_RADIUS;
+    this.frameDistance = INITIAL_FRAME_DISTANCE;
+    this.updateClipping();
 
     this.setupLighting();
     this.onWindowResize();
@@ -366,161 +504,260 @@ export class OrbitalRenderer extends BaseThreeRenderer {
     this.scene.add(dirLight2);
   }
 
-  private getRenderBoxExtent(n: number, zEff: number): number {
-    return (4.0 * (n * n)) / Math.max(zEff, 0.5);
+  /**
+   * Distance at which a sphere of `radius` just fits the viewport.
+   *
+   * A single fixed camera distance cannot serve this app: a hydrogenic 1s orbital
+   * is barely 1 a0 across while the valence 4d cloud of silver reaches ~19 a0,
+   * so one camera renders the first as a single dot and the second as a
+   * screen-filling fog. Framing from the radius that encloses 98.5% of the
+   * electron probability keeps every orbital legible at any n, l and Z_eff, and
+   * the scene itself is never rescaled, so the a0 / pm readout stays true.
+   */
+  private computeFrameDistance(radius: number): number {
+    const halfV = THREE.MathUtils.degToRad(this.camera.fov) / 2;
+    const halfH = Math.atan(Math.tan(halfV) * this.camera.aspect);
+    return (FRAME_MARGIN * radius) / Math.sin(Math.min(halfV, halfH));
   }
 
-  public calculatePeakDensity(n: number, l: number, m: number, zEff: number, useReal: boolean): number {
-    const rMax = this.getRenderBoxExtent(n, zEff);
-    const rSteps = Math.max(2000, 400 * n);
-    let maxRSq = 0;
-    let bestI = 1;
-    for (let i = 1; i <= rSteps; i++) {
-      const r = (i / rSteps) * rMax;
-      const R = this.evalRadial(n, l, zEff, r);
-      const RSq = R * R;
-      if (RSq > maxRSq) {
-        maxRSq = RSq;
-        bestI = i;
-      }
-    }
-
-    // Golden-section refinement of the radial maximum inside the sampled bracket.
-    const rsq = (r: number): number => {
-      const R = this.evalRadial(n, l, zEff, r);
-      return R * R;
-    };
-    let lo = Math.max(((bestI - 1) / rSteps) * rMax, 0);
-    let hi = Math.min(((bestI + 1) / rSteps) * rMax, rMax);
-    const invPhi = 0.6180339887498949;
-    let c = hi - invPhi * (hi - lo);
-    let d = lo + invPhi * (hi - lo);
-    let fc = rsq(c);
-    let fd = rsq(d);
-    for (let it = 0; it < 30; it++) {
-      if (fc > fd) {
-        hi = d;
-        d = c;
-        fd = fc;
-        c = hi - invPhi * (hi - lo);
-        fc = rsq(c);
-      } else {
-        lo = c;
-        c = d;
-        fc = fd;
-        d = lo + invPhi * (hi - lo);
-        fd = rsq(d);
-      }
-    }
-    const refinedRSq = Math.max(fc, fd);
-    if (refinedRSq > maxRSq) maxRSq = refinedRSq;
-
-    let maxYPx = 0;
-    const thetaSteps = 120;
-    const phiSteps = 120;
-    let bestTheta = 0;
-    let bestPhi = 0;
-    for (let j = 0; j <= thetaSteps; j++) {
-      const theta = (j / thetaSteps) * Math.PI;
-      for (let k = 0; k <= phiSteps; k++) {
-        const phi = (k / phiSteps) * 2.0 * Math.PI;
-        const Y = this.evalAngular(l, m, useReal, theta, phi);
-        const YSq = Y * Y;
-        if (YSq > maxYPx) {
-          maxYPx = YSq;
-          bestTheta = theta;
-          bestPhi = phi;
-        }
-      }
-    }
-
-    // Golden-section polish of the angular maximum: the 120x120 grid alone is only ~1e-3 accurate.
-    const ysq = (theta: number, phi: number): number => {
-      const Y = this.evalAngular(l, m, useReal, theta, phi);
-      return Y * Y;
-    };
-    const refine = (a0: number, a1: number, f: (a: number) => number): [number, number] => {
-      let lo = a0;
-      let hi = a1;
-      let c = hi - invPhi * (hi - lo);
-      let d = lo + invPhi * (hi - lo);
-      let fc = f(c);
-      let fd = f(d);
-      for (let it = 0; it < 20; it++) {
-        if (fc > fd) {
-          hi = d;
-          d = c;
-          fd = fc;
-          c = hi - invPhi * (hi - lo);
-          fc = f(c);
-        } else {
-          lo = c;
-          c = d;
-          fc = fd;
-          d = lo + invPhi * (hi - lo);
-          fd = f(d);
-        }
-      }
-      return fc > fd ? [c, fc] : [d, fd];
-    };
-    const dTheta = Math.PI / thetaSteps;
-    const dPhi = (2.0 * Math.PI) / phiSteps;
-    for (let pass = 0; pass < 3; pass++) {
-      const fixedPhi = bestPhi;
-      const [theta, thetaVal] = refine(
-        Math.max(bestTheta - dTheta, 0),
-        Math.min(bestTheta + dTheta, Math.PI),
-        (t) => ysq(t, fixedPhi)
-      );
-      bestTheta = theta;
-      maxYPx = Math.max(maxYPx, thetaVal);
-
-      const fixedTheta = bestTheta;
-      const [phi, phiVal] = refine(
-        Math.max(bestPhi - dPhi, 0),
-        Math.min(bestPhi + dPhi, 2.0 * Math.PI),
-        (p) => ysq(fixedTheta, p)
-      );
-      bestPhi = phi;
-      maxYPx = Math.max(maxYPx, phiVal);
-    }
-
-    return Math.max(maxRSq * maxYPx, 1e-12);
+  /**
+   * Brackets the depth range around the framed orbital.
+   *
+   * The scene holds one body of radius `frameRadius` centred on the orbit
+   * target, and the framing distance follows the orbital: a contracted 1s sits
+   * ~0.1 a0 away while a diffuse 7s at Z_eff = 0.1 sits ~3200 a0 away. Fixed
+   * near/far planes cannot serve both - at the small end the orbital falls
+   * behind the near plane, at the large end every vertex is clipped by the far
+   * plane and the viewport goes empty - so the planes are refitted to the
+   * current distance instead. This also keeps them correct while the user zooms.
+   */
+  protected override updateClipping(): void {
+    const radius = Math.max(this.frameRadius, Number.EPSILON);
+    const distance = this.camera.position.distanceTo(this.controls.target);
+    const extent = radius * 1.5;
+    const near = Math.max(distance - extent, radius * 1e-4);
+    const far = distance + extent;
+    if (near === this.camera.near && far === this.camera.far) return;
+    this.camera.near = near;
+    this.camera.far = far;
+    this.camera.updateProjectionMatrix();
   }
 
-  public setPointCloud(buffer: Float32Array): void {
+  /**
+   * Moves the camera to the distance that frames the orbital, preserving the
+   * user's current viewing direction. Small changes are ignored so that dragging
+   * Z_eff morphs the cloud in place instead of yanking the view around.
+   */
+  private applyFraming(radius: number, animate: boolean): void {
+    const distance = this.computeFrameDistance(radius);
+    const direction = this.camera.position.clone().sub(this.controls.target);
+    if (direction.lengthSq() < 1e-6) {
+      direction.copy(this.defaultCameraDir);
+    } else {
+      direction.normalize();
+    }
+
+    this.frameRadius = radius;
+    this.frameDistance = distance;
+    this.updateClipping();
+
+    // The reset pose stays on the canonical direction at the new distance, so
+    // "Reset View" keeps meaning "the default view" instead of becoming
+    // whatever the camera happened to be pointing at when the orbital last
+    // changed size.
+    this.defaultCameraPos
+      .copy(this.controls.target)
+      .addScaledVector(this.defaultCameraDir, distance);
+
+    if (!animate) return;
+    const current = this.camera.position.distanceTo(this.controls.target);
+    if (Math.abs(current - distance) < distance * 0.04) return;
+
+    this.animateCameraTo(
+      this.controls.target.clone().addScaledVector(direction, distance),
+      this.camera.up.clone(),
+      this.controls.target.clone(),
+      400,
+    );
+  }
+
+  /**
+   * Generation counter guarding the async scene updates.
+   *
+   * Every mode has to ask WASM for its geometry before it can build anything, so
+   * two updates can be in flight at once - dragging a slider, or switching mode
+   * while a cloud is still loading. Without this, the slower stale update would
+   * land its mesh on top of the newer one (a raymarching box seen from inside
+   * washes the whole screen out). Each update takes a token and re-checks it
+   * after every await; a superseded update just returns.
+   */
+  private beginUpdate(): number {
+    return ++this.updateToken;
+  }
+
+  private isCurrentUpdate(token: number): boolean {
+    return token === this.updateToken;
+  }
+
+  /**
+   * Derives the density floor that still shows VISIBLE_QUANTILE of the electron.
+   *
+   * Rejection sampling draws each accepted point with probability proportional
+   * to |psi|^2, so the fraction of accepted points whose density exceeds a
+   * threshold is exactly the probability mass above that threshold. The
+   * (1 - VISIBLE_QUANTILE) quantile of the sampled densities is therefore the
+   * floor that keeps VISIBLE_QUANTILE of the electron on screen - no magic
+   * constant, and the same statistical standard for a 1s and a 7s.
+   *
+   * A log histogram keeps this O(count) so dragging Z_eff stays responsive.
+   */
+  private static computeDensityFloor(buffer: Float32Array, count: number): number {
+    const bins = 512;
+    const minLog = -16;
+    const maxLog = 0;
+    const histogram = new Uint32Array(bins);
+
+    // `Math.floor` rather than `Math.round` so that the bin edges are exactly the
+    // boundaries between bins, which is what makes `bin + within` below invert
+    // the mapping without a half-bin offset.
+    for (let i = 0; i < count; i++) {
+      const rel = buffer[i * SAMPLE_STRIDE + 4];
+      const log = rel > 0 ? Math.log10(rel) : minLog;
+      const bin = Math.min(
+        bins - 1,
+        Math.max(0, Math.floor(((log - minLog) / (maxLog - minLog)) * (bins - 1)))
+      );
+      histogram[bin]++;
+    }
+
+    const target = (1 - VISIBLE_QUANTILE) * count;
+    let cumulative = 0;
+    for (let bin = 0; bin < bins; bin++) {
+      if (cumulative + histogram[bin] >= target) {
+        const within = histogram[bin] > 0 ? (target - cumulative) / histogram[bin] : 0.5;
+        const log = minLog + ((bin + within) / (bins - 1)) * (maxLog - minLog);
+        return THREE.MathUtils.clamp(Math.pow(10, log), MIN_DENSITY_FLOOR, MAX_DENSITY_FLOOR);
+      }
+      cumulative += histogram[bin];
+    }
+
+    return MIN_DENSITY_FLOOR;
+  }
+
+  public async setPointCloud(buffer: Float32Array, params?: OrbitalRenderParams): Promise<void> {
+    const token = this.beginUpdate();
+    if (params) {
+      this.currentParams = { ...this.currentParams, ...params };
+    }
+    // Snapshot before awaiting: `updateParams` can land a newer parameter set
+    // while this call is suspended, and reading `this.currentParams` afterwards
+    // would paint one cloud with another's palette and contrast curve.
+    const p: OrbitalRenderParams = { ...this.currentParams };
+    const orbitalGeometry = await resolveOrbitalGeometry(p.n, p.l, p.zEff);
+    if (!this.isCurrentUpdate(token)) return;
+
     this.clearCurrentMesh();
     this.currentMode = 'points';
+    this.syncPixelRatio();
 
-    const count = Math.floor(buffer.length / 4);
+    const count = Math.floor(buffer.length / SAMPLE_STRIDE);
     if (count === 0) return;
 
-    const interleavedBuffer = new THREE.InterleavedBuffer(buffer, 4);
+    const interleaved = new THREE.InterleavedBuffer(buffer, SAMPLE_STRIDE);
     const geometry = new THREE.BufferGeometry();
-    geometry.setAttribute('position', new THREE.InterleavedBufferAttribute(interleavedBuffer, 3, 0));
-    geometry.setAttribute('a_sign', new THREE.InterleavedBufferAttribute(interleavedBuffer, 1, 3));
+    geometry.setAttribute('position', new THREE.InterleavedBufferAttribute(interleaved, 3, 0));
+    geometry.setAttribute('a_sign', new THREE.InterleavedBufferAttribute(interleaved, 1, 3));
+    geometry.setAttribute('a_density', new THREE.InterleavedBufferAttribute(interleaved, 1, 4));
 
-    const palette = PALETTE_CONFIG[this.currentParams.colorPalette];
-    const spatialScale = Math.sqrt((this.currentParams.n * this.currentParams.n) / this.currentParams.zEff);
-
+    const palette = PALETTE_CONFIG[p.colorPalette];
     const material = new THREE.ShaderMaterial({
       vertexShader: pointVertexShader,
       fragmentShader: pointFragmentShader,
       uniforms: {
-        u_pointSizeScale: { value: 18.0 },
-        u_spatialScale: { value: spatialScale },
+        u_alphaScale: { value: 1.0 },
+        u_contrast: { value: p.contrast ?? 0.0 },
+        u_floor: { value: OrbitalRenderer.computeDensityFloor(buffer, count) },
+        u_opacity: { value: POINT_OPACITY },
+        u_pointRadius: { value: 1.0 },
+        u_radiusRef: { value: orbitalGeometry.frameRadius },
+        u_viewportHalfHeight: { value: 1.0 },
         u_palette: { value: palette.id },
-        u_useReal: { value: this.currentParams.useRealOrbital },
+        u_useReal: { value: p.useRealOrbital },
       },
+      // Alpha compositing, not additive: overlapping samples converge to the
+      // average of their phase colours instead of summing past white. Additive
+      // blending is what used to burn the core of every dense orbital into a
+      // featureless white disc and drown the nodal structure.
       transparent: true,
-      blending: THREE.AdditiveBlending,
+      blending: THREE.NormalBlending,
       depthWrite: false,
     });
+    this.pointsMaterial = material;
 
     this.pointsMesh = new THREE.Points(geometry, material);
     this.scene.add(this.pointsMesh);
+
+    this.applyFraming(orbitalGeometry.frameRadius, true);
+    this.updatePointSizing(count);
   }
 
+  /**
+   * Chooses a dot size and pushes the uniforms that depend on it.
+   *
+   * The size is kept as a *fraction of the viewport height* rather than in
+   * pixels, so a 4K export looks like the screen instead of like a field of
+   * invisible dust, and a window resize does not change the look of the cloud.
+   *
+   * Total ink scales as `count * area * alpha`, so sizing the dots as
+   * 1/sqrt(count) keeps the image stable across quality presets: raising the
+   * sample count buys a smoother cloud, not a brighter one.
+   */
+  private updatePointSizing(count: number): void {
+    if (!this.pointsMaterial) return;
+    const uniforms = this.pointsMaterial.uniforms;
+
+    const referenceDiameter = THREE.MathUtils.clamp(
+      BASE_DOT_SIZE_PX * Math.sqrt(REFERENCE_POINT_COUNT / Math.max(count, 1)),
+      MIN_DOT_SIZE_PX,
+      MAX_DOT_SIZE_PX,
+    );
+    const heightFraction = referenceDiameter / REFERENCE_VIEWPORT_HEIGHT_PX;
+
+    const bufferSize = this.renderer.getDrawingBufferSize(this.drawingBufferSize);
+    const halfHeight = Math.max(bufferSize.y / 2, 1);
+    // gl_PointSize has a one device pixel floor; below it the alpha has to be
+    // given back, or the cloud would get denser as the dots get thinner.
+    const targetDeviceDiameter = heightFraction * bufferSize.y;
+
+    const fovScale = this.camera.projectionMatrix.elements[5];
+    uniforms.u_viewportHalfHeight.value = halfHeight;
+    uniforms.u_alphaScale.value = Math.min(1, targetDeviceDiameter) ** 2;
+    // Solving `dotPixels = u_pointRadius * (1/tan(fovY/2)) * (heightPx/2) / z`
+    // for the radius that lands at the target size at the framing distance.
+    uniforms.u_pointRadius.value = (2 * heightFraction * this.frameDistance) / fovScale;
+  }
+
+  /**
+   * Dots are sized in device pixels, so the uniforms have to be recomputed
+   * whenever the drawing buffer changes: window resize, pixel ratio, and the
+   * high-resolution image exporter, which all move the projection under the
+   * shader. The framing also depends on the aspect ratio, so it is refitted here
+   * for every render mode, not just the point cloud.
+   */
+  protected override onViewportChanged(): void {
+    this.applyFraming(this.frameRadius, false);
+    if (!this.pointsMaterial) return;
+    const count = this.pointsMesh?.geometry.getAttribute('position')?.count ?? REFERENCE_POINT_COUNT;
+    this.updatePointSizing(count);
+  }
+
+  /**
+   * Isosurface grid resolution per quality preset, in voxels per axis.
+   *
+   * The `qualityLow`..`qualityExtreme` labels in every locale advertise these
+   * numbers, so the two have to be changed together. The point counts and
+   * raymarching steps in those same labels are set in `ControlPanel`.
+   */
   private getGridResolution(quality?: QualityPreset): number {
     switch (quality) {
       case 'low':
@@ -579,6 +816,12 @@ export class OrbitalRenderer extends BaseThreeRenderer {
       if (a > maxAbs) maxAbs = a;
     }
 
+    // The grid comes back with the density normalised to its own peak and the
+    // contrast remap anchored so that it is the identity at |psi|^2 = isolevel
+    // and reaches 1.0 at the peak. So maxAbs is 1.0 for any contrast, the
+    // effective threshold is exactly `isolevel` in normalised-density units, and
+    // the contrast control only re-shades the surface instead of inflating it.
+    // Any change to `apply_contrast_normalization` must preserve that anchoring.
     const effectiveIsolevel = isolevel * (maxAbs > 0 ? maxAbs : 1.0);
     mcPos.isolation = effectiveIsolevel;
     mcNeg.isolation = effectiveIsolevel;
@@ -594,40 +837,46 @@ export class OrbitalRenderer extends BaseThreeRenderer {
   }
 
   public async updateIsosurface(params: OrbitalRenderParams): Promise<void> {
+    const token = this.beginUpdate();
+    this.currentParams = { ...params };
+    const p: OrbitalRenderParams = { ...params };
+    const orbitalGeometry = await resolveOrbitalGeometry(p.n, p.l, p.zEff);
+    if (!this.isCurrentUpdate(token)) return;
+
     this.clearCurrentMesh();
     this.currentMode = 'isosurface';
-    this.currentParams = { ...params };
-    this.renderer.setPixelRatio(this.getEffectivePixelRatio());
+    this.syncPixelRatio();
 
-    const gridRes = this.getGridResolution(params.quality);
-    const palette = PALETTE_CONFIG[params.colorPalette];
+    const gridRes = this.getGridResolution(p.quality);
+    const palette = PALETTE_CONFIG[p.colorPalette];
 
     const materialPos = this.createIsosurfaceMaterial(palette.posColor);
     const materialNeg = this.createIsosurfaceMaterial(palette.negColor);
 
     const mcPos = new MarchingCubes(gridRes, materialPos, false, false, 150000);
     const mcNeg = new MarchingCubes(gridRes, materialNeg, false, false, 150000);
-    const boxExtent = this.getRenderBoxExtent(params.n, params.zEff);
+    const boxExtent = orbitalGeometry.boxExtent;
     mcPos.scale.set(boxExtent, boxExtent, boxExtent);
     mcNeg.scale.set(boxExtent, boxExtent, boxExtent);
 
-    const isolevel = params.isolevel ?? 0.05;
-    const contrast = params.contrast ?? 0.0;
+    const isolevel = p.isolevel ?? 0.05;
+    const contrast = p.contrast ?? 0.0;
     mcPos.reset();
     mcNeg.reset();
 
     // Fast grid evaluation via WASM engine
     const gridData = await evaluateIsosurfaceGrid({
-      n: params.n,
-      l: params.l,
-      m: params.m,
-      useRealOrbital: params.useRealOrbital,
-      zEff: params.zEff,
+      n: p.n,
+      l: p.l,
+      m: p.m,
+      useRealOrbital: p.useRealOrbital,
+      zEff: p.zEff,
       gridSize: gridRes,
       bounds: boxExtent,
       contrast,
       isolevel,
     });
+    if (!this.isCurrentUpdate(token)) return;
 
     this.populateMarchingCubes(mcPos, mcNeg, gridData, isolevel);
 
@@ -635,32 +884,40 @@ export class OrbitalRenderer extends BaseThreeRenderer {
     this.marchingCubesGroup.add(mcPos);
     this.marchingCubesGroup.add(mcNeg);
     this.scene.add(this.marchingCubesGroup);
+    this.applyFraming(orbitalGeometry.frameRadius, true);
   }
 
-  public updateRaymarching(params: OrbitalRenderParams): void {
+  public async updateRaymarching(params: OrbitalRenderParams): Promise<void> {
+    const token = this.beginUpdate();
+    this.currentParams = { ...params };
+    const p: OrbitalRenderParams = { ...params };
+    const [orbitalGeometry, peakDensity] = await Promise.all([
+      resolveOrbitalGeometry(p.n, p.l, p.zEff),
+      getOrbitalPeakDensity(p.n, p.l, p.m, p.useRealOrbital, p.zEff),
+    ]);
+    if (!this.isCurrentUpdate(token)) return;
+
     this.clearCurrentMesh();
     this.currentMode = 'raymarching';
-    this.currentParams = { ...params };
-    this.renderer.setPixelRatio(this.getEffectivePixelRatio());
+    this.syncPixelRatio();
 
-    const boxExtent = this.getRenderBoxExtent(params.n, params.zEff);
+    const boxExtent = orbitalGeometry.boxExtent;
     const geometry = new THREE.BoxGeometry(boxExtent * 2, boxExtent * 2, boxExtent * 2);
 
-    const steps = params.raymarchingSteps ?? this.getRaymarchingSteps(params.quality);
+    const steps = p.raymarchingSteps ?? this.getRaymarchingSteps(p.quality);
 
-    const palette = PALETTE_CONFIG[params.colorPalette];
-    const peakDensity = this.calculatePeakDensity(params.n, params.l, params.m, params.zEff, params.useRealOrbital);
-    const contrast = params.contrast ?? 0.0;
+    const palette = PALETTE_CONFIG[p.colorPalette];
+    const contrast = p.contrast ?? 0.0;
 
     this.raymarchingMaterial = new THREE.ShaderMaterial({
       vertexShader: raymarchVertexShader,
       fragmentShader: raymarchFragmentShader,
       uniforms: {
-        u_n: { value: params.n },
-        u_l: { value: params.l },
-        u_m: { value: params.m },
-        u_useReal: { value: params.useRealOrbital },
-        u_zEff: { value: params.zEff },
+        u_n: { value: p.n },
+        u_l: { value: p.l },
+        u_m: { value: p.m },
+        u_useReal: { value: p.useRealOrbital },
+        u_zEff: { value: p.zEff },
         u_boxMin: { value: new THREE.Vector3(-boxExtent, -boxExtent, -boxExtent) },
         u_boxMax: { value: new THREE.Vector3(boxExtent, boxExtent, boxExtent) },
         u_steps: { value: steps },
@@ -675,131 +932,7 @@ export class OrbitalRenderer extends BaseThreeRenderer {
 
     this.raymarchingMesh = new THREE.Mesh(geometry, this.raymarchingMaterial);
     this.scene.add(this.raymarchingMesh);
-  }
-
-  private factorial(n: number): number {
-    let f = 1.0;
-    for (let i = 2; i <= n; i++) f *= i;
-    return f;
-  }
-
-  private associatedLaguerre(p: number, q: number, x: number): number {
-    if (p === 0) return 1.0;
-    const qf = q;
-    let l0 = 1.0;
-    let l1 = (qf + 1.0) - x;
-    if (p === 1) return l1;
-    let lp = l1;
-    for (let k = 1; k < p; k++) {
-      const next = ((2.0 * k + 1.0 + qf - x) * l1 - (k + qf) * l0) / (k + 1.0);
-      l0 = l1;
-      l1 = next;
-      lp = next;
-    }
-    return lp;
-  }
-
-  private evalRadialN2(l: number, zeffPower: number, zr: number): number {
-    const expHalf = Math.exp(-zr / 2.0);
-    if (l === 0) return (1.0 / (2.0 * Math.SQRT2)) * zeffPower * (2.0 - zr) * expHalf;
-    if (l === 1) return (1.0 / (2.0 * Math.sqrt(6))) * zeffPower * zr * expHalf;
-    return 0;
-  }
-
-  private evalRadialN3(l: number, zeffPower: number, zr: number): number {
-    const expThird = Math.exp(-zr / 3.0);
-    if (l === 0) return (2.0 / (81.0 * Math.sqrt(3))) * zeffPower * (27.0 - 18.0 * zr + 2.0 * zr * zr) * expThird;
-    if (l === 1) return (4.0 / (81.0 * Math.sqrt(6))) * zeffPower * (6.0 * zr - zr * zr) * expThird;
-    if (l === 2) return (4.0 / (81.0 * Math.sqrt(30))) * zeffPower * (zr * zr) * expThird;
-    return 0;
-  }
-
-  private evalRadialN4(l: number, zeffPower: number, zr: number): number {
-    const expQuarter = Math.exp(-zr / 4.0);
-    if (l === 0) return (1.0 / 768.0) * zeffPower * (192.0 - 144.0 * zr + 24.0 * zr * zr - zr * zr * zr) * expQuarter;
-    if (l === 1) return (1.0 / (256.0 * Math.sqrt(15))) * zeffPower * (80.0 * zr - 20.0 * zr * zr + zr * zr * zr) * expQuarter;
-    if (l === 2) return (1.0 / (768.0 * Math.sqrt(5))) * zeffPower * (12.0 * zr * zr - zr * zr * zr) * expQuarter;
-    if (l === 3) return (1.0 / (768.0 * Math.sqrt(35))) * zeffPower * (zr * zr * zr) * expQuarter;
-    return 0;
-  }
-
-  private evalRadialGeneric(n: number, l: number, zeff: number, zr: number): number {
-    const rho = (2.0 * zr) / n;
-    const p = n - l - 1;
-    const q = 2 * l + 1;
-    const lag = this.associatedLaguerre(p, q, rho);
-    const num = Math.pow((2.0 * zeff) / n, 3) * this.factorial(n - l - 1);
-    const den = 2.0 * n * this.factorial(n + l);
-    const prefactor = Math.sqrt(num / den);
-    return prefactor * Math.exp(-zr / n) * Math.pow(rho, l) * lag;
-  }
-
-  private evalRadial(n: number, l: number, zeff: number, r: number): number {
-    const zr = zeff * r;
-    const zeffPower = Math.pow(zeff, 1.5);
-
-    if (n === 1 && l === 0) {
-      return 2.0 * zeffPower * Math.exp(-zr);
-    }
-    if (n === 2) {
-      return this.evalRadialN2(l, zeffPower, zr);
-    }
-    if (n === 3) {
-      return this.evalRadialN3(l, zeffPower, zr);
-    }
-    if (n === 4) {
-      return this.evalRadialN4(l, zeffPower, zr);
-    }
-
-    return this.evalRadialGeneric(n, l, zeff, zr);
-  }
-
-  private getAzimuthalFactor(m: number, phi: number, useReal: boolean): number {
-    if (!useReal || m === 0) return 1.0;
-    const absM = Math.abs(m);
-    return m > 0 ? Math.cos(absM * phi) : Math.sin(absM * phi);
-  }
-
-  private evalAngularL1(m: number, ct: number, st: number, az: number): number {
-    const factor = 0.5 * Math.sqrt(3.0 / Math.PI);
-    if (m === 0) return factor * ct;
-    return factor * st * az;
-  }
-
-  private evalAngularL2(m: number, ct: number, st: number, az: number): number {
-    if (m === 0) return 0.25 * Math.sqrt(5.0 / Math.PI) * (3.0 * ct * ct - 1.0);
-    if (Math.abs(m) === 1) return 0.5 * Math.sqrt(15.0 / Math.PI) * st * ct * az;
-    if (Math.abs(m) === 2) return 0.25 * Math.sqrt(15.0 / Math.PI) * st * st * az;
-    return 0;
-  }
-
-  private evalAngularL3(m: number, ct: number, st: number, az: number): number {
-    if (m === 0) return 0.25 * Math.sqrt(7.0 / Math.PI) * (5.0 * ct * ct * ct - 3.0 * ct);
-    if (Math.abs(m) === 1) return 0.25 * Math.sqrt(21.0 / Math.PI) * st * (3.0 * ct * ct - 1.0) * az;
-    if (Math.abs(m) === 2) return 0.25 * Math.sqrt(105.0 / Math.PI) * st * st * ct * az;
-    if (Math.abs(m) === 3) return 0.25 * Math.sqrt(17.5 / Math.PI) * st * st * st * az;
-    return 0;
-  }
-
-  private evalAngular(l: number, m: number, useReal: boolean, theta: number, phi: number): number {
-    const ct = Math.cos(theta);
-    const st = Math.sin(theta);
-    const az = this.getAzimuthalFactor(m, phi, useReal);
-
-    let y = 0.5 * Math.sqrt(1.0 / Math.PI);
-
-    if (l === 1) {
-      y = this.evalAngularL1(m, ct, st, az);
-    } else if (l === 2) {
-      y = this.evalAngularL2(m, ct, st, az);
-    } else if (l === 3) {
-      y = this.evalAngularL3(m, ct, st, az);
-    }
-
-    if (!useReal && m !== 0) {
-      y *= Math.SQRT1_2;
-    }
-    return y;
+    this.applyFraming(orbitalGeometry.frameRadius, true);
   }
 
   private clearCurrentMesh(): void {
@@ -808,6 +941,7 @@ export class OrbitalRenderer extends BaseThreeRenderer {
       this.pointsMesh.geometry.dispose();
       (this.pointsMesh.material as THREE.Material).dispose();
       this.pointsMesh = null;
+      this.pointsMaterial = null;
     }
     if (this.marchingCubesGroup) {
       this.scene.remove(this.marchingCubesGroup);
@@ -829,27 +963,15 @@ export class OrbitalRenderer extends BaseThreeRenderer {
     }
   }
 
-  public setMode(mode: RenderMode, params?: OrbitalRenderParams): void {
-    const mergedParams = params ?? this.currentParams;
-    mergedParams.mode = mode;
-    this.currentMode = mode;
-    this.currentParams = mergedParams;
-
-    if (mode === 'isosurface') {
-      void this.updateIsosurface(mergedParams);
-    } else if (mode === 'raymarching') {
-      this.updateRaymarching(mergedParams);
-    } else {
-      this.clearCurrentMesh();
-    }
-  }
-
   public updateParams(params: Partial<OrbitalRenderParams>): void {
-    const modeChanged = params.mode && params.mode !== this.currentMode;
     this.currentParams = { ...this.currentParams, ...params };
-    this.renderer.setPixelRatio(this.getEffectivePixelRatio());
-    if (modeChanged) {
-      this.setMode(params.mode!, this.currentParams);
+    this.syncPixelRatio();
+    if (params.mode && params.mode !== this.currentMode) {
+      // The caller drives the per-mode update itself, so all that is left when the
+      // mode changes is to tell any in-flight update from the previous mode that
+      // it lost the race, and drop the mesh it was going to land.
+      this.beginUpdate();
+      this.clearCurrentMesh();
     }
   }
 
@@ -859,7 +981,7 @@ export class OrbitalRenderer extends BaseThreeRenderer {
   }
 
   protected override cleanupScene(): void {
+    this.beginUpdate();
     this.clearCurrentMesh();
   }
 }
-

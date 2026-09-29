@@ -125,6 +125,7 @@ export interface I18nStrings {
   showLobes: string;
   hideLobes: string;
   exportGenerating: string;
+  exportFailed: string;
   formatPng: string;
   formatJpeg: string;
   formatWebp: string;

@@ -139,7 +139,7 @@ export class PeriodicTableView {
         <div class="element-inspector-panel" id="element-inspector">
           <div class="mobile-drawer-handle"></div>
           <div class="panel-header-actions mobile-only-header">
-            <button class="panel-close-btn" id="btn-close-inspector" aria-label="Close">${icon('close')}</button>
+            <button class="panel-close-btn" id="btn-close-inspector" aria-label="${escapeHtml(strings.infoModalClose)}">${icon('close')}</button>
           </div>
           ${this.renderInspectorContent()}
         </div>
@@ -472,10 +472,11 @@ export class PeriodicTableView {
 
     const inspector = this.container.querySelector<HTMLElement>('#element-inspector');
     if (inspector) {
+      const closeLabel = escapeHtml(getStrings().infoModalClose);
       inspector.innerHTML = `
         <div class="mobile-drawer-handle"></div>
         <div class="panel-header-actions mobile-only-header">
-          <button class="panel-close-btn" id="btn-close-inspector" aria-label="Close">${icon('close')}</button>
+          <button class="panel-close-btn" id="btn-close-inspector" aria-label="${closeLabel}">${icon('close')}</button>
         </div>
         ${this.renderInspectorContent()}
       `;
@@ -540,8 +541,10 @@ export class PeriodicTableView {
       this.handleGridKeydown(e, grid);
     });
 
-    // Unified container click delegation
-    this.container.addEventListener('click', (e: MouseEvent) => {
+    // Unified container click delegation. Assigned rather than added because
+    // `render` runs on every language change while the container element itself
+    // is never replaced, so addEventListener would stack a handler per change.
+    this.container.onclick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
 
       const orbitalBtn = target.closest<HTMLElement>('#btn-quick-3d, #btn-view-orbital');
@@ -565,7 +568,7 @@ export class PeriodicTableView {
       if (closeBtn) {
         this.closeFullInspector();
       }
-    });
+    };
 
     ExplanationModal.attachInfoButtons(this.container);
   }

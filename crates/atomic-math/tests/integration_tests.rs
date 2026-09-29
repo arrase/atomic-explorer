@@ -1,16 +1,19 @@
 use approx::assert_relative_eq;
 use atomic_math::{
     calculate_spontaneous_emission_rate, calculate_transition_wavelength, evaluate_density_grid,
-    evaluate_isosurface_grid, get_slater_z_eff, is_dipole_transition_allowed,
-    sample_orbital_points,
+    evaluate_isosurface_grid, get_slater_z_eff,
     grid::evaluate_density_grid_internal,
+    is_dipole_transition_allowed,
     math_utils::{associated_legendre, factorial},
-    probability_density, real_orbital_kind_from_lm, sample_points,
+    orbital_peak_density, probability_density, radial_probability_quantile,
+    real_orbital_kind_from_lm, sample_orbital_points, sample_points,
     slater::{calculate_slater_z_eff, get_slater_z_eff_by_name, parse_orbital_designation},
     spherical_harmonics::{angular_density_max, y_lm_density, y_lm_real, y_lm_theta_component},
-    transition::{calculate_energy_ev, calculate_transition, radial_dipole_integral, spectral_series_name},
+    transition::{
+        calculate_energy_ev, calculate_transition, radial_dipole_integral, spectral_series_name,
+    },
     wavefunctions::r_nl,
-    OrbitalMode, QuantumNumbers, RealOrbitalKind,
+    OrbitalMode, QuantumNumbers, RealOrbitalKind, SAMPLE_STRIDE,
 };
 
 #[allow(clippy::too_many_arguments)]
@@ -157,26 +160,58 @@ fn test_4f_density_analytical() {
 
 #[test]
 fn test_slater_z_eff_hydrogenic_and_helium() {
-    assert_relative_eq!(calculate_slater_z_eff(1, 1, 0).unwrap(), 1.0, epsilon = 1e-5);
-    assert_relative_eq!(calculate_slater_z_eff(2, 1, 0).unwrap(), 1.7, epsilon = 1e-5);
+    assert_relative_eq!(
+        calculate_slater_z_eff(1, 1, 0).unwrap(),
+        1.0,
+        epsilon = 1e-5
+    );
+    assert_relative_eq!(
+        calculate_slater_z_eff(2, 1, 0).unwrap(),
+        1.7,
+        epsilon = 1e-5
+    );
 }
 
 #[test]
 fn test_slater_z_eff_period2_elements() {
-    assert_relative_eq!(calculate_slater_z_eff(6, 2, 1).unwrap(), 3.25, epsilon = 1e-5);
-    assert_relative_eq!(calculate_slater_z_eff(7, 2, 1).unwrap(), 3.90, epsilon = 1e-5);
-    assert_relative_eq!(calculate_slater_z_eff(8, 2, 1).unwrap(), 4.55, epsilon = 1e-5);
+    assert_relative_eq!(
+        calculate_slater_z_eff(6, 2, 1).unwrap(),
+        3.25,
+        epsilon = 1e-5
+    );
+    assert_relative_eq!(
+        calculate_slater_z_eff(7, 2, 1).unwrap(),
+        3.90,
+        epsilon = 1e-5
+    );
+    assert_relative_eq!(
+        calculate_slater_z_eff(8, 2, 1).unwrap(),
+        4.55,
+        epsilon = 1e-5
+    );
 }
 
 #[test]
 fn test_slater_z_eff_transition_metals() {
     // ns/np valence: same group 0.35, n-1 shell 0.85, everything else 1.00.
-    assert_relative_eq!(calculate_slater_z_eff(26, 4, 0).unwrap(), 3.75, epsilon = 1e-5);
+    assert_relative_eq!(
+        calculate_slater_z_eff(26, 4, 0).unwrap(),
+        3.75,
+        epsilon = 1e-5
+    );
     // nd/nf valence: same group 1.00 (not 0.35) and 1.00 for every group to the
     // left, which is the classic Slater result of Z_eff = 3.00 for all period-4
     // 3d electrons.
-    assert_relative_eq!(calculate_slater_z_eff(26, 3, 2).unwrap(), 3.00, epsilon = 1e-5);
-    assert_relative_eq!(calculate_slater_z_eff(29, 3, 2).unwrap(), 2.00, epsilon = 1e-5);
+    assert_relative_eq!(
+        calculate_slater_z_eff(26, 3, 2).unwrap(),
+        3.00,
+        epsilon = 1e-5
+    );
+    assert_relative_eq!(
+        calculate_slater_z_eff(29, 3, 2).unwrap(),
+        2.00,
+        epsilon = 1e-5
+    );
 }
 
 #[test]
@@ -187,7 +222,11 @@ fn test_parse_orbital_designation() {
 
 #[test]
 fn test_get_slater_z_eff_by_name() {
-    assert_relative_eq!(get_slater_z_eff_by_name(6, "2p").unwrap(), 3.25, epsilon = 1e-5);
+    assert_relative_eq!(
+        get_slater_z_eff_by_name(6, "2p").unwrap(),
+        3.25,
+        epsilon = 1e-5
+    );
 }
 
 #[test]
@@ -247,11 +286,26 @@ fn test_grid_evaluation() {
 fn test_f_orbital_kind_mapping() {
     assert_eq!(real_orbital_kind_from_lm(3, 0), Some(RealOrbitalKind::Fz3));
     assert_eq!(real_orbital_kind_from_lm(3, 1), Some(RealOrbitalKind::Fxz2));
-    assert_eq!(real_orbital_kind_from_lm(3, -1), Some(RealOrbitalKind::Fyz2));
-    assert_eq!(real_orbital_kind_from_lm(3, 2), Some(RealOrbitalKind::FzX2Y2));
-    assert_eq!(real_orbital_kind_from_lm(3, -2), Some(RealOrbitalKind::Fxyz));
-    assert_eq!(real_orbital_kind_from_lm(3, 3), Some(RealOrbitalKind::FxX23Y2));
-    assert_eq!(real_orbital_kind_from_lm(3, -3), Some(RealOrbitalKind::Fy3X2Y2));
+    assert_eq!(
+        real_orbital_kind_from_lm(3, -1),
+        Some(RealOrbitalKind::Fyz2)
+    );
+    assert_eq!(
+        real_orbital_kind_from_lm(3, 2),
+        Some(RealOrbitalKind::FzX2Y2)
+    );
+    assert_eq!(
+        real_orbital_kind_from_lm(3, -2),
+        Some(RealOrbitalKind::Fxyz)
+    );
+    assert_eq!(
+        real_orbital_kind_from_lm(3, 3),
+        Some(RealOrbitalKind::FxX23Y2)
+    );
+    assert_eq!(
+        real_orbital_kind_from_lm(3, -3),
+        Some(RealOrbitalKind::Fy3X2Y2)
+    );
     assert_eq!(real_orbital_kind_from_lm(4, 0), None);
 }
 
@@ -319,7 +373,11 @@ fn test_gamma_function() {
     assert_relative_eq!(gamma(3.0), 2.0, epsilon = 1e-10);
     assert_relative_eq!(gamma(4.0), 6.0, epsilon = 1e-10);
     assert_relative_eq!(gamma(0.5), std::f64::consts::PI.sqrt(), epsilon = 1e-10);
-    assert_relative_eq!(gamma(1.5), 0.5 * std::f64::consts::PI.sqrt(), epsilon = 1e-10);
+    assert_relative_eq!(
+        gamma(1.5),
+        0.5 * std::f64::consts::PI.sqrt(),
+        epsilon = 1e-10
+    );
 }
 
 #[test]
@@ -337,9 +395,9 @@ fn test_sto_radial_wavefunction() {
 fn test_dipole_selection_rules() {
     use atomic_math::transition::is_dipole_allowed;
     // Allowed: Δl = 1, Δm = 0, ±1
-    assert!(is_dipole_allowed(0, 0, 1, 0));  // 1s -> 2pz
-    assert!(is_dipole_allowed(0, 0, 1, 1));  // 1s -> 2px
-    assert!(is_dipole_allowed(1, 0, 2, 0));  // 2p -> 3d (l: 1 -> 2)
+    assert!(is_dipole_allowed(0, 0, 1, 0)); // 1s -> 2pz
+    assert!(is_dipole_allowed(0, 0, 1, 1)); // 1s -> 2px
+    assert!(is_dipole_allowed(1, 0, 2, 0)); // 2p -> 3d (l: 1 -> 2)
 
     // Forbidden: Δl = 0 or Δl > 1
     assert!(!is_dipole_allowed(0, 0, 0, 0)); // 1s -> 2s (forbidden)
@@ -393,7 +451,8 @@ fn test_pure_eigenstate_azimuthal_sampling_symmetry() {
 
     let mut sum_cos = 0.0;
     let mut sum_sin = 0.0;
-    for (pos, _phase) in &pts {
+    for sample in &pts {
+        let pos = sample.position;
         let phi = (pos[1] as f64).atan2(pos[0] as f64);
         sum_cos += phi.cos();
         sum_sin += phi.sin();
@@ -506,18 +565,144 @@ fn test_wasm_get_slater_z_eff() {
 #[test]
 fn test_wasm_sample_orbital_points() {
     let pts_1s = sample_orbital_points(1, 0, 0, true, 1.0, 50, 42).unwrap();
-    assert_eq!(pts_1s.len(), 50 * 4);
+    assert_eq!(pts_1s.len(), 50 * SAMPLE_STRIDE);
 
     let pts_2pz = sample_orbital_points(2, 1, 0, true, 1.0, 50, 42).unwrap();
-    assert_eq!(pts_2pz.len(), 50 * 4);
+    assert_eq!(pts_2pz.len(), 50 * SAMPLE_STRIDE);
 
     let pts_pure = sample_orbital_points(2, 1, 0, false, 1.0, 50, 42).unwrap();
-    assert_eq!(pts_pure.len(), 50 * 4);
+    assert_eq!(pts_pure.len(), 50 * SAMPLE_STRIDE);
+
+    // The relative density is normalised by the peak of |psi|^2, so it always
+    // lands inside [0, 1] and the transfer function can be a pure [0, 1] window.
+    for &value in pts_2pz.iter().skip(4).step_by(SAMPLE_STRIDE) {
+        assert!(
+            (0.0..=1.0).contains(&value),
+            "relative density {value} out of range"
+        );
+    }
 
     assert!(sample_orbital_points(0, 0, 0, true, 1.0, 50, 42).is_err());
     assert!(sample_orbital_points(2, 2, 0, true, 1.0, 50, 42).is_err());
     assert!(sample_orbital_points(2, 1, 2, true, 1.0, 50, 42).is_err());
     assert!(sample_orbital_points(1, 0, 0, true, 0.0, 50, 42).is_err());
+}
+
+#[test]
+fn test_wasm_orbital_peak_density() {
+    // 1s: psi = 2 Z^{3/2} Y_00 e^{-Zr} and |Y_00|^2 = 1/(4 pi), so the peak of
+    // |psi|^2 is 4 Z^3 / (4 pi) = Z^3 / pi, reached at the nucleus.
+    assert_relative_eq!(
+        orbital_peak_density(1, 0, 0, true, 1.0).unwrap(),
+        1.0 / std::f64::consts::PI,
+        epsilon = 1e-6
+    );
+    assert_relative_eq!(
+        orbital_peak_density(1, 0, 0, true, 2.0).unwrap(),
+        8.0 / std::f64::consts::PI,
+        epsilon = 1e-5
+    );
+
+    // Pure eigenstates share the same radial function, and l = 0 has no angular
+    // node, so the peak only depends on Z_eff through R^2.
+    assert_relative_eq!(
+        orbital_peak_density(1, 0, 0, false, 1.0).unwrap(),
+        orbital_peak_density(1, 0, 0, true, 1.0).unwrap(),
+        epsilon = 1e-9
+    );
+
+    // m only reorients a real orbital, so every m of a given (n, l) peaks alike.
+    for m in [-1i32, 0, 1] {
+        assert_relative_eq!(
+            orbital_peak_density(2, 1, m, true, 1.0).unwrap(),
+            orbital_peak_density(2, 1, 0, true, 1.0).unwrap(),
+            epsilon = 1e-6
+        );
+    }
+
+    // A higher l spreads the density over a larger solid angle, so the peak of
+    // |psi|^2 must shrink: 2p loses amplitude relative to 2s.
+    let peak_2s = orbital_peak_density(2, 0, 0, true, 1.0).unwrap();
+    let peak_2p = orbital_peak_density(2, 1, 0, true, 1.0).unwrap();
+    assert!(
+        peak_2p < peak_2s,
+        "2p peak {peak_2p} should be below 2s peak {peak_2s}"
+    );
+
+    // The reported peak really is an upper bound, checked against a brute force
+    // scan of |psi|^2 over a 3D grid for the Ag 4d_z^2 case.
+    let qn = QuantumNumbers::new(4, 2, 0).unwrap();
+    let mode = OrbitalMode::RealChemist(real_orbital_kind_from_lm(2, 0).unwrap());
+    let z_eff = 2.0;
+    let peak = orbital_peak_density(4, 2, 0, true, z_eff).unwrap();
+    let r_max = (2.0 * 16.0 + 16.0 * 4.0) / z_eff;
+    let mut brute = 0.0f64;
+    for i in 0..=400 {
+        let r = (i as f64 / 400.0) * r_max;
+        for j in 0..=80 {
+            let theta = (j as f64 / 80.0) * std::f64::consts::PI;
+            for k in 0..=80 {
+                let phi = (k as f64 / 80.0) * 2.0 * std::f64::consts::PI;
+                let psi =
+                    atomic_math::wavefunction_value(&qn, &mode, z_eff, r, theta, phi).unwrap();
+                brute = brute.max(psi * psi);
+            }
+        }
+    }
+    assert!(
+        peak >= brute * (1.0 - 1e-4),
+        "peak {peak} is below the sampled maximum {brute}"
+    );
+    assert!(
+        peak <= brute * 1.05,
+        "peak {peak} overshoots the sampled maximum {brute} by too much"
+    );
+
+    assert!(orbital_peak_density(0, 0, 0, true, 1.0).is_err());
+    assert!(orbital_peak_density(2, 3, 0, true, 1.0).is_err());
+    // Real chemist orbitals are only defined up to l = 3.
+    assert!(orbital_peak_density(5, 4, 0, true, 1.0).is_err());
+    assert!(orbital_peak_density(5, 4, 0, false, 1.0).is_ok());
+    assert!(orbital_peak_density(1, 0, 0, true, -1.0).is_err());
+}
+
+#[test]
+fn test_wasm_radial_probability_quantile() {
+    // 1s cumulative: 1 - e^{-2Zr}(1 + 2Zr + 2(Zr)^2). Solving it for 0.9 gives
+    // r = 2.1903... a0, which pins the integration independently of the grid.
+    let r90 = radial_probability_quantile(1, 0, 1.0, 0.90).unwrap();
+    let cumulative = |r: f64| 1.0 - (-2.0 * r).exp() * (1.0 + 2.0 * r + 2.0 * r * r);
+    assert!(
+        (cumulative(r90) - 0.9).abs() < 1e-4,
+        "1s 90% radius {r90} gives cumulative {}",
+        cumulative(r90)
+    );
+
+    // Monotone in the quantile, and always inside the sampling box.
+    let mut previous = 0.0;
+    for q in [0.1, 0.25, 0.5, 0.75, 0.9, 0.99] {
+        let r = radial_probability_quantile(3, 2, 1.4, q).unwrap();
+        assert!(
+            r > previous,
+            "quantile {q} gave {r}, not larger than {previous}"
+        );
+        assert!(r > 0.0 && r < (2.0 * 9.0 + 16.0 * 3.0) / 1.4);
+        previous = r;
+    }
+
+    // A stronger nucleus pulls every quantile inwards, and so does a larger n.
+    assert!(
+        radial_probability_quantile(2, 0, 3.0, 0.95).unwrap()
+            < radial_probability_quantile(2, 0, 1.0, 0.95).unwrap()
+    );
+    assert!(
+        radial_probability_quantile(3, 0, 1.0, 0.95).unwrap()
+            > radial_probability_quantile(2, 0, 1.0, 0.95).unwrap()
+    );
+
+    assert!(radial_probability_quantile(1, 0, 1.0, 0.0).unwrap() < 1e-6);
+    assert!(radial_probability_quantile(2, 2, 1.0, 0.9).is_err());
+    assert!(radial_probability_quantile(1, 0, 0.0, 0.9).is_err());
 }
 
 #[test]
@@ -611,6 +796,91 @@ fn test_angular_density_max_orbital_kinds() {
 }
 
 #[test]
+fn angular_density_max_is_a_true_upper_bound() {
+    // The rejection sampler is only unbiased if p_max is an upper bound on the
+    // density it compares candidates against: anything lower silently biases
+    // the cloud towards the core. Both peak functions are computed from the
+    // polar/azimuthal factorisation, so brute-force them against a dense grid
+    // over *every* orbital kind and a spread of pure eigenstates.
+    let kinds = [
+        RealOrbitalKind::S,
+        RealOrbitalKind::Px,
+        RealOrbitalKind::Py,
+        RealOrbitalKind::Pz,
+        RealOrbitalKind::Dxy,
+        RealOrbitalKind::Dxz,
+        RealOrbitalKind::Dyz,
+        RealOrbitalKind::Dz2,
+        RealOrbitalKind::Dx2y2,
+        RealOrbitalKind::Fz3,
+        RealOrbitalKind::Fxz2,
+        RealOrbitalKind::Fyz2,
+        RealOrbitalKind::Fxyz,
+        RealOrbitalKind::FzX2Y2,
+        RealOrbitalKind::FxX23Y2,
+        RealOrbitalKind::Fy3X2Y2,
+    ];
+
+    let brute = |kind: &RealOrbitalKind| -> (f64, f64) {
+        let (mut best_density, mut best_amplitude) = (0.0f64, 0.0f64);
+        for i in 0..=600 {
+            let theta = (i as f64) * std::f64::consts::PI / 600.0;
+            for j in 0..600 {
+                let phi = (j as f64) * 2.0 * std::f64::consts::PI / 600.0;
+                let y = atomic_math::spherical_harmonics::real_orbital_angular(kind, theta, phi);
+                best_amplitude = best_amplitude.max(y * y);
+                best_density = best_density.max(y * y * theta.sin());
+            }
+        }
+        (best_density, best_amplitude)
+    };
+
+    for kind in kinds {
+        let (brute_density, brute_amplitude) = brute(&kind);
+        let density = angular_density_max(0, 0, Some(&kind)).unwrap();
+        let amplitude =
+            atomic_math::spherical_harmonics::angular_amplitude_max(0, 0, Some(&kind)).unwrap();
+        assert!(
+            density >= brute_density * (1.0 - 1e-6),
+            "{kind:?}: density max {density} is below the sampled maximum {brute_density}"
+        );
+        assert!(
+            amplitude >= brute_amplitude * (1.0 - 1e-6),
+            "{kind:?}: amplitude max {amplitude} is below the sampled maximum {brute_amplitude}"
+        );
+        // And it must not be wildly loose, or the sampler would waste candidates.
+        assert!(
+            density <= brute_density * 1.05 + 1e-9,
+            "{kind:?}: density max {density} overshoots the sampled maximum {brute_density}"
+        );
+    }
+
+    for l in 0..=3u32 {
+        for m in -(l as i32)..=(l as i32) {
+            let (mut brute_density, mut brute_amplitude) = (0.0f64, 0.0f64);
+            for i in 0..=600 {
+                let theta = (i as f64) * std::f64::consts::PI / 600.0;
+                let d = y_lm_density(l, m, theta).unwrap();
+                brute_density = brute_density.max(d * theta.sin());
+                brute_amplitude = brute_amplitude.max(d);
+            }
+            let density = angular_density_max(l, m, None).unwrap();
+            let amplitude =
+                atomic_math::spherical_harmonics::angular_amplitude_max(l, m, None).unwrap();
+            assert!(
+                density >= brute_density * (1.0 - 1e-6) && density <= brute_density * 1.05 + 1e-9,
+                "l={l} m={m}: density max {density} vs sampled {brute_density}"
+            );
+            assert!(
+                amplitude >= brute_amplitude * (1.0 - 1e-6)
+                    && amplitude <= brute_amplitude * 1.05 + 1e-9,
+                "l={l} m={m}: amplitude max {amplitude} vs sampled {brute_amplitude}"
+            );
+        }
+    }
+}
+
+#[test]
 fn test_factorial_values_and_overflow() {
     assert_eq!(factorial(0).unwrap(), 1.0);
     assert_eq!(factorial(1).unwrap(), 1.0);
@@ -632,8 +902,16 @@ fn test_associated_legendre_boundary_errors() {
     assert!(associated_legendre(1, 0, -1.1).is_err());
     assert!(associated_legendre(2, 1, 2.0).is_err());
 
-    assert_relative_eq!(associated_legendre(0, 0, 0.5).unwrap(), 1.0, epsilon = 1e-10);
-    assert_relative_eq!(associated_legendre(1, 0, 0.5).unwrap(), 0.5, epsilon = 1e-10);
+    assert_relative_eq!(
+        associated_legendre(0, 0, 0.5).unwrap(),
+        1.0,
+        epsilon = 1e-10
+    );
+    assert_relative_eq!(
+        associated_legendre(1, 0, 0.5).unwrap(),
+        0.5,
+        epsilon = 1e-10
+    );
 }
 
 #[test]
@@ -681,5 +959,3 @@ fn test_radial_dipole_integral_forbidden() {
     let forbidden_1s_3d = radial_dipole_integral(1, 0, 3, 2, 1.0).unwrap();
     assert_eq!(forbidden_1s_3d, 0.0);
 }
-
-

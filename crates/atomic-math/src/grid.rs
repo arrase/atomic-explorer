@@ -33,7 +33,11 @@ fn evaluate_isosurface_point(
         OrbitalMode::PureEigenstate => {
             let y_dens = crate::spherical_harmonics::y_lm_density(qn.l, qn.m, theta)?;
             let theta_comp = crate::spherical_harmonics::y_lm_theta_component(qn.l, qn.m, theta)?;
-            let s = if r_part * theta_comp >= 0.0 { 1.0 } else { -1.0 };
+            let s = if r_part * theta_comp >= 0.0 {
+                1.0
+            } else {
+                -1.0
+            };
             Ok((r_part * r_part * y_dens, s))
         }
     }
@@ -48,12 +52,7 @@ fn evaluate_isosurface_point(
 /// the extracted surface inflates into a blob (measured: 160x the enclosed
 /// volume for 7s at contrast 100), i.e. the "contrast" control would silently
 /// change the shape of the orbital instead of only its shading.
-fn apply_contrast_normalization(
-    data: &mut [f32],
-    max_density: f64,
-    contrast: f32,
-    isolevel: f32,
-) {
+fn apply_contrast_normalization(data: &mut [f32], max_density: f64, contrast: f32, isolevel: f32) {
     let peak = max_density.max(1e-12);
     let contrast_f64 = contrast as f64;
     let log_contrast_denom = if contrast_f64 > 0.0 {
@@ -95,7 +94,10 @@ pub fn evaluate_density_grid_internal(
         return Err(format!("Grid bounds ({}) must be positive", bounds));
     }
     if z_eff <= 0.0 {
-        return Err(format!("Effective nuclear charge Z_eff ({}) must be positive", z_eff));
+        return Err(format!(
+            "Effective nuclear charge Z_eff ({}) must be positive",
+            z_eff
+        ));
     }
     qn.validate()?;
 
@@ -146,7 +148,10 @@ pub fn evaluate_isosurface_grid_internal(
         return Err(format!("Grid bounds ({}) must be positive", bounds));
     }
     if z_eff <= 0.0 {
-        return Err(format!("Effective nuclear charge Z_eff ({}) must be positive", z_eff));
+        return Err(format!(
+            "Effective nuclear charge Z_eff ({}) must be positive",
+            z_eff
+        ));
     }
     qn.validate()?;
 
@@ -172,7 +177,8 @@ pub fn evaluate_isosurface_grid_internal(
                     continue;
                 }
 
-                let (raw_density, sign) = evaluate_isosurface_point(qn, mode, z_eff, r, theta, phi)?;
+                let (raw_density, sign) =
+                    evaluate_isosurface_point(qn, mode, z_eff, r, theta, phi)?;
                 if raw_density > max_density {
                     max_density = raw_density;
                 }
@@ -187,4 +193,3 @@ pub fn evaluate_isosurface_grid_internal(
 
     Ok(data)
 }
-

@@ -43,12 +43,7 @@ export class OrientationGizmo {
   private readonly tempMatrix = new THREE.Matrix4();
   private readonly tempVec = new THREE.Vector3();
 
-  constructor(
-    parent: HTMLElement,
-    onAlignCamera?: (dir: THREE.Vector3, up: THREE.Vector3) => void
-  ) {
-    this.onAlignCamera = onAlignCamera;
-
+  constructor(parent: HTMLElement) {
     this.container = document.createElement('div');
     this.container.className = 'orientation-gizmo';
     this.container.title = 'Gizmo 3D (Clic en un eje para vista ortogonal)';

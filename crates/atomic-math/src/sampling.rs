@@ -1,6 +1,14 @@
-use crate::{OrbitalMode, QuantumNumbers};
-use crate::spherical_harmonics::{angular_density_max, real_orbital_angular, y_lm_density, y_lm_theta_component};
-use crate::wavefunctions::{r_nl, radial_density_max};
+use crate::spherical_harmonics::{
+    angular_density_max, real_orbital_angular, y_lm_density, y_lm_theta_component,
+};
+use crate::wavefunctions::{r_nl, radial_density_max, radial_truncation_radius};
+use crate::{OrbitalMode, QuantumNumbers, SamplePoint};
+
+/// Fraction of the electron probability the sampling box is allowed to discard.
+///
+/// One part in a billion is far below the sampling noise of even the largest
+/// cloud the UI can request, so the truncated tail cannot bias the picture.
+const MAX_DISCARDED: f64 = 1e-9;
 
 struct Lcg {
     state: u64,
@@ -26,35 +34,36 @@ pub fn sample_points_internal(
     z_eff: f64,
     n_points: usize,
     seed: u64,
-) -> Result<Vec<([f32; 3], f32)>, String> {
+) -> Result<Vec<SamplePoint>, String> {
     if n_points == 0 {
         return Ok(Vec::new());
     }
     if z_eff <= 0.0 {
-        return Err(format!("Effective nuclear charge Z_eff ({}) must be positive", z_eff));
+        return Err(format!(
+            "Effective nuclear charge Z_eff ({}) must be positive",
+            z_eff
+        ));
     }
     qn.validate()?;
 
     let mut rng = Lcg::new(seed);
     let mut points = Vec::with_capacity(n_points);
 
-    // Sampling box. It has to clear the outermost radial node and the peak of
-    // the outermost lobe (both near 2n^2/Z for l = 0) and then reach far enough
-    // into the exponential tail (decay rate Z/n) that the discarded mass is
-    // negligible. (2n^2 + 16n)/Z does all three: the worst-case truncated mass
-    // over every supported state drops from 2.8e-3 (the previous 5n^2/Z) to
-    // 4e-10, and the box is smaller than before for n >= 6.
-    let r_max = (2.0 * (qn.n * qn.n) as f64 + 16.0 * qn.n as f64) / z_eff;
+    // Sampling box. Rejection sampling accepts a candidate with probability
+    // proportional to its density, so anything drawn beyond the electron's own
+    // extent is wasted work. The box is therefore the tightest radius that still
+    // leaves a negligible fraction of the probability outside (MAX_DISCARDED
+    // below), never larger than the conservative (2n^2 + 16n)/Z_eff bound. For a
+    // 1s that pulls the box from 18 a0 in to 13.6, which is 2.3x fewer wasted
+    // candidates; for a diffuse 7s it changes nothing. The gain is modest
+    // because a hydrogenic tail genuinely is long.
+    let r_max = radial_truncation_radius(qn.n, qn.l, z_eff, MAX_DISCARDED)?;
 
     // Strict, unbiased precomputation of p_max:
     // Decoupled into radial maximum A_max and angular maximum B_max:
     // P(r, theta, phi) = (r^2 * |R_nl(r)|^2) * (|Y(theta, phi)|^2 * sin(theta)) <= A_max * B_max
     let a_max = radial_density_max(qn.n, qn.l, z_eff, r_max)?;
-    let real_kind = match mode {
-        OrbitalMode::RealChemist(kind) => Some(kind),
-        OrbitalMode::PureEigenstate => None,
-    };
-    let b_max = angular_density_max(qn.l, qn.m, real_kind)?;
+    let b_max = angular_density_max(qn.l, qn.m, mode.real_kind())?;
 
     let p_max = (a_max * b_max * 1.05).max(1e-12);
     if p_max <= 1e-12 {
@@ -74,10 +83,14 @@ pub fn sample_points_internal(
         let theta = rng.next_f64() * std::f64::consts::PI;
         let phi = rng.next_f64() * 2.0 * std::f64::consts::PI;
 
-        let (density, value) = evaluate_candidate_point(qn, mode, z_eff, r, theta, phi)?;
+        let (density, value, psi_squared) =
+            evaluate_candidate_point(qn, mode, z_eff, r, theta, phi)?;
         if density > rng.next_f64() * p_max {
-            let pos = spherical_to_cartesian(r, theta, phi);
-            points.push((pos, value));
+            points.push(SamplePoint {
+                position: spherical_to_cartesian(r, theta, phi),
+                sign: value,
+                density: psi_squared,
+            });
         }
     }
 
@@ -94,6 +107,14 @@ fn spherical_to_cartesian(r: f64, theta: f64, phi: f64) -> [f32; 3] {
     ]
 }
 
+/// Evaluates a candidate sample, returning
+/// `(rejection density, phase/sign, |psi|^2)`.
+///
+/// `|psi|^2` is the *plain* local probability density: the measure-free quantity
+/// the isosurface mode thresholds and the radial chart plots. The rejection
+/// density is the same value weighted by the spherical volume element
+/// `r^2 sin(theta) dr dtheta dphi`, which is what the sampler has to compare
+/// against for rejection sampling to be correct.
 fn evaluate_candidate_point(
     qn: &QuantumNumbers,
     mode: &OrbitalMode,
@@ -101,13 +122,13 @@ fn evaluate_candidate_point(
     r: f64,
     theta: f64,
     phi: f64,
-) -> Result<(f64, f32), String> {
+) -> Result<(f64, f32, f64), String> {
     let r_part = r_nl(qn.n, qn.l, z_eff, r)?;
     let r2_sin = r * r * theta.sin();
     match mode {
         OrbitalMode::PureEigenstate => {
             let y_dens = y_lm_density(qn.l, qn.m, theta)?;
-            let density = r_part * r_part * y_dens * r2_sin;
+            let psi_squared = r_part * r_part * y_dens;
             let theta_comp = y_lm_theta_component(qn.l, qn.m, theta)?;
             let spatial_sign = r_part * theta_comp;
             let base_phase = (qn.m as f64) * phi;
@@ -117,16 +138,14 @@ fn evaluate_candidate_point(
                 base_phase
             };
             let phase_arg = phase.sin().atan2(phase.cos()) as f32;
-            Ok((density, phase_arg))
+            Ok((psi_squared * r2_sin, phase_arg, psi_squared))
         }
         OrbitalMode::RealChemist(kind) => {
             let y_real = real_orbital_angular(kind, theta, phi);
             let psi = r_part * y_real;
-            let density = psi * psi * r2_sin;
+            let psi_squared = psi * psi;
             let sign = if psi >= 0.0 { 1.0f32 } else { -1.0f32 };
-            Ok((density, sign))
+            Ok((psi_squared * r2_sin, sign, psi_squared))
         }
     }
 }
-
-
