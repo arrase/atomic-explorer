@@ -227,7 +227,7 @@ const raymarchFragmentShader = `
       else if (m == -2) y = 0.25 * sqrt(15.0 / PI) * st * st * (useReal ? sin(2.0 * phi) : 1.0);
     } else if (l == 3) {
       if (m == 0) y = 0.25 * sqrt(7.0 / PI) * (5.0 * ct * ct * ct - 3.0 * ct);
-      else if (abs(m) == 1) y = 0.125 * sqrt(42.0 / PI) * st * (5.0 * ct * ct - 1.0) * (m > 0 ? cp : sp);
+      else if (abs(m) == 1) y = 0.25 * sqrt(21.0 / PI) * st * (3.0 * ct * ct - 1.0) * (m > 0 ? cp : sp);
       else if (abs(m) == 2) y = 0.25 * sqrt(105.0 / PI) * st * st * ct * (useReal ? (m > 0 ? cos(2.0*phi) : sin(2.0*phi)) : 1.0);
       else if (abs(m) == 3) y = 0.125 * sqrt(70.0 / PI) * st * st * st * (useReal ? (m > 0 ? cos(3.0*phi) : sin(3.0*phi)) : 1.0);
     }
@@ -366,28 +366,123 @@ export class OrbitalRenderer extends BaseThreeRenderer {
     this.scene.add(dirLight2);
   }
 
+  private getRenderBoxExtent(n: number, zEff: number): number {
+    return (4.0 * (n * n)) / Math.max(zEff, 0.5);
+  }
+
   public calculatePeakDensity(n: number, l: number, m: number, zEff: number, useReal: boolean): number {
-    const rMax = (4.0 * (n * n)) / Math.max(zEff, 0.5);
+    const rMax = this.getRenderBoxExtent(n, zEff);
+    const rSteps = Math.max(2000, 400 * n);
     let maxRSq = 0;
-    const rSteps = 200;
+    let bestI = 1;
     for (let i = 1; i <= rSteps; i++) {
       const r = (i / rSteps) * rMax;
       const R = this.evalRadial(n, l, zEff, r);
       const RSq = R * R;
-      if (RSq > maxRSq) maxRSq = RSq;
+      if (RSq > maxRSq) {
+        maxRSq = RSq;
+        bestI = i;
+      }
     }
 
+    // Golden-section refinement of the radial maximum inside the sampled bracket.
+    const rsq = (r: number): number => {
+      const R = this.evalRadial(n, l, zEff, r);
+      return R * R;
+    };
+    let lo = Math.max(((bestI - 1) / rSteps) * rMax, 0);
+    let hi = Math.min(((bestI + 1) / rSteps) * rMax, rMax);
+    const invPhi = 0.6180339887498949;
+    let c = hi - invPhi * (hi - lo);
+    let d = lo + invPhi * (hi - lo);
+    let fc = rsq(c);
+    let fd = rsq(d);
+    for (let it = 0; it < 30; it++) {
+      if (fc > fd) {
+        hi = d;
+        d = c;
+        fd = fc;
+        c = hi - invPhi * (hi - lo);
+        fc = rsq(c);
+      } else {
+        lo = c;
+        c = d;
+        fc = fd;
+        d = lo + invPhi * (hi - lo);
+        fd = rsq(d);
+      }
+    }
+    const refinedRSq = Math.max(fc, fd);
+    if (refinedRSq > maxRSq) maxRSq = refinedRSq;
+
     let maxYPx = 0;
-    const thetaSteps = 50;
-    const phiSteps = 50;
+    const thetaSteps = 120;
+    const phiSteps = 120;
+    let bestTheta = 0;
+    let bestPhi = 0;
     for (let j = 0; j <= thetaSteps; j++) {
       const theta = (j / thetaSteps) * Math.PI;
       for (let k = 0; k <= phiSteps; k++) {
         const phi = (k / phiSteps) * 2.0 * Math.PI;
         const Y = this.evalAngular(l, m, useReal, theta, phi);
         const YSq = Y * Y;
-        if (YSq > maxYPx) maxYPx = YSq;
+        if (YSq > maxYPx) {
+          maxYPx = YSq;
+          bestTheta = theta;
+          bestPhi = phi;
+        }
       }
+    }
+
+    // Golden-section polish of the angular maximum: the 120x120 grid alone is only ~1e-3 accurate.
+    const ysq = (theta: number, phi: number): number => {
+      const Y = this.evalAngular(l, m, useReal, theta, phi);
+      return Y * Y;
+    };
+    const refine = (a0: number, a1: number, f: (a: number) => number): [number, number] => {
+      let lo = a0;
+      let hi = a1;
+      let c = hi - invPhi * (hi - lo);
+      let d = lo + invPhi * (hi - lo);
+      let fc = f(c);
+      let fd = f(d);
+      for (let it = 0; it < 20; it++) {
+        if (fc > fd) {
+          hi = d;
+          d = c;
+          fd = fc;
+          c = hi - invPhi * (hi - lo);
+          fc = f(c);
+        } else {
+          lo = c;
+          c = d;
+          fc = fd;
+          d = lo + invPhi * (hi - lo);
+          fd = f(d);
+        }
+      }
+      return fc > fd ? [c, fc] : [d, fd];
+    };
+    const dTheta = Math.PI / thetaSteps;
+    const dPhi = (2.0 * Math.PI) / phiSteps;
+    for (let pass = 0; pass < 3; pass++) {
+      const fixedPhi = bestPhi;
+      const [theta, thetaVal] = refine(
+        Math.max(bestTheta - dTheta, 0),
+        Math.min(bestTheta + dTheta, Math.PI),
+        (t) => ysq(t, fixedPhi)
+      );
+      bestTheta = theta;
+      maxYPx = Math.max(maxYPx, thetaVal);
+
+      const fixedTheta = bestTheta;
+      const [phi, phiVal] = refine(
+        Math.max(bestPhi - dPhi, 0),
+        Math.min(bestPhi + dPhi, 2.0 * Math.PI),
+        (p) => ysq(fixedTheta, p)
+      );
+      bestPhi = phi;
+      maxYPx = Math.max(maxYPx, phiVal);
     }
 
     return Math.max(maxRSq * maxYPx, 1e-12);
@@ -512,7 +607,7 @@ export class OrbitalRenderer extends BaseThreeRenderer {
 
     const mcPos = new MarchingCubes(gridRes, materialPos, false, false, 150000);
     const mcNeg = new MarchingCubes(gridRes, materialNeg, false, false, 150000);
-    const boxExtent = (4.0 * (params.n * params.n)) / Math.max(params.zEff, 0.5);
+    const boxExtent = this.getRenderBoxExtent(params.n, params.zEff);
     mcPos.scale.set(boxExtent, boxExtent, boxExtent);
     mcNeg.scale.set(boxExtent, boxExtent, boxExtent);
 
@@ -531,6 +626,7 @@ export class OrbitalRenderer extends BaseThreeRenderer {
       gridSize: gridRes,
       bounds: boxExtent,
       contrast,
+      isolevel,
     });
 
     this.populateMarchingCubes(mcPos, mcNeg, gridData, isolevel);
@@ -547,7 +643,7 @@ export class OrbitalRenderer extends BaseThreeRenderer {
     this.currentParams = { ...params };
     this.renderer.setPixelRatio(this.getEffectivePixelRatio());
 
-    const boxExtent = (4.0 * (params.n * params.n)) / params.zEff;
+    const boxExtent = this.getRenderBoxExtent(params.n, params.zEff);
     const geometry = new THREE.BoxGeometry(boxExtent * 2, boxExtent * 2, boxExtent * 2);
 
     const steps = params.raymarchingSteps ?? this.getRaymarchingSteps(params.quality);
@@ -679,7 +775,7 @@ export class OrbitalRenderer extends BaseThreeRenderer {
 
   private evalAngularL3(m: number, ct: number, st: number, az: number): number {
     if (m === 0) return 0.25 * Math.sqrt(7.0 / Math.PI) * (5.0 * ct * ct * ct - 3.0 * ct);
-    if (Math.abs(m) === 1) return 0.25 * Math.sqrt(10.5 / Math.PI) * st * (5.0 * ct * ct - 1.0) * az;
+    if (Math.abs(m) === 1) return 0.25 * Math.sqrt(21.0 / Math.PI) * st * (3.0 * ct * ct - 1.0) * az;
     if (Math.abs(m) === 2) return 0.25 * Math.sqrt(105.0 / Math.PI) * st * st * ct * az;
     if (Math.abs(m) === 3) return 0.25 * Math.sqrt(17.5 / Math.PI) * st * st * st * az;
     return 0;

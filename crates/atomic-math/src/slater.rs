@@ -105,7 +105,17 @@ fn calculate_group_shielding(
         } else {
             count
         };
-        let weight = if target_rank == 10 { 0.30 } else { 0.35 };
+        // Slater's rules treat d and f electrons differently: within an nd/nf
+        // group every other electron shields 1.00, not 0.35.  Using the
+        // ns/np weight here overestimates Z_eff for d and f orbitals (e.g. 6.25
+        // instead of 3.00 for Fe 3d), which contracts those clouds by ~2x.
+        let weight = if !target_is_sp {
+            1.00
+        } else if target_rank == 10 {
+            0.30
+        } else {
+            0.35
+        };
         (other_count as f64) * weight
     } else if target_is_sp {
         if cn == target_n - 1 {

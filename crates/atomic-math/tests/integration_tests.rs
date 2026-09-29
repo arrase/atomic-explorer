@@ -170,8 +170,13 @@ fn test_slater_z_eff_period2_elements() {
 
 #[test]
 fn test_slater_z_eff_transition_metals() {
+    // ns/np valence: same group 0.35, n-1 shell 0.85, everything else 1.00.
     assert_relative_eq!(calculate_slater_z_eff(26, 4, 0).unwrap(), 3.75, epsilon = 1e-5);
-    assert_relative_eq!(calculate_slater_z_eff(26, 3, 2).unwrap(), 6.25, epsilon = 1e-5);
+    // nd/nf valence: same group 1.00 (not 0.35) and 1.00 for every group to the
+    // left, which is the classic Slater result of Z_eff = 3.00 for all period-4
+    // 3d electrons.
+    assert_relative_eq!(calculate_slater_z_eff(26, 3, 2).unwrap(), 3.00, epsilon = 1e-5);
+    assert_relative_eq!(calculate_slater_z_eff(29, 3, 2).unwrap(), 2.00, epsilon = 1e-5);
 }
 
 #[test]
@@ -410,7 +415,8 @@ fn test_isosurface_grid_generation() {
     let mode = OrbitalMode::RealChemist(RealOrbitalKind::Pz);
     let grid_size = 16;
     let bounds = 6.0;
-    let grid = evaluate_isosurface_grid_internal(&qn, &mode, 1.0, grid_size, bounds, 2.0).unwrap();
+    let grid =
+        evaluate_isosurface_grid_internal(&qn, &mode, 1.0, grid_size, bounds, 2.0, 0.05).unwrap();
 
     assert_eq!(grid.len(), grid_size * grid_size * grid_size);
 
@@ -534,17 +540,20 @@ fn test_wasm_evaluate_density_grid() {
 #[test]
 fn test_wasm_evaluate_isosurface_grid() {
     let grid_size = 8;
-    let grid_2pz = evaluate_isosurface_grid(2, 1, 0, true, 1.0, grid_size, &[5.0, 2.0]).unwrap();
+    let grid_2pz =
+        evaluate_isosurface_grid(2, 1, 0, true, 1.0, grid_size, &[5.0, 2.0, 0.05]).unwrap();
     assert_eq!(grid_2pz.len(), grid_size * grid_size * grid_size);
 
-    let grid_pure = evaluate_isosurface_grid(2, 1, 0, false, 1.0, grid_size, &[5.0, 2.0]).unwrap();
+    let grid_pure =
+        evaluate_isosurface_grid(2, 1, 0, false, 1.0, grid_size, &[5.0, 2.0, 0.05]).unwrap();
     assert_eq!(grid_pure.len(), grid_size * grid_size * grid_size);
 
+    assert!(evaluate_isosurface_grid(2, 1, 0, true, 1.0, grid_size, &[5.0, 2.0]).is_err());
     assert!(evaluate_isosurface_grid(2, 1, 0, true, 1.0, grid_size, &[5.0]).is_err());
     assert!(evaluate_isosurface_grid(2, 1, 0, true, 1.0, grid_size, &[]).is_err());
 
-    assert!(evaluate_isosurface_grid(0, 0, 0, true, 1.0, grid_size, &[5.0, 2.0]).is_err());
-    assert!(evaluate_isosurface_grid(2, 2, 0, true, 1.0, grid_size, &[5.0, 2.0]).is_err());
+    assert!(evaluate_isosurface_grid(0, 0, 0, true, 1.0, grid_size, &[5.0, 2.0, 0.05]).is_err());
+    assert!(evaluate_isosurface_grid(2, 2, 0, true, 1.0, grid_size, &[5.0, 2.0, 0.05]).is_err());
 }
 
 #[test]

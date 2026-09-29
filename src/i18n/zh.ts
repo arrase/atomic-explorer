@@ -235,7 +235,7 @@ export const strings: I18nStrings = {
   hydrogenicEnergy: '束缚能级 E_n',
   hydrogenicEnergyDesc: '电子轨道本征能级 (eV)：E_n = -13.6057 eV · (Z_eff² / n²)。',
   hydrogenicEnergyDetail: '计算电子在有效核电荷 Z_eff 势阱中的束缚态能量。负能量值表示电子相对于无穷远处自由电子处于稳定的束缚态。',
-  spectralSeries: '光谱跃迁线系',
+  spectralSeries: '终止于此能层的光谱线系',
   seriesLyman: '赖曼系 (紫外)',
   seriesBalmer: '巴尔末系 (可见光/紫外)',
   seriesPaschen: '帕申系 (近红外)',

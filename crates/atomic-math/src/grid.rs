@@ -39,7 +39,21 @@ fn evaluate_isosurface_point(
     }
 }
 
-fn apply_contrast_normalization(data: &mut [f32], max_density: f64, contrast: f32) {
+/// Remaps the signed density field into `[-1, 1]` for marching cubes.
+///
+/// `isolevel` is the fraction of the peak density that the caller will later
+/// threshold at. The contrast curve is anchored there so that the remap is the
+/// identity below the isolevel and still reaches 1.0 at the peak. Without that
+/// anchor, raising the contrast lifts the faint tails above the threshold and
+/// the extracted surface inflates into a blob (measured: 160x the enclosed
+/// volume for 7s at contrast 100), i.e. the "contrast" control would silently
+/// change the shape of the orbital instead of only its shading.
+fn apply_contrast_normalization(
+    data: &mut [f32],
+    max_density: f64,
+    contrast: f32,
+    isolevel: f32,
+) {
     let peak = max_density.max(1e-12);
     let contrast_f64 = contrast as f64;
     let log_contrast_denom = if contrast_f64 > 0.0 {
@@ -47,13 +61,16 @@ fn apply_contrast_normalization(data: &mut [f32], max_density: f64, contrast: f3
     } else {
         1.0
     };
+    let anchor = (isolevel as f64).clamp(0.0, 0.999);
+    let span = 1.0 - anchor;
 
     for val in data.iter_mut() {
         if *val != 0.0 {
             let s = if *val >= 0.0 { 1.0 } else { -1.0 };
             let norm_density = (val.abs() as f64 / peak).min(1.0);
-            let enhanced_density = if contrast_f64 > 0.0 {
-                (1.0 + contrast_f64 * norm_density).ln() * log_contrast_denom
+            let enhanced_density = if contrast_f64 > 0.0 && span > 0.0 && norm_density > anchor {
+                let t = (norm_density - anchor) / span;
+                anchor + span * ((1.0 + contrast_f64 * t).ln() * log_contrast_denom)
             } else {
                 norm_density
             };
@@ -111,6 +128,8 @@ pub fn evaluate_density_grid_internal(
 
 /// Evaluate 3D signed orbital isosurface density grid for Marching Cubes.
 /// Returns signed normalized densities in [-1.0, 1.0] row-major (x fastest, then y, then z).
+/// `isolevel` is the fraction of the peak density that the caller thresholds at; it anchors
+/// the contrast remap so the extracted surface is independent of `contrast`.
 pub fn evaluate_isosurface_grid_internal(
     qn: &QuantumNumbers,
     mode: &OrbitalMode,
@@ -118,6 +137,7 @@ pub fn evaluate_isosurface_grid_internal(
     grid_size: usize,
     bounds: f32,
     contrast: f32,
+    isolevel: f32,
 ) -> Result<Vec<f32>, String> {
     if grid_size == 0 {
         return Err("Grid size must be greater than 0".into());
@@ -163,7 +183,7 @@ pub fn evaluate_isosurface_grid_internal(
         }
     }
 
-    apply_contrast_normalization(&mut data, max_density, contrast);
+    apply_contrast_normalization(&mut data, max_density, contrast, isolevel);
 
     Ok(data)
 }

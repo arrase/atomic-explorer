@@ -240,13 +240,14 @@ pub fn evaluate_isosurface_grid(
     use_real_orbital: bool,
     z_eff: f64,
     grid_size: usize,
-    bounds_contrast: &[f32],
+    bounds_contrast_isolevel: &[f32],
 ) -> Result<Vec<f32>, String> {
-    if bounds_contrast.len() < 2 {
-        return Err("bounds_contrast must contain at least [bounds, contrast]".into());
+    if bounds_contrast_isolevel.len() < 3 {
+        return Err("bounds_contrast_isolevel must contain at least [bounds, contrast, isolevel]".into());
     }
-    let bounds = bounds_contrast[0];
-    let contrast = bounds_contrast[1];
+    let bounds = bounds_contrast_isolevel[0];
+    let contrast = bounds_contrast_isolevel[1];
+    let isolevel = bounds_contrast_isolevel[2];
 
     let qn = QuantumNumbers::new(n, l, m)?;
     let mode = if use_real_orbital {
@@ -258,7 +259,9 @@ pub fn evaluate_isosurface_grid(
         OrbitalMode::PureEigenstate
     };
 
-    let grid = grid::evaluate_isosurface_grid_internal(&qn, &mode, z_eff, grid_size, bounds, contrast)?;
+    let grid = grid::evaluate_isosurface_grid_internal(
+        &qn, &mode, z_eff, grid_size, bounds, contrast, isolevel,
+    )?;
     Ok(grid)
 }
 

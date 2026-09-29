@@ -209,9 +209,9 @@ export class PeriodicTableView {
             <span class="legend-title">${strings.legendAtomicRadius}</span>
           </div>
           <div class="legend-gradient-wrapper">
-            <span class="legend-val-min">30 pm (He)</span>
+            <span class="legend-val-min">32 pm (He)</span>
             <div class="legend-gradient-track" style="background: ${RADIUS_GRADIENT}"></div>
-            <span class="legend-val-max">260 pm (Cs)</span>
+            <span class="legend-val-max">260 pm (Fr)</span>
           </div>
         </div>
       `;

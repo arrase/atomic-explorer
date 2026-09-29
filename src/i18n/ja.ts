@@ -235,7 +235,7 @@ export const strings: I18nStrings = {
   hydrogenicEnergy: '結合エネルギー E_n',
   hydrogenicEnergyDesc: '電子の固有エネルギー準位 (eV)：E_n = -13.6057 eV · (Z_eff² / n²)。',
   hydrogenicEnergyDetail: '有効核電荷 Z_eff のもとでの電子の束縛状態ポテンシャルエネルギーを計算します。負の値は、無限遠にある自由電子に対して安定した束縛状態にあることを示します。',
-  spectralSeries: 'スペクトル遷移系列',
+  spectralSeries: 'この電子殻で終わるスペクトル系列',
   seriesLyman: 'ライマン系列 (紫外)',
   seriesBalmer: 'バルマー系列 (可視光/紫外)',
   seriesPaschen: 'パッシェン系列 (近赤外)',

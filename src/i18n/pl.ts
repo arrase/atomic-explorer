@@ -235,7 +235,7 @@ export const strings: I18nStrings = {
   hydrogenicEnergy: 'Energia Wiązania E_n',
   hydrogenicEnergyDesc: 'Poziom energii elektronowej w eV: E_n = -13.6057 eV · (Z_eff² / n²).',
   hydrogenicEnergyDetail: 'Oblicza poziom energii potencjalnej stanu związanego elektronu pod wpływem efektywnego ładunku jądra Z_eff. Ujemna energia oznacza stan związany w odniesieniu do swobodnego elektronu w nieskończoności.',
-  spectralSeries: 'Serie Przejść Spektralnych',
+  spectralSeries: 'Seria Spektralna Kończąca się na tej Powłoce',
   seriesLyman: 'Lymana (UV)',
   seriesBalmer: 'Balmera (Widzialny/UV)',
   seriesPaschen: 'Paschena (Bliska IR)',

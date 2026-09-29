@@ -2,7 +2,6 @@ import init, {
   sample_orbital_points,
   get_slater_z_eff,
   evaluate_isosurface_grid,
-  evaluate_density_grid,
 } from '../../crates/atomic-math/pkg/atomic_math';
 
 export interface OrbitalParams {
@@ -23,6 +22,7 @@ export interface IsosurfaceGridParams {
   gridSize: number;
   bounds: number;
   contrast: number;
+  isolevel: number;
 }
 
 let wasmInitPromise: Promise<void> | null = null;
@@ -60,28 +60,7 @@ export async function evaluateIsosurfaceGrid(params: IsosurfaceGridParams): Prom
     params.useRealOrbital,
     params.zEff,
     params.gridSize,
-    new Float32Array([params.bounds, params.contrast]),
-  );
-}
-
-export async function evaluateDensityGrid(
-  n: number,
-  l: number,
-  m: number,
-  useRealOrbital: boolean,
-  zEff: number,
-  gridSize: number,
-  bounds: number,
-): Promise<Float32Array> {
-  await ensureWasmLoaded();
-  return evaluate_density_grid(
-    n,
-    l,
-    m,
-    useRealOrbital,
-    zEff,
-    gridSize,
-    bounds,
+    new Float32Array([params.bounds, params.contrast, params.isolevel]),
   );
 }
 

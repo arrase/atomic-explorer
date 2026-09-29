@@ -235,7 +235,7 @@ export const strings: I18nStrings = {
   hydrogenicEnergy: '결합 에너지 E_n',
   hydrogenicEnergyDesc: '전자의 고유 에너지 준위 (eV): E_n = -13.6057 eV · (Z_eff² / n²).',
   hydrogenicEnergyDetail: '유효 핵전하 Z_eff 하에서 전자의 속박 상태 포텐셜 에너지를 계산합니다. 음수 에너지는 무한대 거리의 자유 전자에 비해 안정된 결합 상태에 있음을 의미합니다.',
-  spectralSeries: '스펙트럼 전이 계열',
+  spectralSeries: '이 전자껍질에서 끝나는 스펙트럼 계열',
   seriesLyman: '라이먼 계열 (자외선)',
   seriesBalmer: '발머 계열 (가시광선/자외선)',
   seriesPaschen: '파셴 계열 (근적외선)',

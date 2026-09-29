@@ -235,7 +235,7 @@ export const strings: I18nStrings = {
   hydrogenicEnergy: 'Bindungsenergie E_n',
   hydrogenicEnergyDesc: 'Elektronisches Energieniveau in eV: E_n = -13.6057 eV · (Z_eff² / n²).',
   hydrogenicEnergyDetail: 'Berechnet das potentielle Energieniveau des gebundenen Zustands des Elektrons unter der effektiven Kernladung Z_eff. Eine negative Energie kennzeichnet einen gebundenen Zustand relativ zu einem freien Elektron im Unendlichen.',
-  spectralSeries: 'Spektrale Übergangsserien',
+  spectralSeries: 'Spektrale Serie, die auf dieser Schale endet',
   seriesLyman: 'Lyman (UV)',
   seriesBalmer: 'Balmer (Sichtbar/UV)',
   seriesPaschen: 'Paschen (Nahes Infrarot)',

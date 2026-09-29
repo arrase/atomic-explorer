@@ -115,11 +115,13 @@ pub fn real_orbital_angular(kind: &RealOrbitalKind, theta: f64, phi: f64) -> f64
         RealOrbitalKind::Fz3 => {
             0.25 * (7.0 / pi).sqrt() * (5.0 * cos_t * cos_t * cos_t - 3.0 * cos_t)
         }
+        // f_xz^2 ~ x(3z^2 - r^2) and f_yz^2 ~ y(3z^2 - r^2).  The constant
+        // 0.25*sqrt(21/pi) follows from int x^2(3z^2-r^2)^2 dOmega = 16*pi/21.
         RealOrbitalKind::Fxz2 => {
-            0.25 * (10.5 / pi).sqrt() * sin_t * (5.0 * cos_t * cos_t - 1.0) * cos_p
+            0.25 * (21.0 / pi).sqrt() * sin_t * (3.0 * cos_t * cos_t - 1.0) * cos_p
         }
         RealOrbitalKind::Fyz2 => {
-            0.25 * (10.5 / pi).sqrt() * sin_t * (5.0 * cos_t * cos_t - 1.0) * sin_p
+            0.25 * (21.0 / pi).sqrt() * sin_t * (3.0 * cos_t * cos_t - 1.0) * sin_p
         }
         RealOrbitalKind::FzX2Y2 => {
             0.25 * (105.0 / pi).sqrt() * sin_t * sin_t * cos_t * (2.0 * phi).cos()

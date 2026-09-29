@@ -6,18 +6,27 @@ import { icon } from './icons';
 import { RadialDistributionChart } from './radial-distribution-chart';
 
 const SUBSHELL_NAMES = ['s', 'p', 'd', 'f', 'g'];
-const REAL_ORBITAL_SUFFIX: Record<number, Record<number, string>> = {
+
+// Values are HTML fragments (real <sub> superscripts/subscripts), not LaTeX:
+// they are interpolated raw, so they must only ever be file-local literals.
+const REAL_ORBITAL_SUFFIX_HTML: Record<number, Record<number, string>> = {
   0: { 0: 's' },
-  1: { 0: 'p_z', 1: 'p_x', [-1]: 'p_y' },
-  2: { 0: 'd_{z^2}', 1: 'd_{xz}', [-1]: 'd_{yz}', 2: 'd_{x^2-y^2}', [-2]: 'd_{xy}' },
+  1: { 0: 'p<sub>z</sub>', 1: 'p<sub>x</sub>', [-1]: 'p<sub>y</sub>' },
+  2: {
+    0: 'd<sub>z²</sub>',
+    1: 'd<sub>xz</sub>',
+    [-1]: 'd<sub>yz</sub>',
+    2: 'd<sub>x²−y²</sub>',
+    [-2]: 'd<sub>xy</sub>',
+  },
   3: {
-    0: 'f_{z^3}',
-    1: 'f_{xz^2}',
-    [-1]: 'f_{yz^2}',
-    2: 'f_{z(x^2-y^2)}',
-    [-2]: 'f_{xyz}',
-    3: 'f_{x(x^2-3y^2)}',
-    [-3]: 'f_{y(3x^2-y^2)}',
+    0: 'f<sub>z³</sub>',
+    1: 'f<sub>xz²</sub>',
+    [-1]: 'f<sub>yz²</sub>',
+    2: 'f<sub>z(x²−y²)</sub>',
+    [-2]: 'f<sub>xyz</sub>',
+    3: 'f<sub>x(x²−3y²)</sub>',
+    [-3]: 'f<sub>y(3x²−y²)</sub>',
   },
 };
 
@@ -43,7 +52,7 @@ export class OrbitalPhysicsPanel {
       return;
     }
 
-    const { radialNodes, angularNodes, totalNodes, notation, rExpBohr, rExpPm, energyEv, seriesName } =
+    const { radialNodes, angularNodes, totalNodes, notationHtml, rExpBohr, rExpPm, energyEv, seriesName } =
       this.calculatePhysics(params);
 
     if (this.radialChart) {
@@ -64,7 +73,7 @@ export class OrbitalPhysicsPanel {
     const seriesVal = this.panelElement.querySelector('#val-series') as HTMLElement;
     const zeffVal = this.panelElement.querySelector('#val-zeff') as HTMLElement;
 
-    if (badgeVal) badgeVal.textContent = `${notation} (n=${params.n}, l=${params.l}, m=${params.m})`;
+    if (badgeVal) badgeVal.innerHTML = `${notationHtml} (n=${params.n}, l=${params.l}, m=${params.m})`;
     if (radialVal) radialVal.textContent = String(radialNodes);
     if (angularVal) angularVal.textContent = String(angularNodes);
     if (totalVal) totalVal.textContent = String(totalNodes);
@@ -79,7 +88,7 @@ export class OrbitalPhysicsPanel {
     const radialNodes = n - l - 1;
     const angularNodes = l;
     const totalNodes = n - 1;
-    const notation = this.getOrbitalNotation(n, l, m, useRealOrbital);
+    const notationHtml = this.getOrbitalNotationHtml(n, l, m, useRealOrbital);
 
     const rExpBohr = (0.5 / zEff) * (3 * n * n - l * (l + 1));
     const rExpPm = rExpBohr * 52.917721;
@@ -100,7 +109,7 @@ export class OrbitalPhysicsPanel {
       radialNodes,
       angularNodes,
       totalNodes,
-      notation,
+      notationHtml,
       rExpBohr,
       rExpPm,
       energyEv,
@@ -108,7 +117,13 @@ export class OrbitalPhysicsPanel {
     };
   }
 
-  private getOrbitalNotation(n: number, l: number, m: number, useRealOrbital: boolean): string {
+  /**
+   * Returns the orbital notation as an HTML fragment (with real <sub> markup for
+   * real-orbital suffixes), safe to interpolate raw because every piece is a
+   * literal defined in this file. Callers MUST use innerHTML, never textContent
+   * or escapeHtml().
+   */
+  private getOrbitalNotationHtml(n: number, l: number, m: number, useRealOrbital: boolean): string {
     const subshell = SUBSHELL_NAMES[l] || 's';
 
     if (!useRealOrbital) {
@@ -116,7 +131,7 @@ export class OrbitalPhysicsPanel {
       return `${n}${subshell} (m=${mSign})`;
     }
 
-    const realSuffix = REAL_ORBITAL_SUFFIX[l]?.[m];
+    const realSuffix = REAL_ORBITAL_SUFFIX_HTML[l]?.[m];
     if (realSuffix) {
       return `${n}${realSuffix}`;
     }
@@ -127,7 +142,7 @@ export class OrbitalPhysicsPanel {
   private render(): void {
     const strings = getStrings();
     const { n, l, m, zEff } = this.currentParams;
-    const { radialNodes, angularNodes, totalNodes, notation, rExpBohr, rExpPm, energyEv, seriesName } =
+    const { radialNodes, angularNodes, totalNodes, notationHtml, rExpBohr, rExpPm, energyEv, seriesName } =
       this.calculatePhysics(this.currentParams);
 
     this.container.innerHTML = `
@@ -157,7 +172,7 @@ export class OrbitalPhysicsPanel {
           </div>
           <div class="active-state-badge">
             <span class="badge-label">${escapeHtml(strings.activeState)}</span>
-            <span class="badge-value" id="val-active-state">${escapeHtml(notation)} (n=${n}, l=${l}, m=${m})</span>
+            <span class="badge-value" id="val-active-state">${notationHtml} (n=${n}, l=${l}, m=${m})</span>
           </div>
         </div>
 

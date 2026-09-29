@@ -84,9 +84,9 @@ async function init() {
   const updatePhysicalScaleText = () => {
     if (activeTab === 'orbitals') {
       const p = controlPanel.getParams();
-      const extent = (4.0 * (p.n * p.n)) / p.zEff;
-      const pm = Math.round(extent * 52.9177);
-      viewportHud.updateScale(`r ≈ ${extent.toFixed(1)} a₀ (${pm} pm)`);
+      const meanRadiusA0 = (0.5 / p.zEff) * (3 * p.n * p.n - p.l * (p.l + 1));
+      const meanRadiusPm = meanRadiusA0 * 52.917721;
+      viewportHud.updateScale(`⟨r⟩ ${meanRadiusA0.toFixed(2)} a₀ (${meanRadiusPm.toFixed(1)} pm)`);
     } else if (activeTab === 'molecules') {
       viewportHud.updateScale(`1 Å = 100 pm (1.89 a₀)`);
     }

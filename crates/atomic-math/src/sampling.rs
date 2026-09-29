@@ -38,7 +38,13 @@ pub fn sample_points_internal(
     let mut rng = Lcg::new(seed);
     let mut points = Vec::with_capacity(n_points);
 
-    let r_max = 5.0 * (qn.n * qn.n) as f64 / z_eff;
+    // Sampling box. It has to clear the outermost radial node and the peak of
+    // the outermost lobe (both near 2n^2/Z for l = 0) and then reach far enough
+    // into the exponential tail (decay rate Z/n) that the discarded mass is
+    // negligible. (2n^2 + 16n)/Z does all three: the worst-case truncated mass
+    // over every supported state drops from 2.8e-3 (the previous 5n^2/Z) to
+    // 4e-10, and the box is smaller than before for n >= 6.
+    let r_max = (2.0 * (qn.n * qn.n) as f64 + 16.0 * qn.n as f64) / z_eff;
 
     // Strict, unbiased precomputation of p_max:
     // Decoupled into radial maximum A_max and angular maximum B_max:

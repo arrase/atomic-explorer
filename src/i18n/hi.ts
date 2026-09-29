@@ -235,7 +235,7 @@ export const strings: I18nStrings = {
   hydrogenicEnergy: 'बंधन ऊर्जा E_n',
   hydrogenicEnergyDesc: 'eV में इलेक्ट्रॉनिक ऊर्जा स्तर: E_n = -13.6057 eV · (Z_eff² / n²)।',
   hydrogenicEnergyDetail: 'प्रभावी नाभिकीय आवेश Z_eff के तहत इलेक्ट्रॉन के बद्ध-अवस्था स्थितिज ऊर्जा स्तर की गणना करता है। ऋणात्मक ऊर्जा अनंत पर स्थित मुक्त इलेक्ट्रॉन की तुलना में एक स्थिर बद्ध अवस्था को दर्शाती है।',
-  spectralSeries: 'स्पेक्ट्रमी संक्रमण श्रेणी',
+  spectralSeries: 'इस कोश पर समाप्त होने वाली स्पेक्ट्रमी श्रेणी',
   seriesLyman: 'लाइमैन (पराबैंगनी UV)',
   seriesBalmer: 'बामर (दृश्य/पराबैंगनी)',
   seriesPaschen: 'पाशन (अवरक्त Near-IR)',

@@ -108,7 +108,7 @@ export function getElectronegativityColor(value: number | null): string {
 }
 
 export function getRadiusColor(radiusPm: number): string {
-  // Domain 30 pm (He) .. 260 pm (Cs) matches the legend labels.
-  const t = (radiusPm - 30) / (260 - 30);
+  // Domain 32 pm (He) .. 260 pm (Fr) matches the legend labels.
+  const t = (radiusPm - 32) / (260 - 32);
   return sampleGradient(RADIUS_STOPS, t);
 }

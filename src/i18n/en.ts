@@ -235,7 +235,7 @@ export const strings: I18nStrings = {
   hydrogenicEnergy: 'Binding Energy E_n',
   hydrogenicEnergyDesc: 'Electronic energy level in eV: E_n = -13.6057 eV · (Z_eff² / n²).',
   hydrogenicEnergyDetail: 'Calculates the bound-state potential energy level of the electron under effective nuclear charge Z_eff. Negative energy indicates a bound state relative to a free electron at infinity.',
-  spectralSeries: 'Spectral Transition Series',
+  spectralSeries: 'Spectral Series Ending at This Shell',
   seriesLyman: 'Lyman (UV)',
   seriesBalmer: 'Balmer (Visible/UV)',
   seriesPaschen: 'Paschen (Near-IR)',

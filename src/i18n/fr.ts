@@ -235,7 +235,7 @@ export const strings: I18nStrings = {
   hydrogenicEnergy: "Énergie de Liaison E_n",
   hydrogenicEnergyDesc: 'Niveau d\'énergie électronique en eV : E_n = -13.6057 eV · (Z_eff² / n²).',
   hydrogenicEnergyDetail: "Calcule le niveau d'énergie potentielle de l'état lié de l'électron soumis à la charge nucléaire effective Z_eff. Une énergie négative indique un état lié par rapport à un électron libre à l'infini.",
-  spectralSeries: 'Séries de Transitions Spectrales',
+  spectralSeries: 'Série Spectrale se Terminant sur Cette Couche',
   seriesLyman: 'Lyman (UV)',
   seriesBalmer: 'Balmer (Visible/UV)',
   seriesPaschen: 'Paschen (Infrarouge proche)',

@@ -235,7 +235,7 @@ export const strings: I18nStrings = {
   hydrogenicEnergy: 'طاقة الترابط E_n',
   hydrogenicEnergyDesc: 'مستوى الطاقة الإلكترونية بوحدة eV: E_n = -13.6057 eV · (Z_eff² / n²).',
   hydrogenicEnergyDetail: 'تحسب مستوى طاقة الوضع للحالة المقيدة للإلكترون تحت تأثير شحنة النواة الفعالة Z_eff. تدل الطاقة السالبة على حالة ترابط مستقرة بالنسبة لإلكترون حر في اللانهاية.',
-  spectralSeries: 'سلاسل الانبعاث الطيفي',
+  spectralSeries: 'السلاسل الطيفية المنتهية عند هذا الغلاف',
   seriesLyman: 'لايمان (فوق بنفسجية UV)',
   seriesBalmer: 'بالمر (مرئية / فوق بنفسجية)',
   seriesPaschen: 'باشن (تحت حمراء قريبة)',

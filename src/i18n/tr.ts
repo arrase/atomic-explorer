@@ -235,7 +235,7 @@ export const strings: I18nStrings = {
   hydrogenicEnergy: 'Bağlanma Enerjisi E_n',
   hydrogenicEnergyDesc: 'Elektronik enerji seviyesi (eV): E_n = -13.6057 eV · (Z_eff² / n²).',
   hydrogenicEnergyDetail: 'Etkin çekirdek yükü Z_eff altındaki elektronun bağlı durum potansiyel enerji düzeyini hesaplar. Negatif enerji, sonsuzdaki serbest elektrona kıyasla kararlı bağlı bir durumu ifade eder.',
-  spectralSeries: 'Spektral Geçiş Serileri',
+  spectralSeries: 'Bu Kabukta Biten Spektral Seri',
   seriesLyman: 'Lyman (UV)',
   seriesBalmer: 'Balmer (Görünür/UV)',
   seriesPaschen: 'Paschen (Yakın Kızılötesi)',

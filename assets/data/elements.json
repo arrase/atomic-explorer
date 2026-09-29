@@ -73,6 +73,7 @@
     "electronegativity": 2.04,
     "ionization_energy": 801,
     "oxidation_states": [
+      -3,
       3
     ],
     "discovery_year": 1808,
@@ -1999,8 +2000,6 @@
     "ionization_energy": 860,
     "discovery_year": 2006,
     "name_en": "Oganesson",
-    "oxidation_states": [
-      0
-    ]
+    "oxidation_states": []
   }
 ]
