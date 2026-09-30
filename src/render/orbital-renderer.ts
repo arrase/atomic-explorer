@@ -6,6 +6,7 @@ import {
   evaluateIsosurfaceGrid,
   getOrbitalPeakDensity,
   resolveOrbitalGeometry,
+  sampleOrbitalPoints,
 } from '../core/wasm-bridge';
 
 export type RenderMode = 'points' | 'isosurface' | 'raymarching';
@@ -43,6 +44,52 @@ const INITIAL_FRAME_RADIUS = 16;
 const INITIAL_FRAME_DISTANCE = 46.8;
 
 /**
+ * Slack on top of the geometric reach, as a multiplier.
+ *
+ * The far corner of a cube is exactly `sqrt(3)` of its half-size away, so the
+ * reach computed from it would leave the corner sitting precisely on the far
+ * plane. A few percent of clearance keeps it inside under any rounding.
+ */
+const CLIP_HEADROOM = 1.05;
+
+/**
+ * How far past the framed radius the point cloud can usefully draw.
+ *
+ * Points below the density floor are culled in the vertex shader, and the floor
+ * is the quantile that keeps VISIBLE_QUANTILE of the electron, so the drawn
+ * cloud never reaches much past the radius holding FRAMING_QUANTILE of the
+ * probability. A little over that is enough.
+ */
+const POINT_CLIP_FACTOR = 1.5;
+
+/** Same reach for the empty scene, before any orbital has been loaded. */
+const INITIAL_CLIP_REACH = INITIAL_FRAME_RADIUS * POINT_CLIP_FACTOR;
+
+/**
+ * Optical depth a ray accumulates crossing one frame radius at full ramped
+ * density, in units of `u_absorption`.
+ *
+ * Dimensionless, so the opacity of an orbital does not depend on its physical
+ * size: a contracted 1s and a diffuse 7s shade the same. Higher is denser.
+ *
+ * The density arriving here is already logarithmic (see `u_densityFloor`), so it
+ * spans 0..1 across the cloud instead of the twenty decades the raw ratio
+ * covers, and `stepFraction` is the step size measured in frame radii, so
+ * `maxSteps * stepFraction` is the chord and the shading does not depend on the
+ * step count.
+ *
+ * 5.0 is what the measured profiles asked for. Accumulated alpha along a ray
+ * crossing the body, sampled at impact parameters 0, 0.2, 0.4, 0.6 and 0.8 of
+ * the frame radius: a 1s gives 0.97 / 0.95 / 0.85 / 0.49 / 0.04 and a 2p_z
+ * 1.00 / 1.00 / 0.98 / 0.96 / 0.85, so the core is opaque and the rim reads as a
+ * soft edge rather than a hard cut. Lower values leave a 7s see-through at 0.44
+ * (its lobes are spread over 115 a0 with real density between the nodes, so it
+ * needs more depth per frame radius than a compact orbital does); higher ones
+ * flatten every state into a silhouette and throw the halo away.
+ */
+const RAYMARCH_ABSORPTION = 5.0;
+
+/**
  * Fraction of the electron probability the point cloud is required to show.
  *
  * The transfer function's floor is derived from this: the cloud is drawn down
@@ -62,6 +109,19 @@ const VISIBLE_QUANTILE = 0.97;
 /** Guard rails for the derived floor, in case the sample is degenerate. */
 const MIN_DENSITY_FLOOR = 1e-8;
 const MAX_DENSITY_FLOOR = 0.05;
+
+/**
+ * Samples drawn to place the raymarcher's density floor.
+ *
+ * The floor is the quantile that keeps VISIBLE_QUANTILE of the electron, so what
+ * matters is the stability of a 3% tail quantile, not the resolution of the
+ * cloud: 30k samples put the cutoff at the 900th smallest density, whose relative
+ * spread is under 1%, well below the 3% of the density that the histogram
+ * quantises to. Deliberately independent of the point count, since this sample is
+ * thrown away - it only has to be representative, and a mode switch should not
+ * get slower just because the quality preset is high.
+ */
+const DENSITY_FLOOR_SAMPLE_COUNT = 30_000;
 
 /**
  * Opacity of a single dot sitting at the peak of the density.
@@ -257,6 +317,24 @@ const raymarchFragmentShader = `
   uniform int u_palette;
   uniform float u_peakDensity;
   uniform float u_contrast;
+  /**
+   * Optical depth accumulated by a ray crossing one full box half-extent.
+   *
+   * Dimensionless, so the opacity of an orbital does not depend on its physical
+   * size: a contracted 1s and a diffuse 7s shade the same. Higher is denser.
+   */
+  uniform float u_absorption;
+
+  /** Radius of the orbital, a0; the length the step size is measured against. */
+  uniform float u_frameRadius;
+
+  /**
+   * Lowest relative density still drawn, in (0, 1).
+   *
+   * The density ramp is logarithmic between this and the peak, exactly as in the
+   * point cloud, so all three modes compress the same range of |psi|^2.
+   */
+  uniform float u_densityFloor;
 
   #define PI 3.14159265359
 
@@ -325,16 +403,76 @@ const raymarchFragmentShader = `
     return prefactor * exp(-zr / nf) * pow(rho, float(l)) * lag;
   }
 
+  /**
+   * Associated Legendre polynomial P_l^m(x), m >= 0, Condon-Shortley included.
+   *
+   * Line-for-line the recurrence in associated_legendre
+   * (crates/atomic-math/src/math_utils.rs), so the sign of the wavefunction
+   * agrees with the WASM grid the point cloud and the isosurface render from -
+   * the palettes branch on psi > 0, and a flipped sign would paint a lobe in
+   * one mode the colour it has in the other two.
+   *
+   * The loop bounds are the constant-plus-break form GLSL ES 1.00 requires. They
+   * are sized for l <= 6, which is everything n <= 7 can reach.
+   */
+  float legendreP(int l, int mm, float x) {
+    if (mm > l) return 0.0;
+    float pmm = 1.0;
+    if (mm > 0) {
+      float somx2 = sqrt(max(1.0 - x * x, 0.0));
+      float fact = 1.0;
+      for (int i = 1; i <= 8; i++) {
+        if (i > mm) break;
+        pmm *= -fact * somx2;
+        fact += 2.0;
+      }
+    }
+    if (l == mm) return pmm;
+    float pmm1 = x * float(2 * mm + 1) * pmm;
+    if (l == mm + 1) return pmm1;
+
+    float mf = float(mm);
+    float pl = pmm1;
+    for (int k = 2; k <= 8; k++) {
+      int kk = mm + k;
+      if (kk > l) break;
+      float kf = float(kk);
+      pl = ((2.0 * kf - 1.0) * x * pmm1 - (kf + mf - 1.0) * pmm) / (kf - mf);
+      pmm = pmm1;
+      pmm1 = pl;
+    }
+    return pl;
+  }
+
   float evalY(int l, int m, bool useReal, float theta, float phi) {
     float ct = cos(theta);
     float st = sin(theta);
-    float cp = useReal ? cos(phi) : 1.0;
-    float sp = useReal ? sin(phi) : 1.0;
+    float cp = cos(phi);
+    float sp = sin(phi);
 
-    // Real chemist orbitals are only tabulated up to l = 3, and a pure eigenstate
-    // is (up to the shared 1/sqrt(2) factor below) the phi average of the real
-    // set. Returning 0 for l > 3 renders nothing rather than falling through to
-    // the s-like default below, which would silently draw a sphere for a g orbital.
+    // A pure eigenstate is a closed form for every l the UI can reach (n up to
+    // 7, so l up to 6), so it is evaluated from P_l^m rather than from the table
+    // below, which only holds the real chemist orbitals up to l = 3. Tabulating
+    // the pure rows instead left every l >= 4 falling through to the s-like
+    // default at the end of this function, which draws a radially-correct but
+    // angularly featureless sphere: 5g, 6h, 7f and 7g came out as grey balls
+    // with all their nodal structure gone, while the point cloud and the
+    // isosurface showed the real orbital.
+    //
+    // |Y_l^m| is independent of phi, which is what makes this cheaper than the
+    // real rows. The phase factor reproduces y_lm_theta_component
+    // (spherical_harmonics.rs:46) so the two agree on the sign of each lobe.
+    if (!useReal) {
+      int ma = abs(m);
+      float phase = (m >= 0 && (ma % 2 == 1)) ? -1.0 : 1.0;
+      float prefactor = sqrt((2.0 * float(l) + 1.0) / (4.0 * PI)
+                             * factorialF(l - ma) / factorialF(l + ma));
+      return prefactor * phase * legendreP(l, ma, ct);
+    }
+
+    // Real chemist orbitals are only tabulated up to l = 3. Returning 0 rather
+    // than falling through to the s-like default below is what stops an
+    // unsupported real orbital from silently drawing a sphere.
     if (l > 3) return 0.0;
 
     float y = 0.5 * sqrt(1.0 / PI);
@@ -349,17 +487,13 @@ const raymarchFragmentShader = `
       if (m == 0) y = 0.25 * sqrt(5.0 / PI) * (3.0 * ct * ct - 1.0);
       else if (m == 1) y = 0.5 * sqrt(15.0 / PI) * st * ct * cp;
       else if (m == -1) y = 0.5 * sqrt(15.0 / PI) * st * ct * sp;
-      else if (m == 2) y = 0.25 * sqrt(15.0 / PI) * st * st * (useReal ? cos(2.0 * phi) : 1.0);
-      else if (m == -2) y = 0.25 * sqrt(15.0 / PI) * st * st * (useReal ? sin(2.0 * phi) : 1.0);
+      else if (m == 2) y = 0.25 * sqrt(15.0 / PI) * st * st * cos(2.0 * phi);
+      else if (m == -2) y = 0.25 * sqrt(15.0 / PI) * st * st * sin(2.0 * phi);
     } else if (l == 3) {
       if (m == 0) y = 0.25 * sqrt(7.0 / PI) * (5.0 * ct * ct * ct - 3.0 * ct);
       else if (abs(m) == 1) y = 0.25 * sqrt(21.0 / PI) * st * (3.0 * ct * ct - 1.0) * (m > 0 ? cp : sp);
-      else if (abs(m) == 2) y = 0.25 * sqrt(105.0 / PI) * st * st * ct * (useReal ? (m > 0 ? cos(2.0*phi) : sin(2.0*phi)) : 1.0);
-      else if (abs(m) == 3) y = 0.125 * sqrt(70.0 / PI) * st * st * st * (useReal ? (m > 0 ? cos(3.0*phi) : sin(3.0*phi)) : 1.0);
-    }
-    
-    if (!useReal && m != 0) {
-      y *= 0.70710678;
+      else if (abs(m) == 2) y = 0.25 * sqrt(105.0 / PI) * st * st * ct * (m > 0 ? cos(2.0*phi) : sin(2.0*phi));
+      else if (abs(m) == 3) y = 0.125 * sqrt(70.0 / PI) * st * st * st * (m > 0 ? cos(3.0*phi) : sin(3.0*phi));
     }
     return y;
   }
@@ -418,9 +552,25 @@ const raymarchFragmentShader = `
     float stepSize = dist / float(maxSteps);
     vec4 accumColor = vec4(0.0);
 
-    // Stochastic dithering to prevent slice banding
+    // Step length in units of the orbital's own radius.
+    //
+    // The optical depth has to be built from this rather than from the raw
+    // stepSize, because stepSize is in a0 and a plain constant would make the
+    // opacity scale with the physical size of the orbital: a 1s at Z_eff = 118 is
+    // 0.03 a0 across and its 96 steps could only ever sum to ~0.1 alpha, so the
+    // whole cloud quantised to black. Dividing by a length makes the constant
+    // dimensionless. Using the frame radius rather than the box also keeps the
+    // shading independent of the step count, since maxSteps * stepSize is the
+    // chord: a ray crossing the body accumulates the same optical depth however
+    // finely it was sampled.
+    float stepFraction = stepSize / u_frameRadius;
+
+    // Stochastic dithering to prevent slice banding. Jittering the start of the
+    // march trades a little noise for the absence of visible shells, so it is
+    // capped at half a step: a full step of jitter is enough to move the samples
+    // past a thin radial node and erase it entirely.
     float dither = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
-    float startOffset = dither * stepSize;
+    float startOffset = (dither - 0.5) * stepSize * 0.5;
 
     for (int i = 0; i < 512; i++) {
       if (i >= maxSteps) break;
@@ -428,15 +578,38 @@ const raymarchFragmentShader = `
       float psi = evalPsi(currentPos);
       float rawDensity = psi * psi;
 
-      float normDensity = clamp(rawDensity / max(u_peakDensity, 1e-12), 0.0, 1.0);
+      float normDensity = clamp(rawDensity / max(u_peakDensity, 1e-30), 0.0, 1.0);
+
+      // Same log window the point cloud uses, so one slider means the same thing
+      // in all three modes. This is what makes a many-lobe orbital visible: a 7s
+      // has six radial nodes, and its outer lobes sit six or more decades below
+      // the peak that sits in the innermost one, so a linear map renders the
+      // whole cloud at alpha ~1e-6 and it disappears. The ramp is monotone, so
+      // it re-weights the real density without inventing structure.
+      float t = clamp(1.0 - log(max(normDensity, 1e-30)) / log(u_densityFloor), 0.0, 1.0);
+
+      // Smoothstep the ramp, as the point cloud does.
+      //
+      // The log ramp is *linear in log density*, so it is steepest exactly where
+      // the density is smallest: left unsmoothed, a region holding a millionth of
+      // the peak density is still assigned 14% of full opacity, and a volume
+      // renderer integrates the whole box rather than a set of accepted samples.
+      // The empty far corners of the box then paint themselves in and the whole
+      // cloud washes out to a flat fog with the nodal structure gone - measured
+      // on a 1s, alpha stayed between 0.79 and 0.37 from the core all the way
+      // out to the box wall, i.e. the orbital was drawn as a solid disc.
+      // The smoothstep is flat at t = 0, so density just above the floor
+      // contributes nothing and the visible body ends where the electron does.
+      // It is still monotone, and still 0 at a node.
+      float ramped = t * t * (3.0 - 2.0 * t);
 
       // Non-linear contrast enhancement for diffuse tails (preserves 0 nodes exactly)
-      float enhancedDensity = u_contrast > 0.0 ? log(1.0 + u_contrast * normDensity) / log(1.0 + u_contrast) : normDensity;
+      float enhancedDensity = u_contrast > 0.0 ? log(1.0 + u_contrast * ramped) / log(1.0 + u_contrast) : ramped;
 
       if (enhancedDensity > 1e-6) {
         vec3 color = getPaletteColor(psi, enhancedDensity, u_palette);
-        
-        float alphaSample = 1.0 - exp(-enhancedDensity * stepSize * 3.5);
+
+        float alphaSample = 1.0 - exp(-enhancedDensity * stepFraction * u_absorption);
 
         accumColor.rgb += (1.0 - accumColor.a) * color * alphaSample;
         accumColor.a += (1.0 - accumColor.a) * alphaSample;
@@ -459,6 +632,12 @@ export class OrbitalRenderer extends BaseThreeRenderer {
   /** Radius of the orbital currently on screen, and the distance framing it. */
   private frameRadius = INITIAL_FRAME_RADIUS;
   private frameDistance = INITIAL_FRAME_DISTANCE;
+  /**
+   * Furthest distance from the orbit target that the current mode can draw, a0.
+   *
+   * Each mode sets this to match the geometry it builds; see `updateClipping`.
+   */
+  private clipReach = INITIAL_CLIP_REACH;
   private readonly drawingBufferSize = new THREE.Vector2();
   private updateToken = 0;
 
@@ -523,20 +702,25 @@ export class OrbitalRenderer extends BaseThreeRenderer {
   /**
    * Brackets the depth range around the framed orbital.
    *
-   * The scene holds one body of radius `frameRadius` centred on the orbit
-   * target, and the framing distance follows the orbital: a contracted 1s sits
-   * ~0.1 a0 away while a diffuse 7s at Z_eff = 0.1 sits ~3200 a0 away. Fixed
-   * near/far planes cannot serve both - at the small end the orbital falls
-   * behind the near plane, at the large end every vertex is clipped by the far
-   * plane and the viewport goes empty - so the planes are refitted to the
-   * current distance instead. This also keeps them correct while the user zooms.
+   * The depth range has to contain every drawn vertex, or the rasteriser drops
+   * the ones outside it before the fragment shader ever runs - and a dropped
+   * vertex leaves the clear colour, which reads as opaque black geometry rather
+   * than as a missing surface.
+   *
+   * `clipReach` is how far from the orbit target the current mode can draw, so
+   * the two ends are `distance -+ clipReach`. The volumetric modes draw a *cube*
+   * of half-size `boxExtent`, whose far corner sits `sqrt(3) * boxExtent` from
+   * the target in whatever direction the camera happens to look, which is why
+   * the reach is not simply the orbital radius: a range fitted to the orbital
+   * left the far plane inside the box and cut a hard-edged triangular wedge out
+   * of the middle of the cloud. `CLIP_HEADROOM` keeps the corner clear as the
+   * user orbits, and keeps the near plane clear of the near faces.
    */
   protected override updateClipping(): void {
-    const radius = Math.max(this.frameRadius, Number.EPSILON);
+    const reach = Math.max(this.clipReach, Number.EPSILON);
     const distance = this.camera.position.distanceTo(this.controls.target);
-    const extent = radius * 1.5;
-    const near = Math.max(distance - extent, radius * 1e-4);
-    const far = distance + extent;
+    const near = Math.max(distance - reach, reach * 1e-4);
+    const far = distance + reach;
     if (near === this.camera.near && far === this.camera.far) return;
     this.camera.near = near;
     this.camera.far = far;
@@ -697,6 +881,7 @@ export class OrbitalRenderer extends BaseThreeRenderer {
     this.pointsMesh = new THREE.Points(geometry, material);
     this.scene.add(this.pointsMesh);
 
+    this.clipReach = orbitalGeometry.frameRadius * POINT_CLIP_FACTOR;
     this.applyFraming(orbitalGeometry.frameRadius, true);
     this.updatePointSizing(count);
   }
@@ -856,6 +1041,8 @@ export class OrbitalRenderer extends BaseThreeRenderer {
     const mcPos = new MarchingCubes(gridRes, materialPos, false, false, 150000);
     const mcNeg = new MarchingCubes(gridRes, materialNeg, false, false, 150000);
     const boxExtent = orbitalGeometry.boxExtent;
+    // A cube of half-size h puts its far corner sqrt(3) * h from the target.
+    this.clipReach = boxExtent * Math.sqrt(3) * CLIP_HEADROOM;
     mcPos.scale.set(boxExtent, boxExtent, boxExtent);
     mcNeg.scale.set(boxExtent, boxExtent, boxExtent);
 
@@ -891,9 +1078,29 @@ export class OrbitalRenderer extends BaseThreeRenderer {
     const token = this.beginUpdate();
     this.currentParams = { ...params };
     const p: OrbitalRenderParams = { ...params };
-    const [orbitalGeometry, peakDensity] = await Promise.all([
+    const [orbitalGeometry, peakDensity, samples] = await Promise.all([
       resolveOrbitalGeometry(p.n, p.l, p.zEff),
       getOrbitalPeakDensity(p.n, p.l, p.m, p.useRealOrbital, p.zEff),
+      // The log ramp has to be told how much dynamic range this state actually
+      // spans before it can be integrated over a box, and the only honest way to
+      // find out is to look at the state. So the raymarcher derives its floor
+      // from the very same estimator the point cloud uses, rather than from a
+      // constant: the modes then compress the same range of |psi|^2 and draw the
+      // same body, and the density slider means one thing in all of them.
+      //
+      // A constant cannot do this. 1e-6 of the peak happens to be about right
+      // for a 7s, whose outermost lobe is the faintest thing worth drawing, but
+      // it is six decades of window for a 1s, whose whole visible range spans
+      // three: the ramped density then sat between 0.35 and 1.0 everywhere in the
+      // box and the orbital came out as a flat disc with no falloff.
+      sampleOrbitalPoints({
+        n: p.n,
+        l: p.l,
+        m: p.m,
+        useRealOrbital: p.useRealOrbital,
+        zEff: p.zEff,
+        pointCount: DENSITY_FLOOR_SAMPLE_COUNT,
+      }),
     ]);
     if (!this.isCurrentUpdate(token)) return;
 
@@ -902,10 +1109,13 @@ export class OrbitalRenderer extends BaseThreeRenderer {
     this.syncPixelRatio();
 
     const boxExtent = orbitalGeometry.boxExtent;
+    // A cube of half-size h puts its far corner sqrt(3) * h from the target.
+    this.clipReach = boxExtent * Math.sqrt(3) * CLIP_HEADROOM;
     const geometry = new THREE.BoxGeometry(boxExtent * 2, boxExtent * 2, boxExtent * 2);
 
     const steps = p.raymarchingSteps ?? this.getRaymarchingSteps(p.quality);
 
+    const sampleCount = Math.floor(samples.length / SAMPLE_STRIDE);
     const palette = PALETTE_CONFIG[p.colorPalette];
     const contrast = p.contrast ?? 0.0;
 
@@ -924,6 +1134,11 @@ export class OrbitalRenderer extends BaseThreeRenderer {
         u_palette: { value: palette.id },
         u_peakDensity: { value: peakDensity },
         u_contrast: { value: contrast },
+        u_absorption: { value: RAYMARCH_ABSORPTION },
+        u_frameRadius: { value: orbitalGeometry.frameRadius },
+        u_densityFloor: {
+          value: OrbitalRenderer.computeDensityFloor(samples, sampleCount),
+        },
       },
       transparent: true,
       side: THREE.BackSide,

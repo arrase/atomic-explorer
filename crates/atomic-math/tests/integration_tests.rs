@@ -796,6 +796,157 @@ fn test_angular_density_max_orbital_kinds() {
 }
 
 #[test]
+fn pure_l3_m1_matches_its_own_closed_form() {
+    // P_3^1 is (3/2) sin(th)(5cos^2(th) - 1), so the pure 3d, |m| = 1 eigenstate
+    // is *not* the real chemist f_xz^2 = x(3z^2 - r^2): a different bracket
+    // (5cos^2 - 1 against 3cos^2 - 1) and a different prefactor. The GLSL
+    // raymarcher once reused the real row for it, which drew the wrong nodal
+    // cone. This pins the exact shape the GLSL has to reproduce.
+    //
+    // |Y_3^1|^2 = (7/48pi) * (9/4) * sin^2(th) * (5cos^2(th) - 1)^2
+    const PRE: f64 = 7.0 / 48.0 / std::f64::consts::PI;
+    let closed_form = |theta: f64| {
+        let ct = theta.cos();
+        PRE * 2.25 * theta.sin().powi(2) * (5.0 * ct * ct - 1.0).powi(2)
+    };
+
+    for i in 0..=200 {
+        let theta = (i as f64) * std::f64::consts::PI / 200.0;
+        assert_relative_eq!(
+            y_lm_density(3, 1, theta).unwrap(),
+            closed_form(theta),
+            epsilon = 1e-12
+        );
+    }
+
+    // The peak is where sin^2 * (5cos^2 - 1)^2 turns over. With u = cos^2(th),
+    // g(u) = (1-u)(5u-1)^2 and g'(u) = (5u-1)(11 - 15u), so apart from the node
+    // at u = 1/5 the maximum is at u = 11/15, i.e. cos(th) = sqrt(11/15).
+    let peak_cos2 = 11.0f64 / 15.0;
+    let peak = closed_form(peak_cos2.sqrt().acos());
+    assert_relative_eq!(peak, 0.198_059_484_736, epsilon = 1e-11);
+
+    // The GLSL no longer tabulates this row: `evalY` builds every pure row from
+    // the shared `prefactor * phase * P_l^|m|(cos th)` form, so what has to land
+    // on the peak above is that form, not a transcribed coefficient.
+    //
+    // N_3^1 = sqrt(7/(4pi) * 2!/4!) = sqrt(7/(48pi)); the Condon-Shortley phase
+    // inside P_3^1 makes it -(3/2)sin(th)(5cos^2 - 1), and `phase` for m >= 0
+    // with |m| odd supplies the matching -1. The product is therefore
+    // (3/2)sqrt(7/(48pi)) times (5cos^2 - 1)sin(th), i.e. the prefactor above
+    // with the 9/4 pushed into the polynomial - which is the whole point of
+    // folding the row into P_l^m rather than keeping a coefficient table.
+    let prefactor = (7.0f64 / 48.0 / std::f64::consts::PI).sqrt();
+    let theta = peak_cos2.sqrt().acos();
+    let ct = theta.cos();
+    let from_glsl = (prefactor * 1.5 * theta.sin() * (5.0 * ct * ct - 1.0)).powi(2);
+    assert_relative_eq!(from_glsl, peak, epsilon = 1e-12);
+}
+
+#[test]
+fn pure_eigenstate_density_is_available_for_every_reachable_l() {
+    // The GLSL used to tabulate the pure rows only for l <= 3 and let anything
+    // above fall through to an s-like default, which drew a radially correct but
+    // angularly featureless sphere: 5g, 6h, 7f and 7g came out as grey balls with
+    // all their angular structure gone, while the point cloud and the isosurface
+    // - which ask WASM - showed the real orbital. The shader now evaluates every
+    // pure row from P_l^m, so it depends on these rows existing and being
+    // correctly normalized.
+    //
+    // The peak of |Y_l^m| over theta is where the P_l^m factor turns over, so it
+    // is not a closed form in general. What is pinned here is the value the GLSL
+    // prefactor has to land on, so a change to either side shows up as a number
+    // rather than as a grey ball.
+    const PEAKS: &[(u32, i32, f64)] = &[
+        (0, 0, 0.079_577_471_546),
+        (1, 0, 0.238_732_414_638),
+        (1, 1, 0.119_366_207_319),
+        (2, 0, 0.397_887_357_730),
+        (2, 1, 0.149_207_759_149),
+        (3, 0, 0.557_042_300_822),
+        (3, 1, 0.198_059_484_737),
+        (4, 0, 0.716_197_243_914),
+        (4, 1, 0.249_592_811_193),
+        (4, 2, 0.184_987_170_781),
+        (4, 3, 0.165_235_936_401),
+        (4, 4, 0.195_835_183_883),
+        (5, 0, 0.875_352_187_005),
+        (5, 1, 0.302_087_154_690),
+        (6, 0, 1.034_507_130_097),
+        (6, 1, 0.355_045_579_482),
+    ];
+
+    for &(l, m, expected) in PEAKS {
+        // Coarse scan, then a ternary search inside the winning cell. The peak of
+        // a smooth row is a quadratic maximum, so a plain scan lands a resolution
+        // error of ~5e-6 on it - enough to make this table a test of the grid
+        // rather than of the harmonics.
+        let steps = 2000usize;
+        let mut best = (0usize, f64::NEG_INFINITY);
+        for i in 0..=steps {
+            let th = (i as f64) * std::f64::consts::PI / steps as f64;
+            let d = y_lm_density(l, m, th).unwrap();
+            if d > best.1 {
+                best = (i, d);
+            }
+        }
+        let mut lo = (best.0.saturating_sub(1)) as f64 * std::f64::consts::PI / steps as f64;
+        let mut hi = (best.0 + 1).min(steps) as f64 * std::f64::consts::PI / steps as f64;
+        for _ in 0..200 {
+            let a = lo + (hi - lo) / 3.0;
+            let b = hi - (hi - lo) / 3.0;
+            if y_lm_density(l, m, a).unwrap() > y_lm_density(l, m, b).unwrap() {
+                hi = b;
+            } else {
+                lo = a;
+            }
+        }
+        let max = y_lm_density(l, m, (lo + hi) / 2.0).unwrap();
+        assert_relative_eq!(max, expected, epsilon = 1e-9);
+    }
+
+    // Every row the UI can reach must be finite, peak strictly above the s value
+    // for l > 0 (an s-like fallback would not), and stay normalizable.
+    for l in 0..=6u32 {
+        for m in -(l as i32)..=(l as i32) {
+            let mut max = 0.0f64;
+            for i in 0..=400 {
+                let theta = (i as f64) * std::f64::consts::PI / 400.0;
+                let d = y_lm_density(l, m, theta).unwrap();
+                assert!(d.is_finite(), "|Y_{}^{}|^2 not finite", l, m);
+                max = max.max(d);
+            }
+            if l > 0 {
+                assert!(
+                    max > y_lm_density(0, 0, std::f64::consts::FRAC_PI_2).unwrap(),
+                    "|Y_{}^{}|^2 peaks at {} - no angular structure, i.e. an s-like \
+                     fallback rather than the l = {m} row",
+                    l,
+                    m,
+                    max
+                );
+            }
+        }
+    }
+
+    // The normalization the GLSL prefactor encodes: int |Y_l^m|^2 dOmega = 1.
+    // sin(th) d(th) d(phi) integrated out leaves 2pi * int_0^pi |Y|^2 sin th dth.
+    for l in 0..=6u32 {
+        for m in -(l as i32)..=(l as i32) {
+            let n = 400_000;
+            let h = std::f64::consts::PI / n as f64;
+            let mut acc = 0.0f64;
+            for i in 0..=n {
+                let th = (i as f64) * h;
+                let w = if i == 0 || i == n { 0.5 } else { 1.0 };
+                acc += w * y_lm_density(l, m, th).unwrap() * th.sin() * h;
+            }
+            assert_relative_eq!(2.0 * std::f64::consts::PI * acc, 1.0, epsilon = 1e-6);
+        }
+    }
+}
+
+#[test]
 fn angular_density_max_is_a_true_upper_bound() {
     // The rejection sampler is only unbiased if p_max is an upper bound on the
     // density it compares candidates against: anything lower silently biases
