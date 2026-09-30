@@ -1,13 +1,40 @@
-import { getStrings, getLanguage, setLanguage, onLanguageChange, Language } from '../i18n';
+import { getStrings, getLanguage, setLanguage, onLanguageChange, Language, I18nStrings } from '../i18n';
 import { GlossaryModal } from './glossary-modal';
 import { ExplanationModal } from './info-modal';
 import { icon } from './icons';
 
 export type TabId = 'orbitals' | 'periodic-table' | 'molecules';
 
+/**
+ * Tab the application opens on.
+ *
+ * The periodic table is the entry point: it is the map of the 118 elements, and
+ * its inspector is where an element's valence cloud is previewed before the full
+ * orbital viewer is opened. `NavigationBar` and `main` both read it so the first
+ * paint cannot disagree with the tab that is about to be activated.
+ */
+export const DEFAULT_TAB: TabId = 'periodic-table';
+
+export interface NavTab {
+  readonly id: TabId;
+  readonly labelKey: keyof I18nStrings;
+  readonly icon: string;
+}
+
+/**
+ * Tabs in navigation order, which is also the order the number keys select them:
+ * `1` is the first tab here, and it is the default. Both read this list, so the
+ * bar and the shortcuts cannot drift apart when a tab is added or moved.
+ */
+export const NAV_TABS: readonly NavTab[] = [
+  { id: 'periodic-table', labelKey: 'tabPeriodicTable', icon: icon('table') },
+  { id: 'orbitals', labelKey: 'tabOrbitals', icon: icon('atom') },
+  { id: 'molecules', labelKey: 'tabMolecules', icon: icon('molecule') },
+];
+
 export class NavigationBar {
   private readonly container: HTMLElement;
-  private activeTab: TabId = 'orbitals';
+  private activeTab: TabId = DEFAULT_TAB;
   private readonly onTabChange: (tab: TabId) => void;
   private readonly onZenToggle?: () => void;
   private readonly glossaryModal: GlossaryModal;
@@ -39,11 +66,12 @@ export class NavigationBar {
     const strings = getStrings();
     const currentLang = getLanguage();
 
-    const tabs: { id: TabId; label: string; icon: string }[] = [
-      { id: 'orbitals', label: strings.tabOrbitals, icon: icon('atom') },
-      { id: 'periodic-table', label: strings.tabPeriodicTable, icon: icon('table') },
-      { id: 'molecules', label: strings.tabMolecules, icon: icon('molecule') },
-    ];
+    const tabs = NAV_TABS.map((tab, index) => ({
+      id: tab.id,
+      label: strings[tab.labelKey],
+      icon: tab.icon,
+      shortcut: index + 1,
+    }));
 
     this.container.innerHTML = `
       <nav class="top-nav">
@@ -65,6 +93,7 @@ export class NavigationBar {
               aria-selected="${tab.id === this.activeTab ? 'true' : 'false'}"
               aria-controls="${tab.id}-layer"
               tabindex="${tab.id === this.activeTab ? '0' : '-1'}"
+              title="${tab.label} [${tab.shortcut}]"
             >
               <span class="tab-icon">${tab.icon}</span>
               <span class="tab-label">${tab.label}</span>

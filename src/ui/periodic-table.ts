@@ -2,6 +2,9 @@ import elementsData from '../../assets/data/elements.json';
 import { getStrings, getLanguage, onLanguageChange, I18nStrings } from '../i18n';
 import { ExplanationModal } from './info-modal';
 import { icon } from './icons';
+import { OrbitalPreview } from '../render/orbital-preview';
+import { calculateValenceQuantumNumbers, subshellName } from '../core/valence-orbital';
+import { meanRadiusBohr } from '../core/physics-constants';
 import {
   ELECTRONEGATIVITY_GRADIENT,
   RADIUS_GRADIENT,
@@ -63,14 +66,20 @@ function escapeHtml(str: string): string {
 export class PeriodicTableView {
   private readonly container: HTMLElement;
   private readonly elements: ElementData[] = elementsData as ElementData[];
+  private readonly preview: OrbitalPreview;
   private selectedElement: ElementData | null = null;
   private currentColorScheme: 'category' | 'electronegativity' | 'radius' = 'category';
   private selectedBlock: ChemicalBlock = 'all';
   private readonly onSelectElementOrbital: (element: ElementData) => void;
 
-  constructor(container: HTMLElement, onSelectElementOrbital: (element: ElementData) => void) {
+  constructor(
+    container: HTMLElement,
+    onSelectElementOrbital: (element: ElementData) => void,
+    preview: OrbitalPreview
+  ) {
     this.container = container;
     this.onSelectElementOrbital = onSelectElementOrbital;
+    this.preview = preview;
     this.selectedElement = this.elements[0];
     this.render();
     onLanguageChange(() => this.render());
@@ -147,6 +156,7 @@ export class PeriodicTableView {
     `;
 
     this.attachEventListeners();
+    this.updatePreview();
   }
 
   private getElementName(el: ElementData): string {
@@ -405,6 +415,8 @@ export class PeriodicTableView {
           </div>
         </div>
 
+        ${this.renderPreview()}
+
         <button type="button" class="btn-primary btn-inspector-view-3d" id="btn-view-orbital">
           ${icon('atom')}
           <span>${escapeHtml(strings.btnView3DOrbital)}</span>
@@ -421,6 +433,76 @@ export class PeriodicTableView {
         </div>
       </div>
     `;
+  }
+
+  /**
+   * Thumbnail of the element's valence cloud.
+   *
+   * The readout under it is filled in by `updatePreview`, because both halves of
+   * it come out of WASM: the subshell name and the mean radius are properties of
+   * the state, not of the element, and the element alone does not determine them
+   * until the valence solve comes back.
+   */
+  private renderPreview(): string {
+    const strings = getStrings();
+    return `
+      <div
+        class="orbital-preview"
+        id="orbital-preview"
+        title="${escapeHtml(strings.orbitalPreviewHint)}"
+      >
+        <div class="orbital-preview-head">
+          <span class="orbital-preview-label">${escapeHtml(strings.orbitalPreviewTitle)}</span>
+          <span class="orbital-preview-state" id="orbital-preview-state"></span>
+        </div>
+        <div class="orbital-preview-stage" id="orbital-preview-stage" role="img"></div>
+        <div class="orbital-preview-readout" id="orbital-preview-readout"></div>
+      </div>
+    `;
+  }
+
+  /**
+   * Resolves the valence state of the selection and hands it to the thumbnail.
+   *
+   * The same solve feeds the 3D tab, so the preview cannot advertise an orbital
+   * the big renderer would never show. Both of its steps are async, so the
+   * selection is re-checked afterwards: walking a row of the table can leave
+   * several solves in flight, and the slowest one is the first, not the last.
+   */
+  private async updatePreview(): Promise<void> {
+    const element = this.selectedElement;
+    if (!element) return;
+    const z = element.Z;
+
+    try {
+      const { n, l, m, zEff } = await calculateValenceQuantumNumbers(z);
+      if (this.selectedElement?.Z !== z) return;
+
+      const state = this.container.querySelector<HTMLElement>('#orbital-preview-state');
+      if (state) {
+        state.textContent = subshellName(n, l);
+      }
+
+      const readout = this.container.querySelector<HTMLElement>('#orbital-preview-readout');
+      if (readout) {
+        readout.textContent = `Z_eff ${zEff.toFixed(2)} · ⟨r⟩ ${meanRadiusBohr(n, l, zEff).toFixed(2)} a₀`;
+      }
+
+      const stage = this.container.querySelector<HTMLElement>('#orbital-preview-stage');
+      if (stage) {
+        stage.setAttribute(
+          'aria-label',
+          `${getStrings().orbitalPreviewTitle} ${subshellName(n, l)}`
+        );
+        this.preview.mount(stage);
+      }
+      await this.preview.showOrbital({ n, l, m, useRealOrbital: true, zEff });
+    } catch (error) {
+      // The WASM engine rejects unsupported states rather than clamping them, and
+      // this runs detached from any event handler, so a rejection would otherwise
+      // surface as an unhandled promise with an empty thumbnail and no clue.
+      console.error('[atomic-explorer] failed to preview valence orbital', z, error);
+    }
   }
 
   private detailRow(label: string, explainKey: string | null, valueHtml: string): string {
@@ -482,6 +564,8 @@ export class PeriodicTableView {
       `;
       ExplanationModal.attachInfoButtons(inspector);
     }
+
+    this.updatePreview();
   }
 
   public getSelectedElement(): ElementData | null {
@@ -547,7 +631,7 @@ export class PeriodicTableView {
     this.container.onclick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
 
-      const orbitalBtn = target.closest<HTMLElement>('#btn-quick-3d, #btn-view-orbital');
+      const orbitalBtn = target.closest<HTMLElement>('#btn-quick-3d, #btn-view-orbital, #orbital-preview');
       if (orbitalBtn) {
         e.stopPropagation();
         if (this.selectedElement) {

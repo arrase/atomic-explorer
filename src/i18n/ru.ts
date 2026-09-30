@@ -77,6 +77,8 @@ export const strings: I18nStrings = {
   searchPlaceholder: 'Поиск элемента по названию, символу или Z...',
   selectElementPrompt: 'Выберите элемент в периодической таблице для просмотра свойств и валентных орбиталей.',
   btnView3DOrbital: '⚛️ Визуализировать 3D валентные орбитали',
+  orbitalPreviewTitle: 'Валентное облако',
+  orbitalPreviewHint: 'Нажмите, чтобы открыть в 3D',
   swipeToExplore: 'Проведите пальцем по горизонтали для навигации',
   viewFullDetails: 'Показать все параметры',
   atomicMass: 'Атомная масса',

@@ -77,6 +77,8 @@ export const strings: I18nStrings = {
   searchPlaceholder: '通过名称、元素符号或原子序数 Z 搜索...',
   selectElementPrompt: '请在元素周期表中选择一个元素，查看其物理性质并检查价层轨道。',
   btnView3DOrbital: '⚛️ 查看 3D 价层原子轨道',
+  orbitalPreviewTitle: '价层电子云',
+  orbitalPreviewHint: '点击以 3D 打开',
   swipeToExplore: '水平滑动以探索所有周期和族',
   viewFullDetails: '查看完整详情',
   atomicMass: '相对原子质量',

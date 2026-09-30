@@ -77,6 +77,8 @@ export const strings: I18nStrings = {
   searchPlaceholder: 'तत्व को नाम, प्रतीक या परमाणु क्रमांक Z से खोजें...',
   selectElementPrompt: 'विवरण देखने और संयोजकता कक्षकों का निरीक्षण करने के लिए आवर्त सारणी से एक तत्व चुनें।',
   btnView3DOrbital: '⚛️ 3D संयोजकता कक्षक देखें',
+  orbitalPreviewTitle: 'संयोजकता बादल',
+  orbitalPreviewHint: '3D में खोलने के लिए क्लिक करें',
   swipeToExplore: 'सभी समूहों को देखने के लिए क्षैतिज रूप से स्वाइप करें',
   viewFullDetails: 'पूरा विवरण देखें',
   atomicMass: 'परमाणु द्रव्यमान',

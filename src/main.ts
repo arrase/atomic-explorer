@@ -1,34 +1,22 @@
 import * as THREE from 'three';
-import { sampleOrbitalPoints, getSlaterZEff } from './core/wasm-bridge';
+import { sampleOrbitalPoints } from './core/wasm-bridge';
+import { calculateValenceQuantumNumbers } from './core/valence-orbital';
 import { ANGSTROM_IN_BOHR, meanRadiusBohr, bohrToPm } from './core/physics-constants';
 import { OrbitalRenderer } from './render/orbital-renderer';
 import { MoleculeRenderer } from './render/molecule-renderer';
+import { OrbitalPreview } from './render/orbital-preview';
 import { OrientationGizmo } from './render/orientation-gizmo';
 import { ViewportHUD } from './ui/viewport-hud';
 import { getStrings, onLanguageChange } from './i18n';
 import { icon } from './ui/icons';
 
-import { NavigationBar, TabId } from './ui/nav';
+import { NavigationBar, TabId, DEFAULT_TAB, NAV_TABS } from './ui/nav';
 import { ControlPanel, ExtendedOrbitalParams } from './ui/controls';
 import { PeriodicTableView, ElementData } from './ui/periodic-table';
 import { MoleculeView } from './ui/molecule-view';
 import { FPSDisplay } from './ui/fps-display';
 import { ImageExporterModal } from './ui/image-exporter';
 import { ExplanationModal } from './ui/info-modal';
-
-const AUFBAU_TABLE: [number, number, number][] = [
-  [2, 1, 0], [4, 2, 0], [10, 2, 1], [12, 3, 0], [18, 3, 1],
-  [20, 4, 0], [30, 3, 2], [36, 4, 1], [38, 5, 0], [48, 4, 2],
-  [54, 5, 1], [56, 6, 0], [70, 4, 3], [80, 5, 2], [86, 6, 1],
-  [88, 7, 0], [102, 5, 3], [112, 6, 2], [Infinity, 7, 1],
-];
-
-async function calculateValenceQuantumNumbers(Z: number) {
-  const [, n, l] = AUFBAU_TABLE.find(([maxZ]) => Z <= maxZ)!;
-  const m = 0;
-  const zEff = await getSlaterZEff(Z, n, l);
-  return { n, l, m, zEff: Math.round(zEff * 100) / 100 };
-}
 
 async function init() {
   const canvas = document.getElementById('orbital-canvas') as HTMLCanvasElement;
@@ -48,8 +36,11 @@ async function init() {
   const orbitalRenderer = new OrbitalRenderer({ canvas, renderer });
   const moleculeRenderer = new MoleculeRenderer({ canvas, renderer });
   moleculeRenderer.stop();
+  // The element inspector's thumbnail keeps its own context, so it is not part of
+  // the shared canvas above and is driven off the tab switch instead.
+  const orbitalPreview = new OrbitalPreview();
 
-  let activeTab: TabId = 'orbitals';
+  let activeTab: TabId = DEFAULT_TAB;
 
   const navContainer = document.createElement('div');
   navContainer.className = 'top-nav-container';
@@ -134,11 +125,15 @@ async function init() {
     () => imageExporterModal.open()
   );
 
-  const periodicTableView = new PeriodicTableView(viewLayers['periodic-table'], async (element: ElementData) => {
-    const { n, l, m, zEff } = await calculateValenceQuantumNumbers(element.Z);
-    controlPanel.setParams({ n, l, m, zEff });
-    switchTab('orbitals');
-  });
+  const periodicTableView = new PeriodicTableView(
+    viewLayers['periodic-table'],
+    async (element: ElementData) => {
+      const { n, l, m, zEff } = await calculateValenceQuantumNumbers(element.Z);
+      controlPanel.setParams({ n, l, m, zEff });
+      switchTab('orbitals');
+    },
+    orbitalPreview
+  );
 
   const moleculeView = new MoleculeView(viewLayers['molecules'], moleculeRenderer);
 
@@ -183,6 +178,7 @@ async function init() {
   const switchTab = (newTab: TabId) => {
     activeTab = newTab;
     navBar.setActiveTab(newTab);
+    orbitalPreview.setActive(newTab === 'periodic-table');
 
     // Close any open mobile drawers, backdrops, or floating buttons when switching tabs
     document.querySelectorAll('.mobile-open').forEach((el) => el.classList.remove('mobile-open'));
@@ -242,13 +238,13 @@ async function init() {
   const navBar = new NavigationBar(navContainer, switchTab, toggleZenMode);
 
   // Global Keyboard Shortcuts
+
+  // Derived from the nav's own tab order, so the number keys always mean "the
+  // nth tab in the bar" and neither list can fall behind the other.
+  const tabShortcuts = new Map(NAV_TABS.map((tab, index) => [String(index + 1), tab.id]));
+
   const handleTabShortcut = (key: string): boolean => {
-    const tabMap: Record<string, TabId> = {
-      '1': 'orbitals',
-      '2': 'periodic-table',
-      '3': 'molecules',
-    };
-    const tab = tabMap[key];
+    const tab = tabShortcuts.get(key);
     if (tab) {
       switchTab(tab);
       return true;
@@ -330,8 +326,11 @@ async function init() {
 
   window.addEventListener('keydown', handleKeyDown);
 
-  await loadOrbital(controlPanel.getParams());
-  orbitalRenderer.start();
+  // Boots through `switchTab` rather than starting the orbital renderer by hand,
+  // so the canvas, both renderers, the gizmo, the HUD and the inspector preview
+  // all begin in the state DEFAULT_TAB implies. A renderer left running behind a
+  // hidden tab is a tab that costs a full frame budget for nothing.
+  switchTab(activeTab);
 
   if (localStorage.getItem('skipIntroModal') !== 'true') {
     ExplanationModal.show(getStrings().explainIntro, {

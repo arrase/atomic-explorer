@@ -77,6 +77,8 @@ export const strings: I18nStrings = {
   searchPlaceholder: 'Zoek element op naam, symbool of Z...',
   selectElementPrompt: 'Selecteer een element uit het periodiek systeem om details te bekijken en valentie-orbitalen te inspecteren.',
   btnView3DOrbital: '⚛️ 3D-Valentie-orbitalen Visualiseren',
+  orbitalPreviewTitle: 'Valentiewolk',
+  orbitalPreviewHint: 'Klik om in 3D te openen',
   swipeToExplore: 'Veeg horizontaal om alle groepen te verkennen',
   viewFullDetails: 'Volledige details bekijken',
   atomicMass: 'Atoommassa',

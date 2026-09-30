@@ -77,6 +77,8 @@ export const strings: I18nStrings = {
   searchPlaceholder: 'Search element by name, symbol or Z...',
   selectElementPrompt: 'Select an element from the periodic table to view details and inspect valence orbitals.',
   btnView3DOrbital: '⚛️ Visualize 3D Valence Orbitals',
+  orbitalPreviewTitle: 'Valence Cloud',
+  orbitalPreviewHint: 'Click to open in 3D',
   swipeToExplore: 'Swipe horizontally to explore all groups',
   viewFullDetails: 'View full details',
   atomicMass: 'Atomic Mass',

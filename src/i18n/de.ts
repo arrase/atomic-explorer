@@ -77,6 +77,8 @@ export const strings: I18nStrings = {
   searchPlaceholder: 'Element nach Name, Symbol oder Z suchen...',
   selectElementPrompt: 'Wählen Sie ein Element aus dem Periodensystem, um Details anzuzeigen und Valenzorbitale zu untersuchen.',
   btnView3DOrbital: '⚛️ 3D-Valenzorbitale visualisieren',
+  orbitalPreviewTitle: 'Valenzwolke',
+  orbitalPreviewHint: 'Klicken, um in 3D zu öffnen',
   swipeToExplore: 'Horizontal wischen, um alle Gruppen zu erkunden',
   viewFullDetails: 'Vollständige Details anzeigen',
   atomicMass: 'Atommasse',

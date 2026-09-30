@@ -77,6 +77,8 @@ export const strings: I18nStrings = {
   searchPlaceholder: 'ابحث عن عنصر بالاسم أو الرمز أو العدد الذري Z...',
   selectElementPrompt: 'اختر عنصراً من الجدول الدوري لعرض التفاصيل وفحص مدارات التكافؤ.',
   btnView3DOrbital: '⚛️ عرض مدارات التكافؤ ثلاثية الأبعاد 3D',
+  orbitalPreviewTitle: 'سحابة التكافؤ',
+  orbitalPreviewHint: 'انقر للفتح في 3D',
   swipeToExplore: 'اسحب أفقياً لاستكشاف جميع المجموعات',
   viewFullDetails: 'عرض التفاصيل الكاملة',
   atomicMass: 'الكتلة الذرية',

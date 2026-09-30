@@ -77,6 +77,8 @@ export const strings: I18nStrings = {
   searchPlaceholder: 'Szukaj pierwiastka po nazwie, symbolu lub Z...',
   selectElementPrompt: 'Wybierz pierwiastek z układu okresowego, aby zobaczyć szczegóły i zbadać orbitale walencyjne.',
   btnView3DOrbital: '⚛️ Wizualizuj Orbitale Walencyjne 3D',
+  orbitalPreviewTitle: 'Chmura walencyjna',
+  orbitalPreviewHint: 'Kliknij, aby otworzyć w 3D',
   swipeToExplore: 'Przesuń poziomo, aby przeglądać wszystkie grupy',
   viewFullDetails: 'Pokaż pełne szczegóły',
   atomicMass: 'Masa Atomowa',

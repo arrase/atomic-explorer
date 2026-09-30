@@ -77,6 +77,8 @@ export const strings: I18nStrings = {
   searchPlaceholder: '원소 이름, 기호, 원자 번호 Z로 검색...',
   selectElementPrompt: '주기율표에서 원소를 선택하여 상세 정보와 원자가 오비탈을 확인하세요.',
   btnView3DOrbital: '⚛️ 3D 원자가 오비탈 시각화',
+  orbitalPreviewTitle: '원자가 전자 구름',
+  orbitalPreviewHint: '클릭하여 3D로 보기',
   swipeToExplore: '좌우로 스와이프하여 모든 족 탐색',
   viewFullDetails: '전체 상세정보 보기',
   atomicMass: '원자량',

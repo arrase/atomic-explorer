@@ -77,6 +77,8 @@ export const strings: I18nStrings = {
   searchPlaceholder: '元素名、元素記号、原子番号 Z で検索...',
   selectElementPrompt: '周期表から元素を選択すると、詳細情報と価電子軌道が表示されます。',
   btnView3DOrbital: '⚛️ 価電子の 3D 軌道を表示',
+  orbitalPreviewTitle: '価電子雲',
+  orbitalPreviewHint: 'クリックして 3D で表示',
   swipeToExplore: '左右にスワイプしてすべての族を確認',
   viewFullDetails: 'すべての詳細を表示',
   atomicMass: '原子量',

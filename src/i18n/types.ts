@@ -96,6 +96,8 @@ export interface I18nStrings {
   searchPlaceholder: string;
   selectElementPrompt: string;
   btnView3DOrbital: string;
+  orbitalPreviewTitle: string;
+  orbitalPreviewHint: string;
   swipeToExplore: string;
   viewFullDetails: string;
   atomicMass: string;

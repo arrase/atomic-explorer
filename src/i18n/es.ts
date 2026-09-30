@@ -77,6 +77,8 @@ export const strings: I18nStrings = {
   searchPlaceholder: 'Buscar elemento por nombre, símbolo o Z...',
   selectElementPrompt: 'Selecciona un elemento de la tabla periódica para ver sus detalles e inspeccionar sus orbitales de valencia.',
   btnView3DOrbital: '⚛️ Visualizar Orbitales 3D de Valencia',
+  orbitalPreviewTitle: 'Nube de Valencia',
+  orbitalPreviewHint: 'Haz clic para abrir en 3D',
   swipeToExplore: 'Desliza horizontalmente para ver más grupos',
   viewFullDetails: 'Ver detalles completos',
   atomicMass: 'Masa Atómica',

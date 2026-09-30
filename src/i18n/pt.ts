@@ -77,6 +77,8 @@ export const strings: I18nStrings = {
   searchPlaceholder: 'Pesquisar elemento por nome, símbolo ou Z...',
   selectElementPrompt: 'Selecione um elemento da tabela periódica para ver detalhes e inspecionar orbitais de valência.',
   btnView3DOrbital: '⚛️ Visualizar Orbitais 3D de Valência',
+  orbitalPreviewTitle: 'Nuvem de Valência',
+  orbitalPreviewHint: 'Clique para abrir em 3D',
   swipeToExplore: 'Deslize horizontalmente para explorar todos os grupos',
   viewFullDetails: 'Ver detalhes completos',
   atomicMass: 'Massa Atómica',

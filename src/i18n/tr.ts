@@ -77,6 +77,8 @@ export const strings: I18nStrings = {
   searchPlaceholder: 'Element adı, simgesi veya atom numarası Z ile ara...',
   selectElementPrompt: 'Özellikleri incelemek ve değerlik orbitallerini görmek için periyodik tablodan bir element seçin.',
   btnView3DOrbital: '⚛️ 3D Değerlik Orbitallerini İncele',
+  orbitalPreviewTitle: 'Değerlik Bulutu',
+  orbitalPreviewHint: '3D olarak açmak için tıklayın',
   swipeToExplore: 'Tüm grupları keşfetmek için yatay kaydırın',
   viewFullDetails: 'Tüm ayrıntıları görüntüle',
   atomicMass: 'Atom Kütlesi',
