@@ -156,7 +156,7 @@ export class PeriodicTableView {
     `;
 
     this.attachEventListeners();
-    this.updatePreview();
+    void this.updatePreview();
   }
 
   private getElementName(el: ElementData): string {
@@ -468,6 +468,8 @@ export class PeriodicTableView {
    * the big renderer would never show. Both of its steps are async, so the
    * selection is re-checked afterwards: walking a row of the table can leave
    * several solves in flight, and the slowest one is the first, not the last.
+   *
+   * Never rejects - it handles its own failures - so callers can fire and forget.
    */
   private async updatePreview(): Promise<void> {
     const element = this.selectedElement;
@@ -565,7 +567,7 @@ export class PeriodicTableView {
       ExplanationModal.attachInfoButtons(inspector);
     }
 
-    this.updatePreview();
+    void this.updatePreview();
   }
 
   public getSelectedElement(): ElementData | null {

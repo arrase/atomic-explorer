@@ -25,11 +25,6 @@ export function meanRadiusBohr(n: number, l: number, zEff: number): number {
   return (0.5 / zEff) * (3 * n * n - l * (l + 1));
 }
 
-/** The same expectation value, in picometres. */
-export function meanRadiusPm(n: number, l: number, zEff: number): number {
-  return meanRadiusBohr(n, l, zEff) * BOHR_RADIUS_PM;
-}
-
 /** Hydrogenic energy level in eV, E_n = −R_∞ · Z² / n². */
 export function energyLevelEv(n: number, zEff: number): number {
   return (-RYDBERG_ENERGY_EV * (zEff * zEff)) / (n * n);

@@ -173,7 +173,7 @@ async function init() {
   });
 
   // The FPS readout lives inside the HUD so the side panels can never cover it.
-  new FPSDisplay(viewportHud.getExtraSlot());
+  FPSDisplay.start(viewportHud.getExtraSlot());
 
   const switchTab = (newTab: TabId) => {
     activeTab = newTab;
@@ -204,7 +204,7 @@ async function init() {
       viewportHud.setAutoRotateState(orbitalRenderer.isAutoRotating());
       orbitalRenderer.onWindowResize();
       orbitalRenderer.start();
-      loadOrbital(controlPanel.getParams());
+      void loadOrbital(controlPanel.getParams());
     } else if (newTab === 'molecules') {
       canvas.style.display = 'block';
       orbitalRenderer.stop();
@@ -285,7 +285,7 @@ async function init() {
     const nextN = key === 'ArrowUp' ? current.n + 1 : current.n - 1;
     if (nextN >= 1 && nextN <= 7) {
       controlPanel.setParams({ n: nextN });
-      loadOrbital(controlPanel.getParams());
+      void loadOrbital(controlPanel.getParams());
     }
     return true;
   };

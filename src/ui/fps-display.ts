@@ -1,14 +1,28 @@
 import { getStrings, onLanguageChange } from '../i18n';
 
 export class FPSDisplay {
+  /**
+   * The one live readout, kept so a second call cannot start a second loop.
+   *
+   * The HUD owns a single slot, so there is exactly one of these per session;
+   * holding the instance here makes that a guarantee rather than a convention,
+   * and it is also what keeps the object alive for its own animation frame.
+   */
+  private static instance: FPSDisplay | null = null;
+
   private readonly container: HTMLElement;
   private lastTime: number = performance.now();
   private frames: number = 0;
   private readonly fpsValues: number[] = [];
   private currentEl!: HTMLElement;
   private avgEl!: HTMLElement;
-  
-  constructor(container: HTMLElement) {
+
+  /** Mounts the readout into `container` and starts its update loop. */
+  public static start(container: HTMLElement): void {
+    FPSDisplay.instance ??= new FPSDisplay(container);
+  }
+
+  private constructor(container: HTMLElement) {
     this.container = container;
     this.container.classList.add('fps-display');
     this.render();

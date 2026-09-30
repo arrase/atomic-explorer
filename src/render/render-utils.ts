@@ -252,7 +252,15 @@ export abstract class BaseThreeRenderer {
    */
   protected updateClipping(): void {}
 
-  public async captureSnapshot(options: SnapshotOptions): Promise<string> {
+  /**
+   * Renders the current scene at the export resolution and returns a data URL.
+   *
+   * Synchronous by design: the export path is a draw call plus a readback, and
+   * wrapping that in a promise that never yields would only pretend it is
+   * deferred. The image exporter awaits its callback, so it can still adopt an
+   * asynchronous implementation later without touching its call sites.
+   */
+  public captureSnapshot(options: SnapshotOptions): string {
     return captureWebGLSnapshot(
       this.renderer,
       this.scene,
