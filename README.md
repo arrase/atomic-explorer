@@ -8,21 +8,21 @@
 
 The quantum world can be abstract and difficult to imagine. Atomic Explorer solves this by offering an interactive 3D environment where you can:
 
-1. **Visualize Atomic Orbitals in 3D:** Observe the actual shape of atomic orbitals (s, p, d, f) where electrons reside. You can view probability densities and three-dimensional surfaces using advanced rendering.
-2. **Explore the Interactive Periodic Table:** Navigate through the 118 elements, filter by categories (such as alkali metals or noble gases), and discover their periodic properties, such as electronegativity or atomic radius.
+1. **Explore the Interactive Periodic Table:** This is where the app opens. Navigate through the 118 elements, filter by categories (such as alkali metals or noble gases), and discover their periodic properties, such as electronegativity or atomic radius. The element inspector previews the valence electron cloud of the selected element as a live point cloud, so you can see the shape of the orbital before opening the full 3D viewer.
+2. **Visualize Atomic Orbitals in 3D:** Observe the actual shape of atomic orbitals (s, p, d, f) where electrons reside. You can view probability densities and three-dimensional surfaces using advanced rendering.
 3. **Learn Molecular Geometry (VSEPR):** Understand how atoms bond to form molecules like water or methane, visualizing how electron pairs repel each other to form linear, tetrahedral structures, etc.
 
 ---
 
 ## Screenshots
 
-### Quantum Orbital Visualizer
-![Orbitals](./assets/screenshots/01_orbitals.png)
-*3D exploration of wave functions and atomic orbitals.*
-
 ### Complete Periodic Table
 ![Periodic Table](./assets/screenshots/02_table.png)
-*Access to all element information and configurations.*
+*The landing page: every element, its properties, and a live preview of its valence electron cloud.*
+
+### Quantum Orbital Visualizer
+![Orbitals](./assets/screenshots/01_orbitals.png)
+*3D exploration of wave functions and atomic orbitals, with the radial distribution and the nodal structure of the active state.*
 
 ### Geometry and Molecules
 ![Molecules](./assets/screenshots/03_molecules.png)
