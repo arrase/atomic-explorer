@@ -11,7 +11,7 @@
     "wasm:build:dev": "cd crates/atomic-math && wasm-pack build --target web --out-dir pkg --dev"
   },
   "dependencies": {
-    "three": "^0.186.0"
+    "three": "^0.186.1"
   },
   "devDependencies": {
     "@types/node": "^26.6.2",
