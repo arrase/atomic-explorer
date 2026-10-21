@@ -1,5 +1,16 @@
 # Atomic Explorer
 
+[![Quality Gate Status](https://img.shields.io/sonar/quality_gate/arrase_atomic-explorer?server=https%3A%2F%2Fsonarcloud.io&logo=sonarcloud)](https://sonarcloud.io/summary/new_code?id=arrase_atomic-explorer)
+[![Coverage](https://img.shields.io/sonar/coverage/arrase_atomic-explorer?server=https%3A%2F%2Fsonarcloud.io&logo=sonarcloud)](https://sonarcloud.io/summary/new_code?id=arrase_atomic-explorer)
+[![Bugs](https://img.shields.io/sonar/bugs/arrase_atomic-explorer?server=https%3A%2F%2Fsonarcloud.io&logo=sonarcloud)](https://sonarcloud.io/summary/new_code?id=arrase_atomic-explorer)
+[![Vulnerabilities](https://img.shields.io/sonar/vulnerabilities/arrase_atomic-explorer?server=https%3A%2F%2Fsonarcloud.io&logo=sonarcloud)](https://sonarcloud.io/summary/new_code?id=arrase_atomic-explorer)
+[![Code Smells](https://img.shields.io/sonar/code_smells/arrase_atomic-explorer?server=https%3A%2F%2Fsonarcloud.io&logo=sonarcloud)](https://sonarcloud.io/summary/new_code?id=arrase_atomic-explorer)
+[![Tech Debt](https://img.shields.io/sonar/tech_debt/arrase_atomic-explorer?server=https%3A%2F%2Fsonarcloud.io&logo=sonarcloud)](https://sonarcloud.io/summary/new_code?id=arrase_atomic-explorer)
+[![Duplicated Lines](https://img.shields.io/sonar/duplicated_lines_density/arrase_atomic-explorer?server=https%3A%2F%2Fsonarcloud.io&logo=sonarcloud)](https://sonarcloud.io/summary/new_code?id=arrase_atomic-explorer)
+[![Security Rating](https://img.shields.io/sonar/security_rating/arrase_atomic-explorer?server=https%3A%2F%2Fsonarcloud.io&logo=sonarcloud)](https://sonarcloud.io/summary/new_code?id=arrase_atomic-explorer)
+[![Reliability Rating](https://img.shields.io/sonar/reliability_rating/arrase_atomic-explorer?server=https%3A%2F%2Fsonarcloud.io&logo=sonarcloud)](https://sonarcloud.io/summary/new_code?id=arrase_atomic-explorer)
+[![Maintainability Rating](https://img.shields.io/sonar/sqale_rating/arrase_atomic-explorer?server=https%3A%2F%2Fsonarcloud.io&logo=sonarcloud)](https://sonarcloud.io/summary/new_code?id=arrase_atomic-explorer)
+
 **Atomic Explorer** is an interactive science popularization web application. It allows students, teachers, and science enthusiasts to visually explore the atomic structure at different levels of complexity. It's the equivalent of a planetarium, but for the quantum world!
 
 > 🌐 **Try it Live in your Browser:** [https://arrase.github.io/atomic-explorer/](https://arrase.github.io/atomic-explorer/)
