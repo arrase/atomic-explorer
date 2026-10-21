@@ -12,11 +12,11 @@ export interface ExportOptions {
 
 export class ImageExporterModal {
   private readonly overlay: HTMLElement;
-  private readonly onExport: (options: ExportOptions) => Promise<string>;
+  private readonly onExport: (options: ExportOptions) => string;
   private previousActiveElement: HTMLElement | null = null;
   private keydownHandler: ((e: KeyboardEvent) => void) | null = null;
 
-  constructor(onExport: (options: ExportOptions) => Promise<string>) {
+  constructor(onExport: (options: ExportOptions) => string) {
     this.onExport = onExport;
     this.overlay = document.createElement('div');
     this.overlay.className = 'export-modal-overlay modal-backdrop hidden';
@@ -156,7 +156,7 @@ export class ImageExporterModal {
       }
     };
 
-    exportBtn.addEventListener('click', async () => {
+    exportBtn.addEventListener('click', () => {
       const resSelect = this.overlay.querySelector('#export-res-select') as HTMLSelectElement;
       const ssSelect = this.overlay.querySelector('#export-ss-select') as HTMLSelectElement;
       const bgSelect = this.overlay.querySelector('#export-bg-select') as HTMLSelectElement;
@@ -193,10 +193,15 @@ export class ImageExporterModal {
       exportBtn.textContent = getStrings().exportGenerating;
 
       try {
-        const dataUrl = await this.onExport({ width, height, superSampling, background, format });
+        const dataUrl = this.onExport({ width, height, superSampling, background, format });
 
         // Trigger download
-        const ext = format === 'image/jpeg' ? 'jpg' : format === 'image/webp' ? 'webp' : 'png';
+        let ext = 'png';
+        if (format === 'image/jpeg') {
+          ext = 'jpg';
+        } else if (format === 'image/webp') {
+          ext = 'webp';
+        }
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const filename = `atomic-explorer-${width}x${height}-${timestamp}.${ext}`;
 

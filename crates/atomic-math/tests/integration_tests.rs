@@ -843,6 +843,57 @@ fn pure_l3_m1_matches_its_own_closed_form() {
     assert_relative_eq!(from_glsl, peak, epsilon = 1e-12);
 }
 
+fn find_y_lm_peak(l: u32, m: i32) -> f64 {
+    // Coarse scan, then a ternary search inside the winning cell. The peak of
+    // a smooth row is a quadratic maximum, so a plain scan lands a resolution
+    // error of ~5e-6 on it - enough to make this table a test of the grid
+    // rather than of the harmonics.
+    let steps = 2000usize;
+    let mut best = (0usize, f64::NEG_INFINITY);
+    for i in 0..=steps {
+        let th = (i as f64) * std::f64::consts::PI / steps as f64;
+        let d = y_lm_density(l, m, th).unwrap();
+        if d > best.1 {
+            best = (i, d);
+        }
+    }
+    let mut lo = (best.0.saturating_sub(1)) as f64 * std::f64::consts::PI / steps as f64;
+    let mut hi = (best.0 + 1).min(steps) as f64 * std::f64::consts::PI / steps as f64;
+    for _ in 0..200 {
+        let a = lo + (hi - lo) / 3.0;
+        let b = hi - (hi - lo) / 3.0;
+        if y_lm_density(l, m, a).unwrap() > y_lm_density(l, m, b).unwrap() {
+            hi = b;
+        } else {
+            lo = a;
+        }
+    }
+    y_lm_density(l, m, (lo + hi) / 2.0).unwrap()
+}
+
+fn sample_y_lm_max(l: u32, m: i32) -> f64 {
+    let mut max = 0.0f64;
+    for i in 0..=400 {
+        let theta = (i as f64) * std::f64::consts::PI / 400.0;
+        let d = y_lm_density(l, m, theta).unwrap();
+        assert!(d.is_finite(), "|Y_{}^{}|^2 not finite", l, m);
+        max = max.max(d);
+    }
+    max
+}
+
+fn integrate_y_lm_density(l: u32, m: i32) -> f64 {
+    let n = 400_000;
+    let h = std::f64::consts::PI / n as f64;
+    let mut acc = 0.0f64;
+    for i in 0..=n {
+        let th = (i as f64) * h;
+        let w = if i == 0 || i == n { 0.5 } else { 1.0 };
+        acc += w * y_lm_density(l, m, th).unwrap() * th.sin() * h;
+    }
+    2.0 * std::f64::consts::PI * acc
+}
+
 #[test]
 fn pure_eigenstate_density_is_available_for_every_reachable_l() {
     // The GLSL used to tabulate the pure rows only for l <= 3 and let anything
@@ -877,31 +928,7 @@ fn pure_eigenstate_density_is_available_for_every_reachable_l() {
     ];
 
     for &(l, m, expected) in PEAKS {
-        // Coarse scan, then a ternary search inside the winning cell. The peak of
-        // a smooth row is a quadratic maximum, so a plain scan lands a resolution
-        // error of ~5e-6 on it - enough to make this table a test of the grid
-        // rather than of the harmonics.
-        let steps = 2000usize;
-        let mut best = (0usize, f64::NEG_INFINITY);
-        for i in 0..=steps {
-            let th = (i as f64) * std::f64::consts::PI / steps as f64;
-            let d = y_lm_density(l, m, th).unwrap();
-            if d > best.1 {
-                best = (i, d);
-            }
-        }
-        let mut lo = (best.0.saturating_sub(1)) as f64 * std::f64::consts::PI / steps as f64;
-        let mut hi = (best.0 + 1).min(steps) as f64 * std::f64::consts::PI / steps as f64;
-        for _ in 0..200 {
-            let a = lo + (hi - lo) / 3.0;
-            let b = hi - (hi - lo) / 3.0;
-            if y_lm_density(l, m, a).unwrap() > y_lm_density(l, m, b).unwrap() {
-                hi = b;
-            } else {
-                lo = a;
-            }
-        }
-        let max = y_lm_density(l, m, (lo + hi) / 2.0).unwrap();
+        let max = find_y_lm_peak(l, m);
         assert_relative_eq!(max, expected, epsilon = 1e-9);
     }
 
@@ -909,13 +936,7 @@ fn pure_eigenstate_density_is_available_for_every_reachable_l() {
     // for l > 0 (an s-like fallback would not), and stay normalizable.
     for l in 0..=6u32 {
         for m in -(l as i32)..=(l as i32) {
-            let mut max = 0.0f64;
-            for i in 0..=400 {
-                let theta = (i as f64) * std::f64::consts::PI / 400.0;
-                let d = y_lm_density(l, m, theta).unwrap();
-                assert!(d.is_finite(), "|Y_{}^{}|^2 not finite", l, m);
-                max = max.max(d);
-            }
+            let max = sample_y_lm_max(l, m);
             if l > 0 {
                 assert!(
                     max > y_lm_density(0, 0, std::f64::consts::FRAC_PI_2).unwrap(),
@@ -933,15 +954,7 @@ fn pure_eigenstate_density_is_available_for_every_reachable_l() {
     // sin(th) d(th) d(phi) integrated out leaves 2pi * int_0^pi |Y|^2 sin th dth.
     for l in 0..=6u32 {
         for m in -(l as i32)..=(l as i32) {
-            let n = 400_000;
-            let h = std::f64::consts::PI / n as f64;
-            let mut acc = 0.0f64;
-            for i in 0..=n {
-                let th = (i as f64) * h;
-                let w = if i == 0 || i == n { 0.5 } else { 1.0 };
-                acc += w * y_lm_density(l, m, th).unwrap() * th.sin() * h;
-            }
-            assert_relative_eq!(2.0 * std::f64::consts::PI * acc, 1.0, epsilon = 1e-6);
+            assert_relative_eq!(integrate_y_lm_density(l, m), 1.0, epsilon = 1e-6);
         }
     }
 }

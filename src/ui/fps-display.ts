@@ -66,9 +66,13 @@ export class FPSDisplay {
         this.currentEl.textContent = String(fps);
         this.avgEl.textContent = String(avgFps);
         this.container.classList.remove('is-good', 'is-warn', 'is-bad');
-        this.container.classList.add(
-          avgFps >= 50 ? 'is-good' : avgFps >= 25 ? 'is-warn' : 'is-bad'
-        );
+        let statusClass = 'is-bad';
+        if (avgFps >= 50) {
+          statusClass = 'is-good';
+        } else if (avgFps >= 25) {
+          statusClass = 'is-warn';
+        }
+        this.container.classList.add(statusClass);
 
         this.frames = 0;
         this.lastTime = now;

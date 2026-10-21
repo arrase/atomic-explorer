@@ -1,4 +1,4 @@
-import { getStrings, getLanguage, setLanguage, onLanguageChange, Language, I18nStrings } from '../i18n';
+import { getStrings, getLanguage, setLanguage, onLanguageChange, Language } from '../i18n';
 import { GlossaryModal } from './glossary-modal';
 import { ExplanationModal } from './info-modal';
 import { icon } from './icons';
@@ -17,7 +17,7 @@ export const DEFAULT_TAB: TabId = 'periodic-table';
 
 export interface NavTab {
   readonly id: TabId;
-  readonly labelKey: keyof I18nStrings;
+  readonly labelKey: 'tabPeriodicTable' | 'tabOrbitals' | 'tabMolecules';
   readonly icon: string;
 }
 

@@ -7,10 +7,8 @@
  * they work in every `color-mix()` expression without a `@supports` guard.
  */
 
-export type ElementCategory = string;
-
 /** Ordered by atomic-block grouping so the legend reads left-to-right. */
-const CATEGORY_COLORS: Record<ElementCategory, string> = {
+const CATEGORY_COLORS: Record<string, string> = {
   'metal alcalino': '#ec8f7e',
   'alcalinotérreo': '#e0b23f',
   'metal de transición': '#7baae8',
@@ -25,7 +23,7 @@ const CATEGORY_COLORS: Record<ElementCategory, string> = {
 
 const FALLBACK_COLOR = '#8a92a5';
 
-const LEGEND_ORDER: readonly ElementCategory[] = [
+const LEGEND_ORDER: readonly string[] = [
   'no metal',
   'gas noble',
   'metal alcalino',
@@ -92,11 +90,11 @@ export const RADIUS_GRADIENT = gradientCss(RADIUS_STOPS);
  * Public API
  * ----------------------------------------------------------------------- */
 
-export function getCategoryColor(category: ElementCategory): string {
+export function getCategoryColor(category: string): string {
   return CATEGORY_COLORS[category] ?? FALLBACK_COLOR;
 }
 
-export function getLegendCategoryOrder(): readonly ElementCategory[] {
+export function getLegendCategoryOrder(): readonly string[] {
   return LEGEND_ORDER;
 }
 

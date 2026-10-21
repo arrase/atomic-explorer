@@ -18,7 +18,7 @@ import { FPSDisplay } from './ui/fps-display';
 import { ImageExporterModal } from './ui/image-exporter';
 import { ExplanationModal } from './ui/info-modal';
 
-async function init() {
+function init() {
   const canvas = document.getElementById('orbital-canvas') as HTMLCanvasElement;
   const uiOverlay = document.getElementById('ui-overlay') as HTMLElement;
 
@@ -67,7 +67,7 @@ async function init() {
 
   const getActiveRenderer = () => (activeTab === 'molecules' ? moleculeRenderer : orbitalRenderer);
 
-  const imageExporterModal = new ImageExporterModal(async (options) => {
+  const imageExporterModal = new ImageExporterModal((options) => {
     return getActiveRenderer().captureSnapshot(options);
   });
 
@@ -341,6 +341,5 @@ async function init() {
 }
 
 window.addEventListener('DOMContentLoaded', () => {
-  // A rejected boot promise is otherwise invisible: no UI, no console output.
-  init().catch((error) => console.error('[atomic-explorer] startup failed', error));
+  init();
 });

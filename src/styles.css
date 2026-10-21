@@ -150,14 +150,6 @@
   --z-modal: 100;
 }
 
-/* Dark, low-saturation background that lets the 3D render carry the colour. */
-body {
-  background:
-    radial-gradient(ellipse 90% 70% at 50% 32%, #12151f 0%, rgba(18, 21, 31, 0) 70%),
-    var(--gray-950);
-  color: var(--text-primary);
-}
-
 /* =============================================================================
    1. RESET & BASE
    ========================================================================== */
@@ -174,7 +166,12 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/* Dark, low-saturation background that lets the 3D render carry the colour. */
 body {
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 32%, #12151f 0%, rgba(18, 21, 31, 0) 70%),
+    var(--gray-950);
+  color: var(--text-primary);
   font-family: var(--font-sans);
   font-size: var(--text-base);
   line-height: var(--leading-normal);
@@ -237,16 +234,16 @@ code, kbd, samp {
 
 /* Utility ------------------------------------------------------------------ */
 
-.hidden {
-  display: none !important;
+:root .hidden {
+  display: none;
 }
 
 .desktop-only {
   display: revert;
 }
 
-.mobile-only {
-  display: none !important;
+:root .mobile-only {
+  display: none;
 }
 
 .is-loading-bar {
@@ -2027,16 +2024,16 @@ input[type='checkbox']:focus-visible {
   text-overflow: ellipsis;
 }
 
-.placeholder-cell {
-  border: 1px dashed var(--border-subtle) !important;
-  background: transparent !important;
-  cursor: default !important;
+.element-cell.placeholder-cell {
+  border: 1px dashed var(--border-subtle);
+  background: transparent;
+  cursor: default;
   pointer-events: none;
   opacity: 0.5;
 }
 
-.placeholder-cell .el-symbol {
-  color: var(--text-tertiary) !important;
+.element-cell.placeholder-cell .el-symbol {
+  color: var(--text-tertiary);
 }
 
 .periodic-scroll-hint {
@@ -2592,10 +2589,10 @@ input[type='checkbox']:focus-visible {
   border-radius: var(--radius-md);
 }
 
-.highlight-angle {
+.detail-row .highlight-angle {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  color: var(--warning) !important;
+  color: var(--warning);
 }
 
 .mol-description {
@@ -3236,18 +3233,18 @@ input[type='checkbox']:focus-visible {
    20. ZEN MODE
    ========================================================================== */
 
-.zen-mode .top-nav-container,
-.zen-mode .control-panel,
-.zen-mode .physics-panel-container,
-.zen-mode .dock-tab-pill,
-.zen-mode .mobile-floating-actions,
-.zen-mode .periodic-table-wrapper,
-.zen-mode .molecule-overlay-panel,
-.zen-mode .orientation-gizmo,
-.zen-mode .viewport-hud,
-.zen-mode .is-loading-bar {
-  opacity: 0 !important;
-  pointer-events: none !important;
+body.zen-mode .top-nav-container,
+body.zen-mode .control-panel,
+body.zen-mode .physics-panel-container,
+body.zen-mode .dock-tab-pill,
+body.zen-mode .mobile-floating-actions,
+body.zen-mode .periodic-table-wrapper,
+body.zen-mode .molecule-overlay-panel,
+body.zen-mode .orientation-gizmo,
+body.zen-mode .viewport-hud,
+body.zen-mode .is-loading-bar {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .zen-restore-btn {
@@ -3389,12 +3386,12 @@ input[type='checkbox']:focus-visible {
     --nav-height: 40px;
   }
 
-  .desktop-only {
-    display: none !important;
+  :root .desktop-only {
+    display: none;
   }
 
-  .mobile-only {
-    display: inline-flex !important;
+  :root .mobile-only {
+    display: inline-flex;
   }
 
   .panel-close-btn {
@@ -3478,12 +3475,12 @@ input[type='checkbox']:focus-visible {
   .physics-panel-container,
   .molecule-overlay-panel,
   .element-inspector-panel {
-    position: fixed !important;
-    inset: auto 0 0 0 !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    height: auto !important;
-    max-height: 82vh !important;
+    position: fixed;
+    inset: auto 0 0 0;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    max-height: 82vh;
     padding: var(--space-4);
     padding-bottom: var(--space-8);
     border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
@@ -3541,8 +3538,9 @@ input[type='checkbox']:focus-visible {
     margin: calc(var(--space-1) * -1) auto var(--space-3);
   }
 
-  .dock-tab-pill {
-    display: none !important;
+  .dock-tab-pill,
+  .dock-tab-pill.visible {
+    display: none;
   }
 
   .mobile-floating-actions {
@@ -3716,6 +3714,7 @@ input[type='checkbox']:focus-visible {
   .glass-modal-footer,
   .export-modal-footer {
     padding: var(--space-3) var(--space-4) var(--space-4);
+    flex-direction: column-reverse;
   }
 
   .glass-modal-title,
@@ -3733,11 +3732,6 @@ input[type='checkbox']:focus-visible {
 
   .glossary-categories {
     max-height: 76px;
-  }
-
-  .glass-modal-footer,
-  .export-modal-footer {
-    flex-direction: column-reverse;
   }
 
   .glass-modal-footer .btn-primary,
@@ -3842,13 +3836,19 @@ input[type='checkbox']:focus-visible {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-fast: 0.01ms;
+    --duration-base: 0.01ms;
+    --duration-slow: 0.01ms;
+  }
+
   *,
   *::before,
   *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
+    animation-duration: 0.01ms;
+    animation-iteration-count: 1;
+    transition-duration: 0.01ms;
+    scroll-behavior: auto;
   }
 
   .hud-btn[data-tooltip]::after {

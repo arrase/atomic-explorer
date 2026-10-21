@@ -250,15 +250,16 @@ export abstract class BaseThreeRenderer {
    * Called once per frame and once before a snapshot, which is where a renderer
    * that derives its scale from the scene has to refit its clipping planes.
    */
-  protected updateClipping(): void {}
+  protected updateClipping(): void {
+    // Default no-op for renderers with fixed camera clipping planes; overridden by OrbitalRenderer.
+  }
 
   /**
    * Renders the current scene at the export resolution and returns a data URL.
    *
    * Synchronous by design: the export path is a draw call plus a readback, and
    * wrapping that in a promise that never yields would only pretend it is
-   * deferred. The image exporter awaits its callback, so it can still adopt an
-   * asynchronous implementation later without touching its call sites.
+   * deferred.
    */
   public captureSnapshot(options: SnapshotOptions): string {
     return captureWebGLSnapshot(
