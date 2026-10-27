@@ -60,8 +60,6 @@ export function runCameraAnimation(options: CameraAnimationOptions): number {
   const endTarget = targetLookAt ? targetLookAt.clone() : startTarget.clone();
   const startTime = performance.now();
 
-  let transitionId = 0;
-
   const step = (now: number) => {
     const elapsed = now - startTime;
     const progress = Math.min(elapsed / duration, 1.0);
@@ -76,12 +74,11 @@ export function runCameraAnimation(options: CameraAnimationOptions): number {
     if (onUpdate) onUpdate();
 
     if (progress < 1.0) {
-      transitionId = requestAnimationFrame(step);
+      requestAnimationFrame(step);
     }
   };
 
-  transitionId = requestAnimationFrame(step);
-  return transitionId;
+  return requestAnimationFrame(step);
 }
 
 export function setCameraInstant(
