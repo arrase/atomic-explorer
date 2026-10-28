@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
     "wasm:build": "cd crates/atomic-math && wasm-pack build --target web --out-dir pkg",
     "wasm:build:dev": "cd crates/atomic-math && wasm-pack build --target web --out-dir pkg --dev"
   },
@@ -14,9 +16,12 @@
     "three": "^0.186.1"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@types/node": "^26.6.5",
     "@types/three": "^0.186.0",
-    "typescript": "~7.0.2",
+    "eslint": "^10.13.0",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.1",
     "vite": "^8.3.4"
   }
 }
