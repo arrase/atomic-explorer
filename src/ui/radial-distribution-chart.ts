@@ -1,5 +1,6 @@
 import { getStrings } from '../i18n';
 import { bohrToPm, meanRadiusBohr } from '../core/physics-constants';
+import { ensureWasmLoaded, stoRadialProbabilitySync } from '../core/wasm-bridge';
 
 function factorial(n: number): number {
   if (n <= 1) return 1;
@@ -119,6 +120,8 @@ const CHART = {
   curveAlt: '#8ab4ff',
   areaTop: 'rgba(79, 143, 247, 0.28)',
   areaBottom: 'rgba(79, 143, 247, 0.02)',
+  stoCurve: '#34d399',
+  stoFill: 'rgba(52, 211, 153, 0.10)',
   peak: '#8ab4ff',
   expectation: '#f5b544',
   node: '#f87171',
@@ -138,6 +141,7 @@ export class RadialDistributionChart {
   private n: number = 1;
   private l: number = 0;
   private zEff: number = 1.0;
+  private showSto: boolean = false;
 
   private hoverR: number | null = null;
   private peakR: number = 1.0;
@@ -164,6 +168,12 @@ export class RadialDistributionChart {
 
     this.canvas.addEventListener('mousemove', this.handleMouseMove);
     this.canvas.addEventListener('mouseleave', this.handleMouseLeave);
+    void ensureWasmLoaded().then(() => this.draw());
+  }
+
+  public setShowSto(show: boolean): void {
+    this.showSto = show;
+    this.draw();
   }
 
   public update(n: number, l: number, zEff: number): void {
@@ -289,11 +299,30 @@ export class RadialDistributionChart {
     ctx.clearRect(0, 0, w, h);
 
     const rMax = this.currentRMax();
-
-    // Sample points across plot width
     const pointCount = Math.max(120, Math.floor(plotW * 1.5));
+    const { rValues, pValues, stoValues, yMax } = this.samplePlotCurves(pointCount, rMax);
+
+    const toX = (r: number) => padLeft + (r / rMax) * plotW;
+    const toY = (p: number) => padTop + plotH - (p / yMax) * plotH;
+
+    const layout: ChartLayout = { w, h, plotW, plotH, padLeft, padRight, padTop, rMax, yMax, toX, toY };
+    this.drawGrid(layout);
+    this.drawHydrogenicCurve(rValues, pValues, layout);
+    if (this.showSto) {
+      this.drawStoCurve(rValues, stoValues, layout);
+    }
+
+    this.drawMarkers(layout);
+    this.drawHover(layout);
+  }
+
+  private samplePlotCurves(
+    pointCount: number,
+    rMax: number,
+  ): { rValues: number[]; pValues: number[]; stoValues: number[]; yMax: number } {
     const rValues: number[] = [];
     const pValues: number[] = [];
+    const stoValues: number[] = [];
     let pMax = 0;
 
     for (let i = 0; i <= pointCount; i++) {
@@ -302,22 +331,26 @@ export class RadialDistributionChart {
       rValues.push(r);
       pValues.push(p);
       if (p > pMax) pMax = p;
+
+      if (this.showSto) {
+        const pSto = stoRadialProbabilitySync(this.n, this.zEff, r);
+        stoValues.push(pSto);
+        if (pSto > pMax) pMax = pSto;
+      }
     }
 
-    if (pMax <= 0) pMax = 1.0;
     // Head-room for the marker labels that sit above the curve.
-    const yMax = pMax * 1.22;
+    const yMax = (pMax > 0 ? pMax : 1.0) * 1.22;
+    return { rValues, pValues, stoValues, yMax };
+  }
 
-    const toX = (r: number) => padLeft + (r / rMax) * plotW;
-    const toY = (p: number) => padTop + plotH - (p / yMax) * plotH;
+  private drawHydrogenicCurve(rValues: number[], pValues: number[], layout: ChartLayout): void {
+    const { w, plotH, padLeft, padRight, padTop, rMax, toX, toY } = layout;
+    const ctx = this.ctx;
 
-    const layout: ChartLayout = { w, h, plotW, plotH, padLeft, padRight, padTop, rMax, yMax, toX, toY };
-    this.drawGrid(layout);
-
-    // Area Fill under Curve
     ctx.beginPath();
     ctx.moveTo(toX(0), toY(0));
-    for (let i = 0; i <= pointCount; i++) {
+    for (let i = 0; i < rValues.length; i++) {
       ctx.lineTo(toX(rValues[i]), toY(pValues[i]));
     }
     ctx.lineTo(toX(rMax), toY(0));
@@ -329,10 +362,9 @@ export class RadialDistributionChart {
     ctx.fillStyle = areaGrad;
     ctx.fill();
 
-    // Curve Stroke
     ctx.beginPath();
     ctx.moveTo(toX(rValues[0]), toY(pValues[0]));
-    for (let i = 1; i <= pointCount; i++) {
+    for (let i = 1; i < rValues.length; i++) {
       ctx.lineTo(toX(rValues[i]), toY(pValues[i]));
     }
 
@@ -343,9 +375,34 @@ export class RadialDistributionChart {
     ctx.strokeStyle = strokeGrad;
     ctx.lineJoin = 'round';
     ctx.stroke();
+  }
 
-    this.drawMarkers(layout);
-    this.drawHover(layout);
+  private drawStoCurve(rValues: number[], stoValues: number[], layout: ChartLayout): void {
+    const { rMax, toX, toY } = layout;
+    const ctx = this.ctx;
+
+    ctx.beginPath();
+    ctx.moveTo(toX(0), toY(0));
+    for (let i = 0; i < rValues.length; i++) {
+      ctx.lineTo(toX(rValues[i]), toY(stoValues[i]));
+    }
+    ctx.lineTo(toX(rMax), toY(0));
+    ctx.closePath();
+    ctx.fillStyle = CHART.stoFill;
+    ctx.fill();
+
+    ctx.save();
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath();
+    ctx.moveTo(toX(rValues[0]), toY(stoValues[0]));
+    for (let i = 1; i < rValues.length; i++) {
+      ctx.lineTo(toX(rValues[i]), toY(stoValues[i]));
+    }
+    ctx.lineWidth = 1.8;
+    ctx.strokeStyle = CHART.stoCurve;
+    ctx.lineJoin = 'round';
+    ctx.stroke();
+    ctx.restore();
   }
 
   private drawGrid(layout: ChartLayout): void {
@@ -582,13 +639,34 @@ export class RadialDistributionChart {
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // Tooltip card
-    const line1 = `r = ${this.hoverR.toFixed(2)} a₀`;
-    const line2 = `${hPm.toFixed(1)} pm · P(r) = ${hp.toFixed(4)}`;
+    const lines: { text: string; color: string; bold?: boolean }[] = [];
+    if (this.showSto) {
+      const hpSto = stoRadialProbabilitySync(this.n, this.zEff, this.hoverR);
+      const hySto = toY(hpSto);
+      ctx.fillStyle = CHART.text;
+      ctx.beginPath();
+      ctx.arc(hx, hySto, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = CHART.stoCurve;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+
+      lines.push(
+        { text: `r = ${this.hoverR.toFixed(2)} a₀ · ${hPm.toFixed(1)} pm`, color: CHART.text, bold: true },
+        { text: `P(r) = ${hp.toFixed(4)}`, color: CHART.axisLabel },
+        { text: `STO P(r) = ${hpSto.toFixed(4)}`, color: CHART.stoCurve },
+      );
+    } else {
+      lines.push(
+        { text: `r = ${this.hoverR.toFixed(2)} a₀`, color: CHART.text, bold: true },
+        { text: `${hPm.toFixed(1)} pm · P(r) = ${hp.toFixed(4)}`, color: CHART.axisLabel },
+      );
+    }
 
     ctx.font = '10px ' + FONT;
-    const tw = Math.max(ctx.measureText(line1).width, ctx.measureText(line2).width) + 20;
-    const th = 40;
+    const maxTextWidth = Math.max(...lines.map((line) => ctx.measureText(line.text).width));
+    const tw = maxTextWidth + 20;
+    const th = lines.length * 15 + 10;
 
     let tx = hx + 12;
     if (tx + tw > w - padRight) tx = hx - tw - 12;
@@ -603,15 +681,13 @@ export class RadialDistributionChart {
     ctx.fill();
     ctx.stroke();
 
-    ctx.fillStyle = CHART.text;
     ctx.textBaseline = 'top';
     ctx.textAlign = 'left';
-    ctx.font = '600 10px ' + FONT;
-    ctx.fillText(line1, tx + 10, ty + 7);
-
-    ctx.fillStyle = CHART.axisLabel;
-    ctx.font = '10px ' + FONT;
-    ctx.fillText(line2, tx + 10, ty + 22);
+    lines.forEach((line, index) => {
+      ctx.fillStyle = line.color;
+      ctx.font = (line.bold ? '600 10px ' : '10px ') + FONT;
+      ctx.fillText(line.text, tx + 10, ty + 7 + index * 15);
+    });
   }
 
   public destroy(): void {

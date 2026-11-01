@@ -251,6 +251,11 @@ export abstract class BaseThreeRenderer {
     // Default no-op for renderers with fixed camera clipping planes; overridden by OrbitalRenderer.
   }
 
+  /** Hook called once per animation frame before rendering (never during snapshot capture). */
+  protected onFrame(): void {
+    // Default no-op for static renderers; overridden by animated renderers.
+  }
+
   /**
    * Renders the current scene at the export resolution and returns a data URL.
    *
@@ -359,6 +364,7 @@ export abstract class BaseThreeRenderer {
       this.gizmo.update();
     }
 
+    this.onFrame();
     this.updateClipping();
     this.renderer.render(this.scene, this.camera);
   };

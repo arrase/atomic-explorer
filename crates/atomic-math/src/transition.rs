@@ -96,6 +96,14 @@ pub fn radial_dipole_integral(
     l2: u32,
     z_eff: f64,
 ) -> Result<f64, String> {
+    crate::QuantumNumbers::new(n1, l1, 0)?;
+    crate::QuantumNumbers::new(n2, l2, 0)?;
+    if z_eff <= 0.0 {
+        return Err(format!(
+            "Effective nuclear charge Z_eff ({}) must be positive",
+            z_eff
+        ));
+    }
     if !is_dipole_allowed(l1, 0, l2, 0) {
         return Ok(0.0);
     }
@@ -133,15 +141,17 @@ pub fn spontaneous_emission_rate(
     n2: u32,
     l2: u32,
 ) -> Result<f64, String> {
+    crate::QuantumNumbers::new(n1, l1, 0)?;
+    crate::QuantumNumbers::new(n2, l2, 0)?;
     if n2 <= n1 {
         return Err("Upper level n2 must be greater than lower level n1 for emission".into());
     }
-    if (l1 as i64 - l2 as i64).abs() != 1 {
+    let e1 = calculate_energy_ev(z_eff, n1)?;
+    let e2 = calculate_energy_ev(z_eff, n2)?;
+    if !is_dipole_allowed(l1, 0, l2, 0) {
         return Ok(0.0);
     }
 
-    let e1 = calculate_energy_ev(z_eff, n1)?;
-    let e2 = calculate_energy_ev(z_eff, n2)?;
     let delta_e_j = (e2 - e1) * ELEMENTARY_CHARGE; // Energy difference in Joules
     let omega = delta_e_j / HBAR; // Angular frequency rad/s
 

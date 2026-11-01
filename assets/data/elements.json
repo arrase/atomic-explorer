@@ -14,7 +14,14 @@
       1
     ],
     "discovery_year": 1766,
-    "name_en": "Hydrogen"
+    "name_en": "Hydrogen",
+    "melting_point_k": 13.99,
+    "boiling_point_k": 20.27,
+    "uses": [
+      "starsAndFusion",
+      "waterAndLife",
+      "cleanFuel"
+    ]
   },
   {
     "Z": 2,
@@ -28,7 +35,13 @@
     "ionization_energy": 2372,
     "oxidation_states": [],
     "discovery_year": 1868,
-    "name_en": "Helium"
+    "name_en": "Helium",
+    "melting_point_k": null,
+    "boiling_point_k": 4.22,
+    "uses": [
+      "starsAndFusion",
+      "cryogenicsAndMri"
+    ]
   },
   {
     "Z": 3,
@@ -44,7 +57,14 @@
       1
     ],
     "discovery_year": 1817,
-    "name_en": "Lithium"
+    "name_en": "Lithium",
+    "melting_point_k": 453.65,
+    "boiling_point_k": 1603,
+    "uses": [
+      "batteriesAndEv",
+      "ceramicsAndGlass",
+      "dentalAndMedicine"
+    ]
   },
   {
     "Z": 4,
@@ -60,7 +80,14 @@
       2
     ],
     "discovery_year": 1798,
-    "name_en": "Beryllium"
+    "name_en": "Beryllium",
+    "melting_point_k": 1560,
+    "boiling_point_k": 2742,
+    "uses": [
+      "spaceTelescopes",
+      "aerospaceAlloys",
+      "nuclearEnergy"
+    ]
   },
   {
     "Z": 5,
@@ -77,7 +104,14 @@
       3
     ],
     "discovery_year": 1808,
-    "name_en": "Boron"
+    "name_en": "Boron",
+    "melting_point_k": 2349,
+    "boiling_point_k": 4200,
+    "uses": [
+      "ceramicsAndGlass",
+      "semiconductorsAndChips",
+      "nuclearEnergy"
+    ]
   },
   {
     "Z": 6,
@@ -96,7 +130,14 @@
       4
     ],
     "discovery_year": "Antigüedad",
-    "name_en": "Carbon"
+    "name_en": "Carbon",
+    "melting_point_k": 3915,
+    "boiling_point_k": 3915,
+    "uses": [
+      "waterAndLife",
+      "steelAndConstruction",
+      "radiometricAndEarth"
+    ]
   },
   {
     "Z": 7,
@@ -119,7 +160,14 @@
       5
     ],
     "discovery_year": 1772,
-    "name_en": "Nitrogen"
+    "name_en": "Nitrogen",
+    "melting_point_k": 63.15,
+    "boiling_point_k": 77.36,
+    "uses": [
+      "waterAndLife",
+      "fertilizersAndPlants",
+      "cryogenicsAndMri"
+    ]
   },
   {
     "Z": 8,
@@ -137,7 +185,14 @@
       2
     ],
     "discovery_year": 1774,
-    "name_en": "Oxygen"
+    "name_en": "Oxygen",
+    "melting_point_k": 54.36,
+    "boiling_point_k": 90.19,
+    "uses": [
+      "waterAndLife",
+      "cleanFuel",
+      "steelAndConstruction"
+    ]
   },
   {
     "Z": 9,
@@ -153,7 +208,14 @@
       -1
     ],
     "discovery_year": 1886,
-    "name_en": "Fluorine"
+    "name_en": "Fluorine",
+    "melting_point_k": 53.48,
+    "boiling_point_k": 85.03,
+    "uses": [
+      "dentalAndMedicine",
+      "waterPurification",
+      "semiconductorsAndChips"
+    ]
   },
   {
     "Z": 10,
@@ -167,7 +229,13 @@
     "ionization_energy": 2081,
     "oxidation_states": [],
     "discovery_year": 1898,
-    "name_en": "Neon"
+    "name_en": "Neon",
+    "melting_point_k": 24.56,
+    "boiling_point_k": 27.1,
+    "uses": [
+      "lightingAndLasers",
+      "cryogenicsAndMri"
+    ]
   },
   {
     "Z": 11,
@@ -183,6 +251,13 @@
     "name_en": "Sodium",
     "oxidation_states": [
       1
+    ],
+    "melting_point_k": 370.94,
+    "boiling_point_k": 1156,
+    "uses": [
+      "bonesAndBiology",
+      "batteriesAndEv",
+      "lightingAndLasers"
     ]
   },
   {
@@ -199,6 +274,13 @@
     "name_en": "Magnesium",
     "oxidation_states": [
       2
+    ],
+    "melting_point_k": 923,
+    "boiling_point_k": 1363,
+    "uses": [
+      "aerospaceAlloys",
+      "fertilizersAndPlants",
+      "fireworksAndPigments"
     ]
   },
   {
@@ -215,6 +297,13 @@
     "name_en": "Aluminium",
     "oxidation_states": [
       3
+    ],
+    "melting_point_k": 933.47,
+    "boiling_point_k": 2743,
+    "uses": [
+      "aerospaceAlloys",
+      "electricalWiring",
+      "ceramicsAndGlass"
     ]
   },
   {
@@ -233,6 +322,13 @@
       -4,
       2,
       4
+    ],
+    "melting_point_k": 1687,
+    "boiling_point_k": 3538,
+    "uses": [
+      "semiconductorsAndChips",
+      "solarAndLeds",
+      "ceramicsAndGlass"
     ]
   },
   {
@@ -251,6 +347,13 @@
       -3,
       3,
       5
+    ],
+    "melting_point_k": 317.3,
+    "boiling_point_k": 553.7,
+    "uses": [
+      "waterAndLife",
+      "fertilizersAndPlants",
+      "semiconductorsAndChips"
     ]
   },
   {
@@ -270,6 +373,13 @@
       2,
       4,
       6
+    ],
+    "melting_point_k": 388.36,
+    "boiling_point_k": 717.8,
+    "uses": [
+      "waterAndLife",
+      "fertilizersAndPlants",
+      "batteriesAndEv"
     ]
   },
   {
@@ -290,6 +400,12 @@
       3,
       5,
       7
+    ],
+    "melting_point_k": 171.6,
+    "boiling_point_k": 239.11,
+    "uses": [
+      "waterPurification",
+      "bonesAndBiology"
     ]
   },
   {
@@ -304,7 +420,14 @@
     "ionization_energy": 1521,
     "discovery_year": 1894,
     "name_en": "Argon",
-    "oxidation_states": []
+    "oxidation_states": [],
+    "melting_point_k": 83.81,
+    "boiling_point_k": 87.3,
+    "uses": [
+      "lightingAndLasers",
+      "steelAndConstruction",
+      "radiometricAndEarth"
+    ]
   },
   {
     "Z": 19,
@@ -320,6 +443,13 @@
     "name_en": "Potassium",
     "oxidation_states": [
       1
+    ],
+    "melting_point_k": 336.7,
+    "boiling_point_k": 1032,
+    "uses": [
+      "fertilizersAndPlants",
+      "bonesAndBiology",
+      "radiometricAndEarth"
     ]
   },
   {
@@ -330,12 +460,18 @@
     "atomic_mass": 40.078,
     "electron_config_str": "[Ar] 4s²",
     "radius_pm": 174,
-    "electronegativity": 1.0,
+    "electronegativity": 1,
     "ionization_energy": 590,
     "discovery_year": 1808,
     "name_en": "Calcium",
     "oxidation_states": [
       2
+    ],
+    "melting_point_k": 1115,
+    "boiling_point_k": 1757,
+    "uses": [
+      "bonesAndBiology",
+      "steelAndConstruction"
     ]
   },
   {
@@ -352,6 +488,12 @@
     "name_en": "Scandium",
     "oxidation_states": [
       3
+    ],
+    "melting_point_k": 1814,
+    "boiling_point_k": 3109,
+    "uses": [
+      "aerospaceAlloys",
+      "lightingAndLasers"
     ]
   },
   {
@@ -370,6 +512,13 @@
       2,
       3,
       4
+    ],
+    "melting_point_k": 1941,
+    "boiling_point_k": 3560,
+    "uses": [
+      "aerospaceAlloys",
+      "dentalAndMedicine",
+      "fireworksAndPigments"
     ]
   },
   {
@@ -389,6 +538,13 @@
       3,
       4,
       5
+    ],
+    "melting_point_k": 2183,
+    "boiling_point_k": 3680,
+    "uses": [
+      "steelAndConstruction",
+      "batteriesAndEv",
+      "catalystsAndRefining"
     ]
   },
   {
@@ -407,6 +563,13 @@
       2,
       3,
       6
+    ],
+    "melting_point_k": 2180,
+    "boiling_point_k": 2944,
+    "uses": [
+      "antiCorrosionAndCoatings",
+      "steelAndConstruction",
+      "fireworksAndPigments"
     ]
   },
   {
@@ -427,6 +590,13 @@
       4,
       6,
       7
+    ],
+    "melting_point_k": 1519,
+    "boiling_point_k": 2334,
+    "uses": [
+      "steelAndConstruction",
+      "batteriesAndEv",
+      "bonesAndBiology"
     ]
   },
   {
@@ -445,6 +615,13 @@
       2,
       3,
       6
+    ],
+    "melting_point_k": 1811,
+    "boiling_point_k": 3134,
+    "uses": [
+      "steelAndConstruction",
+      "bonesAndBiology",
+      "radiometricAndEarth"
     ]
   },
   {
@@ -462,6 +639,13 @@
     "oxidation_states": [
       2,
       3
+    ],
+    "melting_point_k": 1768,
+    "boiling_point_k": 3200,
+    "uses": [
+      "batteriesAndEv",
+      "permanentMagnets",
+      "fireworksAndPigments"
     ]
   },
   {
@@ -479,6 +663,13 @@
     "oxidation_states": [
       2,
       3
+    ],
+    "melting_point_k": 1728,
+    "boiling_point_k": 3003,
+    "uses": [
+      "batteriesAndEv",
+      "antiCorrosionAndCoatings",
+      "jewelryAndCoins"
     ]
   },
   {
@@ -496,6 +687,13 @@
     "oxidation_states": [
       1,
       2
+    ],
+    "melting_point_k": 1357.77,
+    "boiling_point_k": 2835,
+    "uses": [
+      "electricalWiring",
+      "jewelryAndCoins",
+      "bonesAndBiology"
     ]
   },
   {
@@ -512,6 +710,13 @@
     "name_en": "Zinc",
     "oxidation_states": [
       2
+    ],
+    "melting_point_k": 692.68,
+    "boiling_point_k": 1180,
+    "uses": [
+      "antiCorrosionAndCoatings",
+      "bonesAndBiology",
+      "batteriesAndEv"
     ]
   },
   {
@@ -528,6 +733,12 @@
     "name_en": "Gallium",
     "oxidation_states": [
       3
+    ],
+    "melting_point_k": 302.91,
+    "boiling_point_k": 2673,
+    "uses": [
+      "semiconductorsAndChips",
+      "solarAndLeds"
     ]
   },
   {
@@ -546,6 +757,12 @@
       -4,
       2,
       4
+    ],
+    "melting_point_k": 1211.4,
+    "boiling_point_k": 3106,
+    "uses": [
+      "semiconductorsAndChips",
+      "spaceTelescopes"
     ]
   },
   {
@@ -564,6 +781,12 @@
       -3,
       3,
       5
+    ],
+    "melting_point_k": 887,
+    "boiling_point_k": 887,
+    "uses": [
+      "semiconductorsAndChips",
+      "solarAndLeds"
     ]
   },
   {
@@ -582,6 +805,13 @@
       -2,
       4,
       6
+    ],
+    "melting_point_k": 494,
+    "boiling_point_k": 958,
+    "uses": [
+      "solarAndLeds",
+      "bonesAndBiology",
+      "ceramicsAndGlass"
     ]
   },
   {
@@ -602,6 +832,12 @@
       3,
       5,
       7
+    ],
+    "melting_point_k": 265.8,
+    "boiling_point_k": 332,
+    "uses": [
+      "waterPurification",
+      "ceramicsAndGlass"
     ]
   },
   {
@@ -612,12 +848,18 @@
     "atomic_mass": 83.798,
     "electron_config_str": "[Ar] 3d¹⁰ 4s² 4p⁶",
     "radius_pm": 110,
-    "electronegativity": 3.0,
+    "electronegativity": 3,
     "ionization_energy": 1351,
     "discovery_year": 1898,
     "name_en": "Krypton",
     "oxidation_states": [
       2
+    ],
+    "melting_point_k": 115.78,
+    "boiling_point_k": 119.93,
+    "uses": [
+      "lightingAndLasers",
+      "spaceProbesRtg"
     ]
   },
   {
@@ -634,6 +876,12 @@
     "name_en": "Rubidium",
     "oxidation_states": [
       1
+    ],
+    "melting_point_k": 312.45,
+    "boiling_point_k": 961,
+    "uses": [
+      "atomicClocksAndGps",
+      "radiometricAndEarth"
     ]
   },
   {
@@ -650,6 +898,13 @@
     "name_en": "Strontium",
     "oxidation_states": [
       2
+    ],
+    "melting_point_k": 1050,
+    "boiling_point_k": 1650,
+    "uses": [
+      "fireworksAndPigments",
+      "atomicClocksAndGps",
+      "radiometricAndEarth"
     ]
   },
   {
@@ -666,6 +921,13 @@
     "name_en": "Yttrium",
     "oxidation_states": [
       3
+    ],
+    "melting_point_k": 1799,
+    "boiling_point_k": 3203,
+    "uses": [
+      "solarAndLeds",
+      "lightingAndLasers",
+      "ceramicsAndGlass"
     ]
   },
   {
@@ -682,6 +944,13 @@
     "name_en": "Zirconium",
     "oxidation_states": [
       4
+    ],
+    "melting_point_k": 2128,
+    "boiling_point_k": 4650,
+    "uses": [
+      "nuclearEnergy",
+      "ceramicsAndGlass",
+      "aerospaceAlloys"
     ]
   },
   {
@@ -699,6 +968,13 @@
     "oxidation_states": [
       3,
       5
+    ],
+    "melting_point_k": 2750,
+    "boiling_point_k": 5017,
+    "uses": [
+      "cryogenicsAndMri",
+      "aerospaceAlloys",
+      "steelAndConstruction"
     ]
   },
   {
@@ -719,6 +995,13 @@
       4,
       5,
       6
+    ],
+    "melting_point_k": 2896,
+    "boiling_point_k": 4912,
+    "uses": [
+      "steelAndConstruction",
+      "catalystsAndRefining",
+      "fertilizersAndPlants"
     ]
   },
   {
@@ -726,7 +1009,7 @@
     "symbol": "Tc",
     "name_es": "Tecnecio",
     "category": "metal de transición",
-    "atomic_mass": 98.0,
+    "atomic_mass": 98,
     "electron_config_str": "[Kr] 4d⁵ 5s²",
     "radius_pm": 135,
     "electronegativity": 1.9,
@@ -736,6 +1019,12 @@
     "oxidation_states": [
       4,
       7
+    ],
+    "melting_point_k": 2430,
+    "boiling_point_k": 4538,
+    "uses": [
+      "dentalAndMedicine",
+      "particleAccelerators"
     ]
   },
   {
@@ -754,6 +1043,12 @@
       3,
       4,
       8
+    ],
+    "melting_point_k": 2607,
+    "boiling_point_k": 4423,
+    "uses": [
+      "electricalWiring",
+      "catalystsAndRefining"
     ]
   },
   {
@@ -770,6 +1065,12 @@
     "name_en": "Rhodium",
     "oxidation_states": [
       3
+    ],
+    "melting_point_k": 2237,
+    "boiling_point_k": 3968,
+    "uses": [
+      "catalystsAndRefining",
+      "jewelryAndCoins"
     ]
   },
   {
@@ -787,6 +1088,13 @@
     "oxidation_states": [
       2,
       4
+    ],
+    "melting_point_k": 1828.05,
+    "boiling_point_k": 3236,
+    "uses": [
+      "catalystsAndRefining",
+      "electricalWiring",
+      "jewelryAndCoins"
     ]
   },
   {
@@ -803,6 +1111,13 @@
     "name_en": "Silver",
     "oxidation_states": [
       1
+    ],
+    "melting_point_k": 1234.93,
+    "boiling_point_k": 2435,
+    "uses": [
+      "electricalWiring",
+      "jewelryAndCoins",
+      "solarAndLeds"
     ]
   },
   {
@@ -819,6 +1134,13 @@
     "name_en": "Cadmium",
     "oxidation_states": [
       2
+    ],
+    "melting_point_k": 594.22,
+    "boiling_point_k": 1040,
+    "uses": [
+      "solarAndLeds",
+      "batteriesAndEv",
+      "nuclearEnergy"
     ]
   },
   {
@@ -835,6 +1157,12 @@
     "name_en": "Indium",
     "oxidation_states": [
       3
+    ],
+    "melting_point_k": 429.75,
+    "boiling_point_k": 2345,
+    "uses": [
+      "solarAndLeds",
+      "semiconductorsAndChips"
     ]
   },
   {
@@ -852,6 +1180,12 @@
     "oxidation_states": [
       2,
       4
+    ],
+    "melting_point_k": 505.08,
+    "boiling_point_k": 2875,
+    "uses": [
+      "electricalWiring",
+      "antiCorrosionAndCoatings"
     ]
   },
   {
@@ -870,6 +1204,12 @@
       -3,
       3,
       5
+    ],
+    "melting_point_k": 903.78,
+    "boiling_point_k": 1860,
+    "uses": [
+      "semiconductorsAndChips",
+      "batteriesAndEv"
     ]
   },
   {
@@ -888,6 +1228,12 @@
       -2,
       4,
       6
+    ],
+    "melting_point_k": 722.66,
+    "boiling_point_k": 1261,
+    "uses": [
+      "solarAndLeds",
+      "semiconductorsAndChips"
     ]
   },
   {
@@ -908,6 +1254,13 @@
       3,
       5,
       7
+    ],
+    "melting_point_k": 386.85,
+    "boiling_point_k": 457.4,
+    "uses": [
+      "bonesAndBiology",
+      "dentalAndMedicine",
+      "supernovaNucleosynthesis"
     ]
   },
   {
@@ -927,6 +1280,13 @@
       4,
       6,
       8
+    ],
+    "melting_point_k": 161.4,
+    "boiling_point_k": 165.05,
+    "uses": [
+      "spaceProbesRtg",
+      "lightingAndLasers",
+      "dentalAndMedicine"
     ]
   },
   {
@@ -943,6 +1303,12 @@
     "name_en": "Cesium",
     "oxidation_states": [
       1
+    ],
+    "melting_point_k": 301.7,
+    "boiling_point_k": 944,
+    "uses": [
+      "atomicClocksAndGps",
+      "smokeAndSensors"
     ]
   },
   {
@@ -959,6 +1325,13 @@
     "name_en": "Barium",
     "oxidation_states": [
       2
+    ],
+    "melting_point_k": 1000,
+    "boiling_point_k": 2118,
+    "uses": [
+      "dentalAndMedicine",
+      "fireworksAndPigments",
+      "ceramicsAndGlass"
     ]
   },
   {
@@ -975,6 +1348,13 @@
     "name_en": "Lanthanum",
     "oxidation_states": [
       3
+    ],
+    "melting_point_k": 1193,
+    "boiling_point_k": 3737,
+    "uses": [
+      "spaceTelescopes",
+      "batteriesAndEv",
+      "catalystsAndRefining"
     ]
   },
   {
@@ -992,6 +1372,12 @@
     "oxidation_states": [
       3,
       4
+    ],
+    "melting_point_k": 1068,
+    "boiling_point_k": 3716,
+    "uses": [
+      "catalystsAndRefining",
+      "ceramicsAndGlass"
     ]
   },
   {
@@ -1009,6 +1395,13 @@
     "oxidation_states": [
       3,
       4
+    ],
+    "melting_point_k": 1208,
+    "boiling_point_k": 3403,
+    "uses": [
+      "permanentMagnets",
+      "spaceTelescopes",
+      "ceramicsAndGlass"
     ]
   },
   {
@@ -1025,6 +1418,12 @@
     "name_en": "Neodymium",
     "oxidation_states": [
       3
+    ],
+    "melting_point_k": 1297,
+    "boiling_point_k": 3347,
+    "uses": [
+      "permanentMagnets",
+      "lightingAndLasers"
     ]
   },
   {
@@ -1032,7 +1431,7 @@
     "symbol": "Pm",
     "name_es": "Prometio",
     "category": "lantánido",
-    "atomic_mass": 145.0,
+    "atomic_mass": 145,
     "electron_config_str": "[Xe] 4f⁵ 6s²",
     "radius_pm": 163,
     "electronegativity": 1.13,
@@ -1041,6 +1440,12 @@
     "name_en": "Promethium",
     "oxidation_states": [
       3
+    ],
+    "melting_point_k": 1315,
+    "boiling_point_k": 3273,
+    "uses": [
+      "particleAccelerators",
+      "spaceProbesRtg"
     ]
   },
   {
@@ -1058,6 +1463,13 @@
     "oxidation_states": [
       2,
       3
+    ],
+    "melting_point_k": 1345,
+    "boiling_point_k": 2173,
+    "uses": [
+      "permanentMagnets",
+      "nuclearEnergy",
+      "dentalAndMedicine"
     ]
   },
   {
@@ -1075,6 +1487,12 @@
     "oxidation_states": [
       2,
       3
+    ],
+    "melting_point_k": 1099,
+    "boiling_point_k": 1802,
+    "uses": [
+      "solarAndLeds",
+      "supernovaNucleosynthesis"
     ]
   },
   {
@@ -1091,6 +1509,13 @@
     "name_en": "Gadolinium",
     "oxidation_states": [
       3
+    ],
+    "melting_point_k": 1585,
+    "boiling_point_k": 3273,
+    "uses": [
+      "cryogenicsAndMri",
+      "dentalAndMedicine",
+      "nuclearEnergy"
     ]
   },
   {
@@ -1108,6 +1533,12 @@
     "oxidation_states": [
       3,
       4
+    ],
+    "melting_point_k": 1629,
+    "boiling_point_k": 3396,
+    "uses": [
+      "solarAndLeds",
+      "permanentMagnets"
     ]
   },
   {
@@ -1124,6 +1555,12 @@
     "name_en": "Dysprosium",
     "oxidation_states": [
       3
+    ],
+    "melting_point_k": 1680,
+    "boiling_point_k": 2840,
+    "uses": [
+      "permanentMagnets",
+      "nuclearEnergy"
     ]
   },
   {
@@ -1140,6 +1577,12 @@
     "name_en": "Holmium",
     "oxidation_states": [
       3
+    ],
+    "melting_point_k": 1734,
+    "boiling_point_k": 2873,
+    "uses": [
+      "lightingAndLasers",
+      "permanentMagnets"
     ]
   },
   {
@@ -1156,6 +1599,12 @@
     "name_en": "Erbium",
     "oxidation_states": [
       3
+    ],
+    "melting_point_k": 1802,
+    "boiling_point_k": 3141,
+    "uses": [
+      "lightingAndLasers",
+      "spaceTelescopes"
     ]
   },
   {
@@ -1173,6 +1622,12 @@
     "oxidation_states": [
       2,
       3
+    ],
+    "melting_point_k": 1818,
+    "boiling_point_k": 2223,
+    "uses": [
+      "lightingAndLasers",
+      "dentalAndMedicine"
     ]
   },
   {
@@ -1190,6 +1645,12 @@
     "oxidation_states": [
       2,
       3
+    ],
+    "melting_point_k": 1097,
+    "boiling_point_k": 1469,
+    "uses": [
+      "atomicClocksAndGps",
+      "lightingAndLasers"
     ]
   },
   {
@@ -1206,6 +1667,12 @@
     "name_en": "Lutetium",
     "oxidation_states": [
       3
+    ],
+    "melting_point_k": 1925,
+    "boiling_point_k": 3675,
+    "uses": [
+      "dentalAndMedicine",
+      "catalystsAndRefining"
     ]
   },
   {
@@ -1222,6 +1689,13 @@
     "name_en": "Hafnium",
     "oxidation_states": [
       4
+    ],
+    "melting_point_k": 2506,
+    "boiling_point_k": 4876,
+    "uses": [
+      "semiconductorsAndChips",
+      "nuclearEnergy",
+      "aerospaceAlloys"
     ]
   },
   {
@@ -1238,6 +1712,13 @@
     "name_en": "Tantalum",
     "oxidation_states": [
       5
+    ],
+    "melting_point_k": 3290,
+    "boiling_point_k": 5731,
+    "uses": [
+      "electricalWiring",
+      "semiconductorsAndChips",
+      "dentalAndMedicine"
     ]
   },
   {
@@ -1258,6 +1739,13 @@
       4,
       5,
       6
+    ],
+    "melting_point_k": 3695,
+    "boiling_point_k": 5828,
+    "uses": [
+      "lightingAndLasers",
+      "steelAndConstruction",
+      "aerospaceAlloys"
     ]
   },
   {
@@ -1276,6 +1764,12 @@
       4,
       6,
       7
+    ],
+    "melting_point_k": 3459,
+    "boiling_point_k": 5869,
+    "uses": [
+      "aerospaceAlloys",
+      "catalystsAndRefining"
     ]
   },
   {
@@ -1293,6 +1787,12 @@
     "oxidation_states": [
       4,
       8
+    ],
+    "melting_point_k": 3306,
+    "boiling_point_k": 5285,
+    "uses": [
+      "catalystsAndRefining",
+      "supernovaNucleosynthesis"
     ]
   },
   {
@@ -1310,6 +1810,13 @@
     "oxidation_states": [
       3,
       4
+    ],
+    "melting_point_k": 2719,
+    "boiling_point_k": 4403,
+    "uses": [
+      "radiometricAndEarth",
+      "catalystsAndRefining",
+      "supernovaNucleosynthesis"
     ]
   },
   {
@@ -1327,6 +1834,13 @@
     "oxidation_states": [
       2,
       4
+    ],
+    "melting_point_k": 2041.4,
+    "boiling_point_k": 4098,
+    "uses": [
+      "catalystsAndRefining",
+      "jewelryAndCoins",
+      "dentalAndMedicine"
     ]
   },
   {
@@ -1344,6 +1858,13 @@
     "oxidation_states": [
       1,
       3
+    ],
+    "melting_point_k": 1337.33,
+    "boiling_point_k": 3243,
+    "uses": [
+      "jewelryAndCoins",
+      "electricalWiring",
+      "supernovaNucleosynthesis"
     ]
   },
   {
@@ -1354,13 +1875,19 @@
     "atomic_mass": 200.59,
     "electron_config_str": "[Xe] 4f¹⁴ 5d¹⁰ 6s²",
     "radius_pm": 144,
-    "electronegativity": 2.0,
+    "electronegativity": 2,
     "ionization_energy": 1007,
     "discovery_year": "Antigüedad",
     "name_en": "Mercury",
     "oxidation_states": [
       1,
       2
+    ],
+    "melting_point_k": 234.32,
+    "boiling_point_k": 629.88,
+    "uses": [
+      "lightingAndLasers",
+      "smokeAndSensors"
     ]
   },
   {
@@ -1378,6 +1905,12 @@
     "oxidation_states": [
       1,
       3
+    ],
+    "melting_point_k": 577,
+    "boiling_point_k": 1746,
+    "uses": [
+      "smokeAndSensors",
+      "spaceTelescopes"
     ]
   },
   {
@@ -1395,6 +1928,12 @@
     "oxidation_states": [
       2,
       4
+    ],
+    "melting_point_k": 600.61,
+    "boiling_point_k": 2022,
+    "uses": [
+      "batteriesAndEv",
+      "radiometricAndEarth"
     ]
   },
   {
@@ -1411,6 +1950,12 @@
     "name_en": "Bismuth",
     "oxidation_states": [
       3
+    ],
+    "melting_point_k": 544.7,
+    "boiling_point_k": 1837,
+    "uses": [
+      "dentalAndMedicine",
+      "electricalWiring"
     ]
   },
   {
@@ -1418,10 +1963,10 @@
     "symbol": "Po",
     "name_es": "Polonio",
     "category": "metaloide",
-    "atomic_mass": 209.0,
+    "atomic_mass": 209,
     "electron_config_str": "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁴",
     "radius_pm": 140,
-    "electronegativity": 2.0,
+    "electronegativity": 2,
     "ionization_energy": 812,
     "discovery_year": 1898,
     "name_en": "Polonium",
@@ -1430,6 +1975,12 @@
       2,
       4,
       6
+    ],
+    "melting_point_k": 527,
+    "boiling_point_k": 1235,
+    "uses": [
+      "spaceProbesRtg",
+      "fundamentalResearch"
     ]
   },
   {
@@ -1437,7 +1988,7 @@
     "symbol": "At",
     "name_es": "Astato",
     "category": "halógeno",
-    "atomic_mass": 210.0,
+    "atomic_mass": 210,
     "electron_config_str": "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁵",
     "radius_pm": 150,
     "electronegativity": 2.2,
@@ -1449,6 +2000,12 @@
       1,
       3,
       5
+    ],
+    "melting_point_k": 575,
+    "boiling_point_k": 610,
+    "uses": [
+      "dentalAndMedicine",
+      "fundamentalResearch"
     ]
   },
   {
@@ -1456,7 +2013,7 @@
     "symbol": "Rn",
     "name_es": "Radón",
     "category": "gas noble",
-    "atomic_mass": 222.0,
+    "atomic_mass": 222,
     "electron_config_str": "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁶",
     "radius_pm": 150,
     "electronegativity": null,
@@ -1465,6 +2022,12 @@
     "name_en": "Radon",
     "oxidation_states": [
       2
+    ],
+    "melting_point_k": 202,
+    "boiling_point_k": 211.5,
+    "uses": [
+      "radiometricAndEarth",
+      "fundamentalResearch"
     ]
   },
   {
@@ -1472,7 +2035,7 @@
     "symbol": "Fr",
     "name_es": "Francio",
     "category": "metal alcalino",
-    "atomic_mass": 223.0,
+    "atomic_mass": 223,
     "electron_config_str": "[Rn] 7s¹",
     "radius_pm": 260,
     "electronegativity": 0.7,
@@ -1481,6 +2044,12 @@
     "name_en": "Francium",
     "oxidation_states": [
       1
+    ],
+    "melting_point_k": null,
+    "boiling_point_k": null,
+    "uses": [
+      "fundamentalResearch",
+      "radiometricAndEarth"
     ]
   },
   {
@@ -1488,7 +2057,7 @@
     "symbol": "Ra",
     "name_es": "Radio",
     "category": "alcalinotérreo",
-    "atomic_mass": 226.0,
+    "atomic_mass": 226,
     "electron_config_str": "[Rn] 7s²",
     "radius_pm": 221,
     "electronegativity": 0.9,
@@ -1497,6 +2066,12 @@
     "name_en": "Radium",
     "oxidation_states": [
       2
+    ],
+    "melting_point_k": 973,
+    "boiling_point_k": 2010,
+    "uses": [
+      "dentalAndMedicine",
+      "fundamentalResearch"
     ]
   },
   {
@@ -1504,7 +2079,7 @@
     "symbol": "Ac",
     "name_es": "Actinio",
     "category": "actínido",
-    "atomic_mass": 227.0,
+    "atomic_mass": 227,
     "electron_config_str": "[Rn] 6d¹ 7s²",
     "radius_pm": 195,
     "electronegativity": 1.1,
@@ -1513,6 +2088,12 @@
     "name_en": "Actinium",
     "oxidation_states": [
       3
+    ],
+    "melting_point_k": 1323,
+    "boiling_point_k": 3471,
+    "uses": [
+      "dentalAndMedicine",
+      "fundamentalResearch"
     ]
   },
   {
@@ -1529,6 +2110,13 @@
     "name_en": "Thorium",
     "oxidation_states": [
       4
+    ],
+    "melting_point_k": 2023,
+    "boiling_point_k": 5061,
+    "uses": [
+      "nuclearEnergy",
+      "radiometricAndEarth",
+      "supernovaNucleosynthesis"
     ]
   },
   {
@@ -1545,6 +2133,12 @@
     "name_en": "Protactinium",
     "oxidation_states": [
       5
+    ],
+    "melting_point_k": 1841,
+    "boiling_point_k": 4300,
+    "uses": [
+      "radiometricAndEarth",
+      "fundamentalResearch"
     ]
   },
   {
@@ -1564,6 +2158,13 @@
       4,
       5,
       6
+    ],
+    "melting_point_k": 1405.3,
+    "boiling_point_k": 4404,
+    "uses": [
+      "nuclearEnergy",
+      "radiometricAndEarth",
+      "supernovaNucleosynthesis"
     ]
   },
   {
@@ -1571,7 +2172,7 @@
     "symbol": "Np",
     "name_es": "Neptunio",
     "category": "actínido",
-    "atomic_mass": 237.0,
+    "atomic_mass": 237,
     "electron_config_str": "[Rn] 5f⁴ 6d¹ 7s²",
     "radius_pm": 175,
     "electronegativity": 1.36,
@@ -1584,6 +2185,12 @@
       5,
       6,
       7
+    ],
+    "melting_point_k": 917,
+    "boiling_point_k": 4273,
+    "uses": [
+      "particleAccelerators",
+      "fundamentalResearch"
     ]
   },
   {
@@ -1591,7 +2198,7 @@
     "symbol": "Pu",
     "name_es": "Plutonio",
     "category": "actínido",
-    "atomic_mass": 244.0,
+    "atomic_mass": 244,
     "electron_config_str": "[Rn] 5f⁶ 7s²",
     "radius_pm": 175,
     "electronegativity": 1.28,
@@ -1604,6 +2211,12 @@
       5,
       6,
       7
+    ],
+    "melting_point_k": 912.5,
+    "boiling_point_k": 3505,
+    "uses": [
+      "spaceProbesRtg",
+      "nuclearEnergy"
     ]
   },
   {
@@ -1611,7 +2224,7 @@
     "symbol": "Am",
     "name_es": "Americio",
     "category": "actínido",
-    "atomic_mass": 243.0,
+    "atomic_mass": 243,
     "electron_config_str": "[Rn] 5f⁷ 7s²",
     "radius_pm": 173,
     "electronegativity": 1.3,
@@ -1623,6 +2236,12 @@
       4,
       5,
       6
+    ],
+    "melting_point_k": 1449,
+    "boiling_point_k": 2880,
+    "uses": [
+      "smokeAndSensors",
+      "spaceProbesRtg"
     ]
   },
   {
@@ -1630,7 +2249,7 @@
     "symbol": "Cm",
     "name_es": "Curio",
     "category": "actínido",
-    "atomic_mass": 247.0,
+    "atomic_mass": 247,
     "electron_config_str": "[Rn] 5f⁷ 6d¹ 7s²",
     "radius_pm": 169,
     "electronegativity": 1.3,
@@ -1640,6 +2259,12 @@
     "oxidation_states": [
       3,
       4
+    ],
+    "melting_point_k": 1613,
+    "boiling_point_k": 3383,
+    "uses": [
+      "spaceProbesRtg",
+      "particleAccelerators"
     ]
   },
   {
@@ -1647,7 +2272,7 @@
     "symbol": "Bk",
     "name_es": "Berkelio",
     "category": "actínido",
-    "atomic_mass": 247.0,
+    "atomic_mass": 247,
     "electron_config_str": "[Rn] 5f⁹ 7s²",
     "radius_pm": 168,
     "electronegativity": 1.3,
@@ -1657,6 +2282,12 @@
     "oxidation_states": [
       3,
       4
+    ],
+    "melting_point_k": 1259,
+    "boiling_point_k": null,
+    "uses": [
+      "particleAccelerators",
+      "fundamentalResearch"
     ]
   },
   {
@@ -1664,7 +2295,7 @@
     "symbol": "Cf",
     "name_es": "Californio",
     "category": "actínido",
-    "atomic_mass": 251.0,
+    "atomic_mass": 251,
     "electron_config_str": "[Rn] 5f¹⁰ 7s²",
     "radius_pm": 168,
     "electronegativity": 1.3,
@@ -1673,6 +2304,12 @@
     "name_en": "Californium",
     "oxidation_states": [
       3
+    ],
+    "melting_point_k": 1173,
+    "boiling_point_k": null,
+    "uses": [
+      "smokeAndSensors",
+      "particleAccelerators"
     ]
   },
   {
@@ -1680,7 +2317,7 @@
     "symbol": "Es",
     "name_es": "Einstenio",
     "category": "actínido",
-    "atomic_mass": 252.0,
+    "atomic_mass": 252,
     "electron_config_str": "[Rn] 5f¹¹ 7s²",
     "radius_pm": 165,
     "electronegativity": 1.3,
@@ -1689,6 +2326,12 @@
     "name_en": "Einsteinium",
     "oxidation_states": [
       3
+    ],
+    "melting_point_k": 1133,
+    "boiling_point_k": null,
+    "uses": [
+      "particleAccelerators",
+      "fundamentalResearch"
     ]
   },
   {
@@ -1696,7 +2339,7 @@
     "symbol": "Fm",
     "name_es": "Fermio",
     "category": "actínido",
-    "atomic_mass": 257.0,
+    "atomic_mass": 257,
     "electron_config_str": "[Rn] 5f¹² 7s²",
     "radius_pm": 167,
     "electronegativity": 1.3,
@@ -1705,6 +2348,12 @@
     "name_en": "Fermium",
     "oxidation_states": [
       3
+    ],
+    "melting_point_k": null,
+    "boiling_point_k": null,
+    "uses": [
+      "particleAccelerators",
+      "fundamentalResearch"
     ]
   },
   {
@@ -1712,7 +2361,7 @@
     "symbol": "Md",
     "name_es": "Mendelevio",
     "category": "actínido",
-    "atomic_mass": 258.0,
+    "atomic_mass": 258,
     "electron_config_str": "[Rn] 5f¹³ 7s²",
     "radius_pm": 173,
     "electronegativity": 1.3,
@@ -1722,6 +2371,12 @@
     "oxidation_states": [
       2,
       3
+    ],
+    "melting_point_k": null,
+    "boiling_point_k": null,
+    "uses": [
+      "particleAccelerators",
+      "fundamentalResearch"
     ]
   },
   {
@@ -1729,7 +2384,7 @@
     "symbol": "No",
     "name_es": "Nobelio",
     "category": "actínido",
-    "atomic_mass": 259.0,
+    "atomic_mass": 259,
     "electron_config_str": "[Rn] 5f¹⁴ 7s²",
     "radius_pm": 176,
     "electronegativity": 1.3,
@@ -1739,6 +2394,12 @@
     "oxidation_states": [
       2,
       3
+    ],
+    "melting_point_k": null,
+    "boiling_point_k": null,
+    "uses": [
+      "particleAccelerators",
+      "fundamentalResearch"
     ]
   },
   {
@@ -1746,7 +2407,7 @@
     "symbol": "Lr",
     "name_es": "Laurencio",
     "category": "actínido",
-    "atomic_mass": 266.0,
+    "atomic_mass": 266,
     "electron_config_str": "[Rn] 5f¹⁴ 7s² 7p¹",
     "radius_pm": 161,
     "electronegativity": 1.3,
@@ -1755,6 +2416,12 @@
     "name_en": "Lawrencium",
     "oxidation_states": [
       3
+    ],
+    "melting_point_k": null,
+    "boiling_point_k": null,
+    "uses": [
+      "particleAccelerators",
+      "fundamentalResearch"
     ]
   },
   {
@@ -1762,7 +2429,7 @@
     "symbol": "Rf",
     "name_es": "Rutherfordio",
     "category": "metal de transición",
-    "atomic_mass": 267.0,
+    "atomic_mass": 267,
     "electron_config_str": "[Rn] 5f¹⁴ 6d² 7s²",
     "radius_pm": 150,
     "electronegativity": null,
@@ -1771,6 +2438,12 @@
     "name_en": "Rutherfordium",
     "oxidation_states": [
       4
+    ],
+    "melting_point_k": null,
+    "boiling_point_k": null,
+    "uses": [
+      "particleAccelerators",
+      "fundamentalResearch"
     ]
   },
   {
@@ -1778,7 +2451,7 @@
     "symbol": "Db",
     "name_es": "Dubnio",
     "category": "metal de transición",
-    "atomic_mass": 268.0,
+    "atomic_mass": 268,
     "electron_config_str": "[Rn] 5f¹⁴ 6d³ 7s²",
     "radius_pm": 139,
     "electronegativity": null,
@@ -1787,6 +2460,12 @@
     "name_en": "Dubnium",
     "oxidation_states": [
       5
+    ],
+    "melting_point_k": null,
+    "boiling_point_k": null,
+    "uses": [
+      "particleAccelerators",
+      "fundamentalResearch"
     ]
   },
   {
@@ -1794,7 +2473,7 @@
     "symbol": "Sg",
     "name_es": "Seaborgio",
     "category": "metal de transición",
-    "atomic_mass": 269.0,
+    "atomic_mass": 269,
     "electron_config_str": "[Rn] 5f¹⁴ 6d⁴ 7s²",
     "radius_pm": 132,
     "electronegativity": null,
@@ -1803,6 +2482,12 @@
     "name_en": "Seaborgium",
     "oxidation_states": [
       6
+    ],
+    "melting_point_k": null,
+    "boiling_point_k": null,
+    "uses": [
+      "particleAccelerators",
+      "fundamentalResearch"
     ]
   },
   {
@@ -1810,7 +2495,7 @@
     "symbol": "Bh",
     "name_es": "Bohrio",
     "category": "metal de transición",
-    "atomic_mass": 270.0,
+    "atomic_mass": 270,
     "electron_config_str": "[Rn] 5f¹⁴ 6d⁵ 7s²",
     "radius_pm": 128,
     "electronegativity": null,
@@ -1819,6 +2504,12 @@
     "name_en": "Bohrium",
     "oxidation_states": [
       7
+    ],
+    "melting_point_k": null,
+    "boiling_point_k": null,
+    "uses": [
+      "particleAccelerators",
+      "fundamentalResearch"
     ]
   },
   {
@@ -1826,7 +2517,7 @@
     "symbol": "Hs",
     "name_es": "Hassio",
     "category": "metal de transición",
-    "atomic_mass": 277.0,
+    "atomic_mass": 277,
     "electron_config_str": "[Rn] 5f¹⁴ 6d⁶ 7s²",
     "radius_pm": 134,
     "electronegativity": null,
@@ -1835,6 +2526,12 @@
     "name_en": "Hassium",
     "oxidation_states": [
       8
+    ],
+    "melting_point_k": null,
+    "boiling_point_k": null,
+    "uses": [
+      "particleAccelerators",
+      "fundamentalResearch"
     ]
   },
   {
@@ -1842,7 +2539,7 @@
     "symbol": "Mt",
     "name_es": "Meitnerio",
     "category": "metal de transición",
-    "atomic_mass": 278.0,
+    "atomic_mass": 278,
     "electron_config_str": "[Rn] 5f¹⁴ 6d⁷ 7s²",
     "radius_pm": 129,
     "electronegativity": null,
@@ -1851,6 +2548,12 @@
     "name_en": "Meitnerium",
     "oxidation_states": [
       3
+    ],
+    "melting_point_k": null,
+    "boiling_point_k": null,
+    "uses": [
+      "particleAccelerators",
+      "fundamentalResearch"
     ]
   },
   {
@@ -1858,7 +2561,7 @@
     "symbol": "Ds",
     "name_es": "Darmstadtio",
     "category": "metal de transición",
-    "atomic_mass": 281.0,
+    "atomic_mass": 281,
     "electron_config_str": "[Rn] 5f¹⁴ 6d⁸ 7s²",
     "radius_pm": 128,
     "electronegativity": null,
@@ -1867,6 +2570,12 @@
     "name_en": "Darmstadtium",
     "oxidation_states": [
       4
+    ],
+    "melting_point_k": null,
+    "boiling_point_k": null,
+    "uses": [
+      "particleAccelerators",
+      "fundamentalResearch"
     ]
   },
   {
@@ -1874,7 +2583,7 @@
     "symbol": "Rg",
     "name_es": "Roentgenio",
     "category": "metal de transición",
-    "atomic_mass": 282.0,
+    "atomic_mass": 282,
     "electron_config_str": "[Rn] 5f¹⁴ 6d⁹ 7s²",
     "radius_pm": 121,
     "electronegativity": null,
@@ -1883,6 +2592,12 @@
     "name_en": "Roentgenium",
     "oxidation_states": [
       3
+    ],
+    "melting_point_k": null,
+    "boiling_point_k": null,
+    "uses": [
+      "particleAccelerators",
+      "fundamentalResearch"
     ]
   },
   {
@@ -1890,7 +2605,7 @@
     "symbol": "Cn",
     "name_es": "Copernicio",
     "category": "metal de transición",
-    "atomic_mass": 285.0,
+    "atomic_mass": 285,
     "electron_config_str": "[Rn] 5f¹⁴ 6d¹⁰ 7s²",
     "radius_pm": 122,
     "electronegativity": null,
@@ -1899,6 +2614,12 @@
     "name_en": "Copernicium",
     "oxidation_states": [
       2
+    ],
+    "melting_point_k": null,
+    "boiling_point_k": null,
+    "uses": [
+      "particleAccelerators",
+      "fundamentalResearch"
     ]
   },
   {
@@ -1906,7 +2627,7 @@
     "symbol": "Nh",
     "name_es": "Nihonio",
     "category": "metal del bloque p",
-    "atomic_mass": 286.0,
+    "atomic_mass": 286,
     "electron_config_str": "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p¹",
     "radius_pm": 136,
     "electronegativity": null,
@@ -1916,6 +2637,12 @@
     "oxidation_states": [
       1,
       3
+    ],
+    "melting_point_k": null,
+    "boiling_point_k": null,
+    "uses": [
+      "particleAccelerators",
+      "fundamentalResearch"
     ]
   },
   {
@@ -1923,7 +2650,7 @@
     "symbol": "Fl",
     "name_es": "Flerovio",
     "category": "metal del bloque p",
-    "atomic_mass": 289.0,
+    "atomic_mass": 289,
     "electron_config_str": "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p²",
     "radius_pm": 143,
     "electronegativity": null,
@@ -1933,6 +2660,12 @@
     "oxidation_states": [
       2,
       4
+    ],
+    "melting_point_k": null,
+    "boiling_point_k": null,
+    "uses": [
+      "particleAccelerators",
+      "fundamentalResearch"
     ]
   },
   {
@@ -1940,7 +2673,7 @@
     "symbol": "Mc",
     "name_es": "Moscovio",
     "category": "metal del bloque p",
-    "atomic_mass": 290.0,
+    "atomic_mass": 290,
     "electron_config_str": "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p³",
     "radius_pm": 162,
     "electronegativity": null,
@@ -1950,6 +2683,12 @@
     "oxidation_states": [
       1,
       3
+    ],
+    "melting_point_k": null,
+    "boiling_point_k": null,
+    "uses": [
+      "particleAccelerators",
+      "fundamentalResearch"
     ]
   },
   {
@@ -1957,7 +2696,7 @@
     "symbol": "Lv",
     "name_es": "Livermorio",
     "category": "metal del bloque p",
-    "atomic_mass": 293.0,
+    "atomic_mass": 293,
     "electron_config_str": "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁴",
     "radius_pm": 175,
     "electronegativity": null,
@@ -1967,6 +2706,12 @@
     "oxidation_states": [
       2,
       4
+    ],
+    "melting_point_k": null,
+    "boiling_point_k": null,
+    "uses": [
+      "particleAccelerators",
+      "fundamentalResearch"
     ]
   },
   {
@@ -1974,7 +2719,7 @@
     "symbol": "Ts",
     "name_es": "Teneso",
     "category": "halógeno",
-    "atomic_mass": 294.0,
+    "atomic_mass": 294,
     "electron_config_str": "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁵",
     "radius_pm": 165,
     "electronegativity": null,
@@ -1986,6 +2731,12 @@
       1,
       3,
       5
+    ],
+    "melting_point_k": null,
+    "boiling_point_k": null,
+    "uses": [
+      "particleAccelerators",
+      "fundamentalResearch"
     ]
   },
   {
@@ -1993,13 +2744,19 @@
     "symbol": "Og",
     "name_es": "Oganesón",
     "category": "gas noble",
-    "atomic_mass": 294.0,
+    "atomic_mass": 294,
     "electron_config_str": "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁶",
     "radius_pm": 157,
     "electronegativity": null,
     "ionization_energy": 860,
     "discovery_year": 2006,
     "name_en": "Oganesson",
-    "oxidation_states": []
+    "oxidation_states": [],
+    "melting_point_k": null,
+    "boiling_point_k": null,
+    "uses": [
+      "particleAccelerators",
+      "fundamentalResearch"
+    ]
   }
 ]

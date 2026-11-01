@@ -1,3 +1,9 @@
+import {
+  type MatterPhase,
+  isAncientDiscovery,
+  isElementDiscovered,
+} from '../core/periodic-trends';
+
 /**
  * Single source of truth for every colour used by the periodic table.
  *
@@ -6,6 +12,8 @@
  * than its neighbours while the ten remain distinguishable. Values are hex so
  * they work in every `color-mix()` expression without a `@supports` guard.
  */
+
+export const UNKNOWN_ELEMENT_COLOR = '#3a4152';
 
 /** Ordered by atomic-block grouping so the legend reads left-to-right. */
 const CATEGORY_COLORS: Record<string, string> = {
@@ -49,6 +57,15 @@ interface Rgb {
 
 const ELECTRONEGATIVITY_STOPS: readonly string[] = ['#1e3a8f', '#6d28b9', '#a92a52'];
 const RADIUS_STOPS: readonly string[] = ['#4c2a8f', '#1e7a8f', '#2a8f5c'];
+const IONIZATION_STOPS: readonly string[] = ['#1e4f8f', '#8e3b72', '#d4842a'];
+const DISCOVERY_STOPS: readonly string[] = ['#d49b4b', '#3b9c9c', '#6e7bf2'];
+
+const PHASE_COLORS: Record<MatterPhase, string> = {
+  solid: '#60a5fa',
+  liquid: '#34d399',
+  gas: '#f28b50',
+  unknown: UNKNOWN_ELEMENT_COLOR,
+};
 
 function hexToRgb(hex: string): Rgb {
   const v = Number.parseInt(hex.slice(1), 16);
@@ -85,6 +102,8 @@ function gradientCss(stops: readonly string[]): string {
 
 export const ELECTRONEGATIVITY_GRADIENT = gradientCss(ELECTRONEGATIVITY_STOPS);
 export const RADIUS_GRADIENT = gradientCss(RADIUS_STOPS);
+export const IONIZATION_GRADIENT = gradientCss(IONIZATION_STOPS);
+export const DISCOVERY_GRADIENT = gradientCss(DISCOVERY_STOPS);
 
 /* --------------------------------------------------------------------------
  * Public API
@@ -99,7 +118,7 @@ export function getLegendCategoryOrder(): readonly string[] {
 }
 
 export function getElectronegativityColor(value: number | null): string {
-  if (value === null) return '#3a4152';
+  if (value === null) return UNKNOWN_ELEMENT_COLOR;
   // Domain 0.7 (Fr) .. 4.0 (F) matches the legend labels.
   const t = (value - 0.7) / (4.0 - 0.7);
   return sampleGradient(ELECTRONEGATIVITY_STOPS, t);
@@ -109,4 +128,22 @@ export function getRadiusColor(radiusPm: number): string {
   // Domain 32 pm (He) .. 260 pm (Fr) matches the legend labels.
   const t = (radiusPm - 32) / (260 - 32);
   return sampleGradient(RADIUS_STOPS, t);
+}
+
+export function getIonizationColor(value: number | null): string {
+  if (value === null) return UNKNOWN_ELEMENT_COLOR;
+  // Domain 376 kJ/mol (Cs) .. 2372 kJ/mol (He) matches the legend labels.
+  const t = (value - 376) / (2372 - 376);
+  return sampleGradient(IONIZATION_STOPS, t);
+}
+
+export function getPhaseColor(phase: MatterPhase): string {
+  return PHASE_COLORS[phase];
+}
+
+export function getDiscoveryColor(discoveryYear: number | string, cutoffYear: number): string {
+  if (!isElementDiscovered(discoveryYear, cutoffYear)) return UNKNOWN_ELEMENT_COLOR;
+  if (isAncientDiscovery(discoveryYear)) return DISCOVERY_STOPS[0];
+  const t = (Number(discoveryYear) - 1700) / (2016 - 1700);
+  return sampleGradient(DISCOVERY_STOPS, t);
 }

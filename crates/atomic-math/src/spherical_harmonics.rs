@@ -172,7 +172,7 @@ pub fn real_orbital_angular(kind: &RealOrbitalKind, theta: f64, phi: f64) -> f64
 /// Every variant in [`RealOrbitalKind`] is a product of a function of `theta`
 /// and a function of `phi`, which is what lets `angular_amplitude_max` and
 /// `angular_density_max` find the peak with two 1D scans instead of a 2D grid.
-fn real_orbital_polar(kind: &RealOrbitalKind, theta: f64) -> f64 {
+pub(crate) fn real_orbital_polar(kind: &RealOrbitalKind, theta: f64) -> f64 {
     let sin_t = theta.sin();
     let cos_t = theta.cos();
 
@@ -224,4 +224,105 @@ fn real_orbital_azimuthal(kind: &RealOrbitalKind, phi: f64) -> f64 {
         RealOrbitalKind::FxX23Y2 => (3.0 * phi).cos(),
         RealOrbitalKind::Fy3X2Y2 => (3.0 * phi).sin(),
     }
+}
+
+fn real_polar_nodal_cosines(kind: &RealOrbitalKind) -> Vec<f64> {
+    match kind {
+        RealOrbitalKind::Pz
+        | RealOrbitalKind::Dxz
+        | RealOrbitalKind::Dyz
+        | RealOrbitalKind::FzX2Y2
+        | RealOrbitalKind::Fxyz => vec![0.0],
+        RealOrbitalKind::Dz2 | RealOrbitalKind::Fxz2 | RealOrbitalKind::Fyz2 => {
+            let c = (1.0_f64 / 3.0).sqrt();
+            vec![-c, c]
+        }
+        RealOrbitalKind::Fz3 => {
+            let c = (3.0_f64 / 5.0).sqrt();
+            vec![-c, 0.0, c]
+        }
+        RealOrbitalKind::S
+        | RealOrbitalKind::Px
+        | RealOrbitalKind::Py
+        | RealOrbitalKind::Dx2y2
+        | RealOrbitalKind::Dxy
+        | RealOrbitalKind::FxX23Y2
+        | RealOrbitalKind::Fy3X2Y2 => Vec::new(),
+    }
+}
+
+fn bisect_legendre_root(l: u32, m_abs: i32, mut lo: f64, mut hi: f64) -> Result<f64, String> {
+    let f_lo = associated_legendre(l, m_abs, lo)?;
+    for _ in 0..50 {
+        let mid = 0.5 * (lo + hi);
+        let f_mid = associated_legendre(l, m_abs, mid)?;
+        if f_lo * f_mid <= 0.0 {
+            hi = mid;
+        } else {
+            lo = mid;
+        }
+    }
+    Ok(0.5 * (lo + hi))
+}
+
+fn scan_positive_legendre_roots(l: u32, m_abs: i32, count: usize) -> Result<Vec<f64>, String> {
+    if count == 0 {
+        return Ok(Vec::new());
+    }
+
+    let steps = 1000usize;
+    let u_min = 1e-5_f64;
+    let u_max = 1.0 - 1e-5_f64;
+    let step = (u_max - u_min) / (steps as f64);
+
+    let mut roots = Vec::with_capacity(count);
+    let mut prev_u = u_min;
+    let mut prev_val = associated_legendre(l, m_abs, prev_u)?;
+
+    for i in 1..=steps {
+        let u = u_min + (i as f64) * step;
+        let val = associated_legendre(l, m_abs, u)?;
+        if prev_val != 0.0 && prev_val * val <= 0.0 {
+            roots.push(bisect_legendre_root(l, m_abs, prev_u, u)?);
+            if roots.len() == count {
+                break;
+            }
+        }
+        prev_u = u;
+        prev_val = val;
+    }
+
+    Ok(roots)
+}
+
+/// Interior polar nodal cosines `cos(theta)` in `(-1, 1)` where the polar factor vanishes.
+///
+/// `cos(theta) = 0` corresponds to the equatorial XY plane (`z = 0`), and
+/// `cos(theta) = c != 0` corresponds to a nodal cone around the polar Z axis (`z = r cos(theta)`).
+pub fn polar_nodal_cosines(
+    l: u32,
+    m: i32,
+    real_kind: Option<&RealOrbitalKind>,
+) -> Result<Vec<f64>, String> {
+    check_lm(l, m)?;
+    if let Some(kind) = real_kind {
+        return Ok(real_polar_nodal_cosines(kind));
+    }
+
+    let m_abs = m.unsigned_abs();
+    let degree = l - m_abs;
+    if degree == 0 {
+        return Ok(Vec::new());
+    }
+
+    let positive_roots = scan_positive_legendre_roots(l, m_abs as i32, (degree / 2) as usize)?;
+    let mut cosines = Vec::with_capacity(degree as usize);
+    for &u in positive_roots.iter().rev() {
+        cosines.push(-u);
+    }
+    if degree % 2 == 1 {
+        cosines.push(0.0);
+    }
+    cosines.extend_from_slice(&positive_roots);
+    Ok(cosines)
 }

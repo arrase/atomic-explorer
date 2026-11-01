@@ -1,16 +1,39 @@
 import elementsData from '../../assets/data/elements.json';
-import { getStrings, getLanguage, onLanguageChange, I18nStrings } from '../i18n';
+import {
+  getStrings,
+  getLanguage,
+  onLanguageChange,
+  type I18nStrings,
+  type ElementUseKey,
+} from '../i18n';
 import { ExplanationModal } from './info-modal';
+import { escapeHtml } from './modal-utils';
 import { icon } from './icons';
 import { OrbitalPreview } from '../render/orbital-preview';
 import { calculateValenceQuantumNumbers, subshellName } from '../core/valence-orbital';
 import { meanRadiusBohr } from '../core/physics-constants';
 import {
+  ANCIENT_DISCOVERY_SENTINEL,
+  DEFAULT_TEMPERATURE_K,
+  MAX_DISCOVERY_YEAR,
+  MAX_TEMPERATURE_K,
+  MIN_TEMPERATURE_K,
+  getElementPhase,
+  isAncientDiscovery,
+  isElementDiscovered,
+  kelvinToCelsius,
+  type MatterPhase,
+} from '../core/periodic-trends';
+import {
   ELECTRONEGATIVITY_GRADIENT,
+  IONIZATION_GRADIENT,
   RADIUS_GRADIENT,
   getCategoryColor,
+  getDiscoveryColor,
   getElectronegativityColor,
+  getIonizationColor,
   getLegendCategoryOrder,
+  getPhaseColor,
   getRadiusColor,
 } from './element-colors';
 
@@ -27,9 +50,42 @@ export interface ElementData {
   ionization_energy: number | null;
   oxidation_states?: number[];
   discovery_year: number | string;
+  melting_point_k: number | null;
+  boiling_point_k: number | null;
+  uses: ElementUseKey[];
 }
 
 export type ChemicalBlock = 'all' | 's' | 'p' | 'd' | 'f';
+export type ColorScheme =
+  | 'category'
+  | 'electronegativity'
+  | 'radius'
+  | 'ionization'
+  | 'phase'
+  | 'discovery';
+
+const VALID_BLOCKS: ReadonlySet<ChemicalBlock> = new Set(['all', 's', 'p', 'd', 'f']);
+const VALID_COLOR_SCHEMES: ReadonlySet<string> = new Set<ColorScheme>([
+  'category',
+  'electronegativity',
+  'radius',
+  'ionization',
+  'phase',
+  'discovery',
+]);
+const MATTER_PHASES: readonly MatterPhase[] = ['solid', 'liquid', 'gas', 'unknown'];
+
+interface TemperaturePreset {
+  readonly k: number;
+  readonly labelKey: 'tempPresetRoom' | 'tempPresetLava' | 'tempPresetSun' | null;
+}
+
+const TEMPERATURE_PRESETS: readonly TemperaturePreset[] = [
+  { k: 298, labelKey: 'tempPresetRoom' },
+  { k: 1000, labelKey: 'tempPresetLava' },
+  { k: 3000, labelKey: null },
+  { k: 5778, labelKey: 'tempPresetSun' },
+];
 
 interface GridRange {
   readonly maxZ: number;
@@ -54,13 +110,12 @@ const GRID_RANGES: readonly GridRange[] = [
   { maxZ: 118, row: 8, colOffset: -99 },
 ];
 
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+function syncRangeFill(input: HTMLInputElement): void {
+  const min = Number.parseFloat(input.min);
+  const max = Number.parseFloat(input.max);
+  const value = Number.parseFloat(input.value);
+  const pct = ((value - min) / (max - min)) * 100;
+  input.style.setProperty('--fill', `${Math.max(0, Math.min(100, pct))}%`);
 }
 
 export class PeriodicTableView {
@@ -68,9 +123,12 @@ export class PeriodicTableView {
   private readonly elements: ElementData[] = elementsData as ElementData[];
   private readonly preview: OrbitalPreview;
   private selectedElement: ElementData | null = null;
-  private currentColorScheme: 'category' | 'electronegativity' | 'radius' = 'category';
+  private currentColorScheme: ColorScheme = 'category';
   private selectedBlock: ChemicalBlock = 'all';
+  private temperatureK: number = DEFAULT_TEMPERATURE_K;
+  private discoveryYear: number = MAX_DISCOVERY_YEAR;
   private readonly onSelectElementOrbital: (element: ElementData) => void;
+  public onStateChange?: () => void;
 
   constructor(
     container: HTMLElement,
@@ -85,6 +143,54 @@ export class PeriodicTableView {
     onLanguageChange(() => this.render());
   }
 
+  public getDeepLinkState(): {
+    el: number;
+    block: 'all' | 's' | 'p' | 'd' | 'f';
+    colorScheme: ColorScheme;
+  } {
+    return {
+      el: this.selectedElement ? this.selectedElement.Z : 1,
+      block: this.selectedBlock,
+      colorScheme: this.currentColorScheme,
+    };
+  }
+
+  public selectElementByZ(z: number): void {
+    const el = this.elements.find((item) => item.Z === z);
+    if (el) {
+      this.selectElement(el);
+    }
+  }
+
+  public setToolbarState(opts: {
+    block?: 'all' | 's' | 'p' | 'd' | 'f';
+    colorScheme?: string;
+  }): void {
+    if (opts.block && VALID_BLOCKS.has(opts.block)) {
+      this.selectedBlock = opts.block;
+      this.syncBlockFilterButtons();
+    }
+    if (opts.colorScheme && VALID_COLOR_SCHEMES.has(opts.colorScheme)) {
+      this.currentColorScheme = opts.colorScheme as ColorScheme;
+      const select = this.container.querySelector<HTMLSelectElement>('#color-scheme-select');
+      if (select) {
+        select.value = this.currentColorScheme;
+      }
+      this.refreshLegend();
+    }
+    this.updateGridAppearance(this.getSearchQuery());
+  }
+
+  private renderColorOption(value: ColorScheme, label: string): string {
+    const selected = this.currentColorScheme === value ? 'selected' : '';
+    return `<option value="${value}" ${selected}>${escapeHtml(label)}</option>`;
+  }
+
+  private renderBlockButton(block: ChemicalBlock, label: string): string {
+    const active = this.selectedBlock === block ? 'active' : '';
+    return `<button type="button" class="btn-block-filter ${active}" data-block="${block}">${escapeHtml(label)}</button>`;
+  }
+
   private render(): void {
     const strings = getStrings();
 
@@ -93,25 +199,28 @@ export class PeriodicTableView {
         <div class="table-toolbar">
           <div class="toolbar-left-group">
             <div class="toolbar-group">
-              <label for="color-scheme-select">${strings.colorCoding}:</label>
+              <label for="color-scheme-select">${escapeHtml(strings.colorCoding)}:</label>
               <select id="color-scheme-select">
-                <option value="category" ${this.currentColorScheme === 'category' ? 'selected' : ''}>${strings.colorCategory}</option>
-                <option value="electronegativity" ${this.currentColorScheme === 'electronegativity' ? 'selected' : ''}>${strings.colorElectronegativity}</option>
-                <option value="radius" ${this.currentColorScheme === 'radius' ? 'selected' : ''}>${strings.colorRadius}</option>
+                ${this.renderColorOption('category', strings.colorCategory)}
+                ${this.renderColorOption('electronegativity', strings.colorElectronegativity)}
+                ${this.renderColorOption('radius', strings.colorRadius)}
+                ${this.renderColorOption('ionization', strings.ionizationEnergy)}
+                ${this.renderColorOption('phase', strings.colorPhase)}
+                ${this.renderColorOption('discovery', strings.colorDiscovery)}
               </select>
             </div>
             <div class="block-filter-bar">
-              <button class="btn-block-filter ${this.selectedBlock === 'all' ? 'active' : ''}" data-block="all">${strings.blockFilterAll}</button>
-              <button class="btn-block-filter ${this.selectedBlock === 's' ? 'active' : ''}" data-block="s">${strings.blockFilterS}</button>
-              <button class="btn-block-filter ${this.selectedBlock === 'p' ? 'active' : ''}" data-block="p">${strings.blockFilterP}</button>
-              <button class="btn-block-filter ${this.selectedBlock === 'd' ? 'active' : ''}" data-block="d">${strings.blockFilterD}</button>
-              <button class="btn-block-filter ${this.selectedBlock === 'f' ? 'active' : ''}" data-block="f">${strings.blockFilterF}</button>
+              ${this.renderBlockButton('all', strings.blockFilterAll)}
+              ${this.renderBlockButton('s', strings.blockFilterS)}
+              ${this.renderBlockButton('p', strings.blockFilterP)}
+              ${this.renderBlockButton('d', strings.blockFilterD)}
+              ${this.renderBlockButton('f', strings.blockFilterF)}
             </div>
           </div>
           <div class="toolbar-group search-group">
             <div class="search-input-wrapper">
               <span class="search-icon-inside">${icon('search')}</span>
-              <input type="text" id="element-search" placeholder="${strings.searchPlaceholder}" />
+              <input type="text" id="element-search" placeholder="${escapeHtml(strings.searchPlaceholder)}" />
             </div>
           </div>
         </div>
@@ -125,14 +234,14 @@ export class PeriodicTableView {
             ${this.renderGridCells()}
           </div>
           <div class="periodic-scroll-hint">
-            <span>${icon('chevron-left')} ${strings.swipeToExplore} ${icon('chevron-right')}</span>
+            <span>${icon('chevron-left')} ${escapeHtml(strings.swipeToExplore)} ${icon('chevron-right')}</span>
           </div>
           <div class="periodic-trends-card">
             <div class="trends-card-header">
-              <h4>${strings.periodicTrendsGuideTitle}</h4>
-              <button class="btn-info-icon" data-explain="explainAtomicRadius" aria-label="Info">${icon('info')}</button>
+              <h4>${escapeHtml(strings.periodicTrendsGuideTitle)}</h4>
+              <button type="button" class="btn-info-icon" data-explain="explainAtomicRadius" aria-label="Info">${icon('info')}</button>
             </div>
-            <p>${strings.periodicTrendsGuideText}</p>
+            <p>${escapeHtml(strings.periodicTrendsGuideText)}</p>
           </div>
         </div>
 
@@ -148,7 +257,7 @@ export class PeriodicTableView {
         <div class="element-inspector-panel" id="element-inspector">
           <div class="mobile-drawer-handle"></div>
           <div class="panel-header-actions mobile-only-header">
-            <button class="panel-close-btn" id="btn-close-inspector" aria-label="${escapeHtml(strings.infoModalClose)}">${icon('close')}</button>
+            <button type="button" class="panel-close-btn" id="btn-close-inspector" aria-label="${escapeHtml(strings.infoModalClose)}">${icon('close')}</button>
           </div>
           ${this.renderInspectorContent()}
         </div>
@@ -179,65 +288,218 @@ export class PeriodicTableView {
     }
   }
 
-  public getElementBlock(el: ElementData): 's' | 'p' | 'd' | 'f' {
-    const z = el.Z;
-    if ((z >= 57 && z <= 71) || (z >= 89 && z <= 103)) return 'f';
-    if (z === 1 || z === 2 || [3, 4, 11, 12, 19, 20, 37, 38, 55, 56, 87, 88].includes(z)) return 's';
-    if (
-      (z >= 5 && z <= 10) ||
-      (z >= 13 && z <= 18) ||
-      (z >= 31 && z <= 36) ||
-      (z >= 49 && z <= 54) ||
-      (z >= 81 && z <= 86) ||
-      (z >= 113 && z <= 118)
-    ) {
-      return 'p';
+  private getPhaseLabel(phase: MatterPhase, strings: I18nStrings): string {
+    switch (phase) {
+      case 'solid': return strings.phaseSolid;
+      case 'liquid': return strings.phaseLiquid;
+      case 'gas': return strings.phaseGas;
+      case 'unknown': return strings.phaseUnknown;
     }
+  }
+
+  private getPhaseChipColor(phase: MatterPhase): string {
+    return phase === 'unknown' ? '#8a92a5' : getPhaseColor(phase);
+  }
+
+  private formatTemperature(tempK: number): string {
+    return `${tempK} K (${kelvinToCelsius(tempK)} °C)`;
+  }
+
+  private formatPhasePoint(k: number | null): string {
+    return k !== null ? `${k} K (${kelvinToCelsius(k)} °C)` : 'N/A';
+  }
+
+  private formatDiscoveryCutoff(year: number, strings: I18nStrings): string {
+    return year <= ANCIENT_DISCOVERY_SENTINEL ? strings.ancient : String(year);
+  }
+
+  private formatOxidationStates(states?: number[]): string {
+    if (!states || states.length === 0) return 'N/A';
+    return states.map((s) => (s > 0 ? `+${s}` : `${s}`)).join(', ');
+  }
+
+  public getElementBlock(el: ElementData): 's' | 'p' | 'd' | 'f' {
+    const { row, col } = this.getElementGridPosition(el.Z);
+    if (row >= 10) return 'f';
+    if (col <= 3 || el.Z === 2) return 's';
+    if (col >= 14) return 'p';
     return 'd';
+  }
+
+  private countElementsByPhase(): Record<MatterPhase, number> {
+    const counts: Record<MatterPhase, number> = { solid: 0, liquid: 0, gas: 0, unknown: 0 };
+    for (const el of this.elements) {
+      counts[getElementPhase(el.melting_point_k, el.boiling_point_k, this.temperatureK)]++;
+    }
+    return counts;
+  }
+
+  private countDiscoveredElements(): number {
+    let count = 0;
+    for (const el of this.elements) {
+      if (isElementDiscovered(el.discovery_year, this.discoveryYear)) {
+        count++;
+      }
+    }
+    return count;
   }
 
   private renderLegendBar(): string {
     const strings = getStrings();
-    if (this.currentColorScheme === 'electronegativity') {
-      return `
-        <div class="periodic-legend-bar">
-          <div class="legend-header">
-            <span class="legend-title">${strings.legendElectronegativity}</span>
-            <span class="legend-na-badge">N/A: ${strings.catNobleGas}</span>
-          </div>
-          <div class="legend-gradient-wrapper">
-            <span class="legend-val-min">0.7 (Fr)</span>
-            <div class="legend-gradient-track" style="background: ${ELECTRONEGATIVITY_GRADIENT}"></div>
-            <span class="legend-val-max">4.0 (F)</span>
-          </div>
-        </div>
-      `;
-    } else if (this.currentColorScheme === 'radius') {
-      return `
-        <div class="periodic-legend-bar">
-          <div class="legend-header">
-            <span class="legend-title">${strings.legendAtomicRadius}</span>
-          </div>
-          <div class="legend-gradient-wrapper">
-            <span class="legend-val-min">32 pm (He)</span>
-            <div class="legend-gradient-track" style="background: ${RADIUS_GRADIENT}"></div>
-            <span class="legend-val-max">260 pm (Fr)</span>
-          </div>
-        </div>
-      `;
-    } else {
-      const chips = getLegendCategoryOrder()
-        .map(
-          (key) =>
-            `<span class="cat-chip" style="--cat: ${getCategoryColor(key)}">${this.getCategoryName(key, strings)}</span>`
-        )
-        .join('');
-      return `
-        <div class="periodic-legend-bar category-legend-bar">
-          <div class="category-chips">${chips}</div>
-        </div>
-      `;
+    switch (this.currentColorScheme) {
+      case 'electronegativity':
+        return this.renderGradientLegend(
+          strings.legendElectronegativity,
+          '0.7 (Fr)',
+          '4.0 (F)',
+          ELECTRONEGATIVITY_GRADIENT,
+          `N/A: ${strings.catNobleGas}`
+        );
+      case 'radius':
+        return this.renderGradientLegend(
+          strings.legendAtomicRadius,
+          '32 pm (He)',
+          '260 pm (Fr)',
+          RADIUS_GRADIENT
+        );
+      case 'ionization':
+        return this.renderGradientLegend(
+          strings.legendIonizationEnergy,
+          '376 kJ/mol (Cs)',
+          '2372 kJ/mol (He)',
+          IONIZATION_GRADIENT,
+          'N/A'
+        );
+      case 'phase':
+        return this.renderPhaseLegend(strings);
+      case 'discovery':
+        return this.renderDiscoveryLegend(strings);
+      case 'category':
+        return this.renderCategoryLegend(strings);
     }
+  }
+
+  private renderCategoryLegend(strings: I18nStrings): string {
+    const chips = getLegendCategoryOrder()
+      .map(
+        (key) =>
+          `<span class="cat-chip" style="--cat: ${getCategoryColor(key)}">${escapeHtml(this.getCategoryName(key, strings))}</span>`
+      )
+      .join('');
+    return `
+      <div class="periodic-legend-bar category-legend-bar">
+        <div class="category-chips">${chips}</div>
+      </div>
+    `;
+  }
+
+  private renderGradientLegend(
+    title: string,
+    minLabel: string,
+    maxLabel: string,
+    gradient: string,
+    naBadgeText?: string
+  ): string {
+    const badge = naBadgeText
+      ? `<span class="legend-na-badge">${escapeHtml(naBadgeText)}</span>`
+      : '';
+    return `
+      <div class="periodic-legend-bar">
+        <div class="legend-header">
+          <span class="legend-title">${escapeHtml(title)}</span>
+          ${badge}
+        </div>
+        <div class="legend-gradient-wrapper">
+          <span class="legend-val-min">${escapeHtml(minLabel)}</span>
+          <div class="legend-gradient-track" style="background: ${gradient}"></div>
+          <span class="legend-val-max">${escapeHtml(maxLabel)}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  private renderPhaseLegend(strings: I18nStrings): string {
+    const counts = this.countElementsByPhase();
+    const tempText = this.formatTemperature(this.temperatureK);
+    const phaseChips = MATTER_PHASES.map(
+      (phase) =>
+        `<span class="cat-chip" style="--cat: ${this.getPhaseChipColor(phase)}">${escapeHtml(this.getPhaseLabel(phase, strings))} <span class="numeric" data-phase-count="${phase}">${counts[phase]}</span></span>`
+    ).join('');
+
+    const presetButtons = TEMPERATURE_PRESETS.map((preset) => {
+      const isActive = this.temperatureK === preset.k;
+      const label = preset.labelKey
+        ? `${preset.k} K · ${escapeHtml(strings[preset.labelKey])}`
+        : `${preset.k} K`;
+      return `<button type="button" class="preset-chip ${isActive ? 'active' : ''}" data-temp-k="${preset.k}" aria-pressed="${isActive}">${label}</button>`;
+    }).join('');
+
+    return `
+      <div class="periodic-legend-bar">
+        <div class="legend-header">
+          <div class="legend-header-left">
+            <span class="legend-title">${escapeHtml(strings.legendPhase)}</span>
+            <output class="val-badge" id="phase-temp-readout" for="phase-temp-slider">${tempText}</output>
+          </div>
+          <div class="legend-header-right">
+            ${phaseChips}
+          </div>
+        </div>
+        <div class="legend-controls-row">
+          <div class="legend-gradient-wrapper">
+            <span class="legend-val-min">${MIN_TEMPERATURE_K} K</span>
+            <input type="range" id="phase-temp-slider" min="${MIN_TEMPERATURE_K}" max="${MAX_TEMPERATURE_K}" step="1" value="${this.temperatureK}" aria-label="${escapeHtml(strings.legendPhase)}" aria-valuetext="${tempText}" />
+            <span class="legend-val-max">${MAX_TEMPERATURE_K} K</span>
+          </div>
+          <div class="legend-presets">
+            ${presetButtons}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  private renderDiscoveryLegend(strings: I18nStrings): string {
+    const cutoffLabel = escapeHtml(this.formatDiscoveryCutoff(this.discoveryYear, strings));
+    const discoveredCount = this.countDiscoveredElements();
+
+    return `
+      <div class="periodic-legend-bar">
+        <div class="legend-header">
+          <div class="legend-header-left">
+            <span class="legend-title">${escapeHtml(strings.legendDiscovery)}</span>
+            <output class="val-badge" id="discovery-year-readout" for="discovery-year-slider">${cutoffLabel}</output>
+          </div>
+          <div class="legend-header-right">
+            <output class="val-badge" id="discovery-count-readout" for="discovery-year-slider">${discoveredCount} / ${this.elements.length}</output>
+          </div>
+        </div>
+        <div class="legend-gradient-wrapper">
+          <span class="legend-val-min">${escapeHtml(strings.ancient)}</span>
+          <input type="range" id="discovery-year-slider" min="${ANCIENT_DISCOVERY_SENTINEL}" max="${MAX_DISCOVERY_YEAR}" step="1" value="${this.discoveryYear}" aria-label="${escapeHtml(strings.legendDiscovery)}" aria-valuetext="${cutoffLabel}" />
+          <span class="legend-val-max">${MAX_DISCOVERY_YEAR}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  private matchesSearchQuery(el: ElementData, query: string): boolean {
+    if (!query) return true;
+    return (
+      el.name_es.toLowerCase().includes(query) ||
+      el.name_en.toLowerCase().includes(query) ||
+      el.symbol.toLowerCase().includes(query) ||
+      String(el.Z).includes(query)
+    );
+  }
+
+  private isElementDimmed(el: ElementData, query: string): boolean {
+    if (!this.matchesSearchQuery(el, query)) return true;
+    if (this.selectedBlock !== 'all' && this.getElementBlock(el) !== this.selectedBlock) return true;
+    return (
+      this.currentColorScheme === 'discovery' &&
+      !isElementDiscovered(el.discovery_year, this.discoveryYear)
+    );
   }
 
   private renderGridCells(filterText: string = ''): string {
@@ -290,19 +552,8 @@ export class PeriodicTableView {
     // 5. Element Cells
     const elementCellsHtml = this.elements
       .map((el) => {
-        const nameEs = el.name_es.toLowerCase();
-        const nameEn = el.name_en.toLowerCase();
-        const textMatches =
-          !query ||
-          nameEs.includes(query) ||
-          nameEn.includes(query) ||
-          el.symbol.toLowerCase().includes(query) ||
-          String(el.Z).includes(query);
-
         const block = this.getElementBlock(el);
-        const blockMatches = this.selectedBlock === 'all' || block === this.selectedBlock;
-        const isDimmed = !textMatches || !blockMatches;
-
+        const isDimmed = this.isElementDimmed(el, query);
         const gridPos = this.getElementGridPosition(el.Z);
         const color = this.getElementColor(el);
         const name = this.getElementName(el);
@@ -314,7 +565,7 @@ export class PeriodicTableView {
           <div class="element-cell ${isDimmed ? 'dimmed' : ''} ${isSelected ? 'selected' : ''}"
                role="option"
                tabindex="${isSelected ? '0' : '-1'}"
-               aria-selected="${isSelected ? 'true' : 'false'}"
+               aria-selected="${isSelected}"
                aria-label="${escapeHtml(ariaLabel)}"
                data-z="${el.Z}"
                data-row="${gridPos.row}"
@@ -322,8 +573,8 @@ export class PeriodicTableView {
                data-block="${block}"
                style="grid-column: ${gridPos.col}; grid-row: ${gridPos.row}; --cat: ${color};">
             <span class="el-z">${el.Z}</span>
-            <span class="el-symbol">${el.symbol}</span>
-            <span class="el-name">${name}</span>
+            <span class="el-symbol">${escapeHtml(el.symbol)}</span>
+            <span class="el-name">${escapeHtml(name)}</span>
           </div>
         `;
       })
@@ -342,19 +593,67 @@ export class PeriodicTableView {
   }
 
   private getElementColor(el: ElementData): string {
-    if (this.currentColorScheme === 'category') {
-      return getCategoryColor(el.category);
+    switch (this.currentColorScheme) {
+      case 'category':
+        return getCategoryColor(el.category);
+      case 'electronegativity':
+        return getElectronegativityColor(el.electronegativity);
+      case 'radius':
+        return getRadiusColor(el.radius_pm);
+      case 'ionization':
+        return getIonizationColor(el.ionization_energy);
+      case 'phase':
+        return getPhaseColor(
+          getElementPhase(el.melting_point_k, el.boiling_point_k, this.temperatureK)
+        );
+      case 'discovery':
+        return getDiscoveryColor(el.discovery_year, this.discoveryYear);
     }
-    if (this.currentColorScheme === 'electronegativity') {
-      return getElectronegativityColor(el.electronegativity);
+  }
+
+  private updateGridAppearance(filterText: string): void {
+    const query = filterText.toLowerCase().trim();
+    const cells = this.container.querySelectorAll<HTMLElement>(
+      '#periodic-grid .element-cell:not(.placeholder-cell)'
+    );
+    cells.forEach((cell) => {
+      const z = Number.parseInt(cell.dataset.z!, 10);
+      const el = this.elements[z - 1];
+      cell.style.setProperty('--cat', this.getElementColor(el));
+      cell.classList.toggle('dimmed', this.isElementDimmed(el, query));
+    });
+
+    if (this.selectedElement) {
+      const badge = this.container.querySelector<HTMLElement>('.quick-el-badge');
+      if (badge) {
+        badge.style.borderColor = this.getElementColor(this.selectedElement);
+      }
     }
-    return getRadiusColor(el.radius_pm);
+  }
+
+  private updateInspectorPhaseInPlace(): void {
+    const el = this.selectedElement;
+    if (!el) return;
+
+    const strings = getStrings();
+    const phase = getElementPhase(el.melting_point_k, el.boiling_point_k, this.temperatureK);
+
+    const tempEl = this.container.querySelector<HTMLElement>('#inspector-phase-temp');
+    if (tempEl) {
+      tempEl.textContent = `(${this.temperatureK} K)`;
+    }
+
+    const pillEl = this.container.querySelector<HTMLElement>('#inspector-phase-pill');
+    if (pillEl) {
+      pillEl.style.setProperty('--cat', this.getPhaseChipColor(phase));
+      pillEl.textContent = this.getPhaseLabel(phase, strings);
+    }
   }
 
   private renderQuickInspectorContent(): string {
     const strings = getStrings();
     if (!this.selectedElement) {
-      return `<div class="quick-inspector-placeholder"><span>${strings.selectElementPrompt}</span></div>`;
+      return `<div class="quick-inspector-placeholder"><span>${escapeHtml(strings.selectElementPrompt)}</span></div>`;
     }
 
     const el = this.selectedElement;
@@ -365,18 +664,18 @@ export class PeriodicTableView {
       <div class="quick-inspector-card" id="quick-inspector-trigger">
         <div class="quick-el-badge" style="border-color: ${color}">
           <span class="quick-z">${el.Z}</span>
-          <span class="quick-symbol">${el.symbol}</span>
+          <span class="quick-symbol">${escapeHtml(el.symbol)}</span>
         </div>
         <div class="quick-el-info">
-          <span class="quick-name">${name}</span>
-          <span class="quick-config"><code>${el.electron_config_str}</code></span>
+          <span class="quick-name">${escapeHtml(name)}</span>
+          <span class="quick-config"><code>${escapeHtml(el.electron_config_str)}</code></span>
         </div>
         <div class="quick-actions">
-          <button class="btn-primary btn-quick-3d" id="btn-quick-3d" title="${strings.btnView3DOrbital}">
+          <button type="button" class="btn-primary btn-quick-3d" id="btn-quick-3d" title="${escapeHtml(strings.btnView3DOrbital)}">
             ${icon('atom')}
             <span>3D</span>
           </button>
-          <button class="btn-secondary btn-quick-details" id="btn-quick-details" title="${strings.viewFullDetails}">
+          <button type="button" class="btn-secondary btn-quick-details" id="btn-quick-details" title="${escapeHtml(strings.viewFullDetails)}">
             ${icon('chart')}
           </button>
         </div>
@@ -390,7 +689,7 @@ export class PeriodicTableView {
     if (!this.selectedElement) {
       return `
         <div class="inspector-placeholder">
-          <p>${strings.selectElementPrompt}</p>
+          <p>${escapeHtml(strings.selectElementPrompt)}</p>
         </div>
       `;
     }
@@ -398,11 +697,16 @@ export class PeriodicTableView {
     const el = this.selectedElement;
     const elementName = this.getElementName(el);
     const categoryName = this.getCategoryName(el.category, strings);
-
-    const discoveryStr =
-      el.discovery_year === 'Antigüedad' || el.discovery_year === 'Ancient'
-        ? strings.ancient
-        : String(el.discovery_year);
+    const discoveryStr = isAncientDiscovery(el.discovery_year)
+      ? strings.ancient
+      : String(el.discovery_year);
+    const phase = getElementPhase(el.melting_point_k, el.boiling_point_k, this.temperatureK);
+    const phaseChipColor = this.getPhaseChipColor(phase);
+    const usesChips = el.uses
+      .map((key) => `<span class="use-chip">${escapeHtml(strings.elementUses[key])}</span>`)
+      .join('');
+    const ionizationText =
+      el.ionization_energy !== null ? `${el.ionization_energy} kJ/mol` : 'N/A';
 
     return `
       <div class="inspector-card">
@@ -423,12 +727,24 @@ export class PeriodicTableView {
         </button>
 
         <div class="inspector-details">
+          <div class="inspector-uses-section">
+            <h4 class="section-title">${escapeHtml(strings.dailyLifeTitle)}</h4>
+            <div class="inspector-uses-chips">
+              ${usesChips}
+            </div>
+          </div>
+          <div class="detail-row">
+            <span class="detail-row-label">${escapeHtml(strings.colorPhase)} <small id="inspector-phase-temp" class="numeric">(${this.temperatureK} K)</small></span>
+            <strong><span id="inspector-phase-pill" class="cat-chip" style="--cat: ${phaseChipColor}">${escapeHtml(this.getPhaseLabel(phase, strings))}</span></strong>
+          </div>
+          ${this.detailRow(strings.meltingPoint, null, this.formatPhasePoint(el.melting_point_k))}
+          ${this.detailRow(strings.boilingPoint, null, this.formatPhasePoint(el.boiling_point_k))}
           ${this.detailRow(strings.atomicMass, 'explainAtomicMass', `${el.atomic_mass} u`)}
           ${this.detailRow(strings.electronConfig, 'explainElectronConfig', `<code>${escapeHtml(el.electron_config_str)}</code>`)}
           ${this.detailRow(strings.atomicRadius, 'explainAtomicRadius', `${el.radius_pm} pm`)}
           ${this.detailRow(strings.electronegativity, 'explainElectronegativity', escapeHtml(String(el.electronegativity ?? 'N/A')))}
-          ${this.detailRow(strings.ionizationEnergy, 'explainIonizationEnergy', el.ionization_energy ? `${el.ionization_energy} kJ/mol` : 'N/A')}
-          ${this.detailRow(strings.oxidationStates, null, escapeHtml(el.oxidation_states && el.oxidation_states.length > 0 ? el.oxidation_states.map(s => s > 0 ? `+${s}` : `${s}`).join(', ') : 'N/A'))}
+          ${this.detailRow(strings.ionizationEnergy, 'explainIonizationEnergy', ionizationText)}
+          ${this.detailRow(strings.oxidationStates, null, escapeHtml(this.formatOxidationStates(el.oxidation_states)))}
           ${this.detailRow(strings.discovery, null, escapeHtml(discoveryStr))}
         </div>
       </div>
@@ -543,7 +859,7 @@ export class PeriodicTableView {
       grid.querySelectorAll<HTMLElement>('.element-cell').forEach((c) => {
         const isMatch = c.dataset.z === String(el.Z);
         c.classList.toggle('selected', isMatch);
-        c.setAttribute('aria-selected', isMatch ? 'true' : 'false');
+        c.setAttribute('aria-selected', String(isMatch));
         // Roving tabindex: the whole grid is a single tab stop.
         c.tabIndex = isMatch ? 0 : -1;
       });
@@ -560,7 +876,7 @@ export class PeriodicTableView {
       inspector.innerHTML = `
         <div class="mobile-drawer-handle"></div>
         <div class="panel-header-actions mobile-only-header">
-          <button class="panel-close-btn" id="btn-close-inspector" aria-label="${closeLabel}">${icon('close')}</button>
+          <button type="button" class="panel-close-btn" id="btn-close-inspector" aria-label="${closeLabel}">${icon('close')}</button>
         </div>
         ${this.renderInspectorContent()}
       `;
@@ -568,40 +884,182 @@ export class PeriodicTableView {
     }
 
     void this.updatePreview();
+    this.onStateChange?.();
   }
 
   public getSelectedElement(): ElementData | null {
     return this.selectedElement;
   }
 
+  private getSearchQuery(): string {
+    const searchInput = this.container.querySelector<HTMLInputElement>('#element-search');
+    return searchInput ? searchInput.value : '';
+  }
+
+  private syncLegendRangeFills(): void {
+    this.container
+      .querySelectorAll<HTMLInputElement>('#periodic-legend-container input[type="range"]')
+      .forEach(syncRangeFill);
+  }
+
+  private refreshLegend(): void {
+    const legendContainer = this.container.querySelector<HTMLElement>('#periodic-legend-container');
+    if (legendContainer) {
+      legendContainer.innerHTML = this.renderLegendBar();
+      this.syncLegendRangeFills();
+    }
+  }
+
+  private syncBlockFilterButtons(): void {
+    this.container.querySelectorAll<HTMLElement>('.btn-block-filter').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.block === this.selectedBlock);
+    });
+  }
+
+  private applyTemperatureUpdate(tempK: number, slider: HTMLInputElement | null): void {
+    this.temperatureK = tempK;
+    const tempText = this.formatTemperature(tempK);
+
+    if (slider) {
+      syncRangeFill(slider);
+      slider.setAttribute('aria-valuetext', tempText);
+    }
+
+    const readout = this.container.querySelector<HTMLElement>('#phase-temp-readout');
+    if (readout) {
+      readout.textContent = tempText;
+    }
+
+    const counts = this.countElementsByPhase();
+    for (const phase of MATTER_PHASES) {
+      const span = this.container.querySelector<HTMLElement>(`[data-phase-count="${phase}"]`);
+      if (span) {
+        span.textContent = String(counts[phase]);
+      }
+    }
+
+    this.container.querySelectorAll<HTMLElement>('.preset-chip[data-temp-k]').forEach((chip) => {
+      const isActive = Number.parseInt(chip.dataset.tempK!, 10) === tempK;
+      chip.classList.toggle('active', isActive);
+      chip.setAttribute('aria-pressed', String(isActive));
+    });
+
+    this.updateGridAppearance(this.getSearchQuery());
+    this.updateInspectorPhaseInPlace();
+  }
+
+  private applyDiscoveryYearUpdate(year: number, slider: HTMLInputElement): void {
+    this.discoveryYear = year;
+    const cutoffText = this.formatDiscoveryCutoff(year, getStrings());
+
+    syncRangeFill(slider);
+    slider.setAttribute('aria-valuetext', cutoffText);
+
+    const yearReadout = this.container.querySelector<HTMLElement>('#discovery-year-readout');
+    if (yearReadout) {
+      yearReadout.textContent = cutoffText;
+    }
+
+    const countReadout = this.container.querySelector<HTMLElement>('#discovery-count-readout');
+    if (countReadout) {
+      countReadout.textContent = `${this.countDiscoveredElements()} / ${this.elements.length}`;
+    }
+
+    this.updateGridAppearance(this.getSearchQuery());
+  }
+
+  private handleLegendInput(e: Event): void {
+    const target = e.target;
+    if (!(target instanceof HTMLInputElement)) return;
+    if (target.id === 'phase-temp-slider') {
+      this.applyTemperatureUpdate(Number.parseInt(target.value, 10), target);
+    } else if (target.id === 'discovery-year-slider') {
+      this.applyDiscoveryYearUpdate(Number.parseInt(target.value, 10), target);
+    }
+  }
+
+  private handleLegendClick(e: MouseEvent, legendContainer: HTMLElement): void {
+    const chip = (e.target as HTMLElement).closest<HTMLElement>('.preset-chip[data-temp-k]');
+    if (!chip) return;
+    const tempK = Number.parseInt(chip.dataset.tempK!, 10);
+    const slider = legendContainer.querySelector<HTMLInputElement>('#phase-temp-slider');
+    if (slider) {
+      slider.value = String(tempK);
+    }
+    this.applyTemperatureUpdate(tempK, slider);
+  }
+
+  private handleContainerClick(e: MouseEvent): void {
+    const target = e.target as HTMLElement;
+
+    const orbitalBtn = target.closest<HTMLElement>(
+      '#btn-quick-3d, #btn-view-orbital, #orbital-preview'
+    );
+    if (orbitalBtn) {
+      e.stopPropagation();
+      if (this.selectedElement) {
+        this.closeFullInspector();
+        this.onSelectElementOrbital(this.selectedElement);
+      }
+      return;
+    }
+
+    const detailsBtn = target.closest<HTMLElement>('#btn-quick-details, #quick-inspector-trigger');
+    if (detailsBtn) {
+      e.stopPropagation();
+      this.openFullInspector();
+      return;
+    }
+
+    const closeBtn = target.closest<HTMLElement>(
+      '#btn-close-inspector, #periodic-drawer-backdrop'
+    );
+    if (closeBtn) {
+      this.closeFullInspector();
+    }
+  }
+
   private attachEventListeners(): void {
     const colorSelect = this.container.querySelector('#color-scheme-select') as HTMLSelectElement;
     const searchInput = this.container.querySelector('#element-search') as HTMLInputElement;
     const grid = this.container.querySelector('#periodic-grid') as HTMLElement;
-    const legendContainer = this.container.querySelector('#periodic-legend-container') as HTMLElement;
+    const legendContainer = this.container.querySelector(
+      '#periodic-legend-container'
+    ) as HTMLElement;
+
+    this.syncLegendRangeFills();
 
     colorSelect.addEventListener('change', () => {
-      this.currentColorScheme = colorSelect.value as 'category' | 'electronegativity' | 'radius';
+      this.currentColorScheme = colorSelect.value as ColorScheme;
       legendContainer.innerHTML = this.renderLegendBar();
-      grid.innerHTML = this.renderGridCells(searchInput.value);
+      this.syncLegendRangeFills();
+      this.updateGridAppearance(searchInput.value);
+      this.onStateChange?.();
     });
 
     // Block Filter Buttons
-    const blockBtns = this.container.querySelectorAll('.btn-block-filter');
-    blockBtns.forEach((btn) => {
+    this.container.querySelectorAll<HTMLElement>('.btn-block-filter').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const block = (btn as HTMLElement).dataset.block as ChemicalBlock;
+        const block = btn.dataset.block as ChemicalBlock;
         if (block) {
           this.selectedBlock = block;
-          blockBtns.forEach((b) => b.classList.remove('active'));
-          btn.classList.add('active');
-          grid.innerHTML = this.renderGridCells(searchInput.value);
+          this.syncBlockFilterButtons();
+          this.updateGridAppearance(searchInput.value);
+          this.onStateChange?.();
         }
       });
     });
 
     searchInput.addEventListener('input', () => {
-      grid.innerHTML = this.renderGridCells(searchInput.value);
+      this.updateGridAppearance(searchInput.value);
+    });
+
+    legendContainer.addEventListener('input', (e: Event) => {
+      this.handleLegendInput(e);
+    });
+
+    legendContainer.addEventListener('click', (e: MouseEvent) => {
+      this.handleLegendClick(e, legendContainer);
     });
 
     // Click on element cell
@@ -631,36 +1089,16 @@ export class PeriodicTableView {
     // `render` runs on every language change while the container element itself
     // is never replaced, so addEventListener would stack a handler per change.
     this.container.onclick = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-
-      const orbitalBtn = target.closest<HTMLElement>('#btn-quick-3d, #btn-view-orbital, #orbital-preview');
-      if (orbitalBtn) {
-        e.stopPropagation();
-        if (this.selectedElement) {
-          this.closeFullInspector();
-          this.onSelectElementOrbital(this.selectedElement);
-        }
-        return;
-      }
-
-      const detailsBtn = target.closest<HTMLElement>('#btn-quick-details, #quick-inspector-trigger');
-      if (detailsBtn) {
-        e.stopPropagation();
-        this.openFullInspector();
-        return;
-      }
-
-      const closeBtn = target.closest<HTMLElement>('#btn-close-inspector, #periodic-drawer-backdrop');
-      if (closeBtn) {
-        this.closeFullInspector();
-      }
+      this.handleContainerClick(e);
     };
 
     ExplanationModal.attachInfoButtons(this.container);
   }
 
   private getElementFromEvent(e: Event): { cell: HTMLElement; el: ElementData; z: number } | null {
-    const cell = (e.target as HTMLElement).closest<HTMLElement>('.element-cell:not(.placeholder-cell)');
+    const cell = (e.target as HTMLElement).closest<HTMLElement>(
+      '.element-cell:not(.placeholder-cell)'
+    );
     const zStr = cell?.dataset.z;
     if (!cell || !zStr) return null;
     const z = Number.parseInt(zStr, 10);
@@ -670,15 +1108,20 @@ export class PeriodicTableView {
   }
 
   private handleGridKeydown(e: KeyboardEvent, grid: HTMLElement): void {
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
     const data = this.getElementFromEvent(e);
     if (!data) return;
 
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       this.handleCellActivation(e.key, data.el);
-    } else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-      e.preventDefault();
-      this.handleCellArrowNavigation(e.key, data.cell, data.z, grid);
+    } else if (
+      e.key === 'ArrowRight' ||
+      e.key === 'ArrowLeft' ||
+      e.key === 'ArrowUp' ||
+      e.key === 'ArrowDown'
+    ) {
+      this.handleCellArrowNavigation(e, data.cell, data.z, grid);
     }
   }
 
@@ -691,14 +1134,23 @@ export class PeriodicTableView {
     }
   }
 
-  private handleCellArrowNavigation(key: string, target: HTMLElement, currentZ: number, grid: HTMLElement): void {
-    const cells = Array.from(grid.querySelectorAll<HTMLElement>('.element-cell:not(.placeholder-cell)'));
-    const nextCell = this.findNextCell(key, target, currentZ, cells);
+  private handleCellArrowNavigation(
+    e: KeyboardEvent,
+    target: HTMLElement,
+    currentZ: number,
+    grid: HTMLElement
+  ): void {
+    const cells = Array.from(
+      grid.querySelectorAll<HTMLElement>('.element-cell:not(.placeholder-cell)')
+    );
+    const nextCell = this.findNextCell(e.key, target, currentZ, cells);
 
     if (nextCell) {
+      e.preventDefault();
       target.tabIndex = -1;
       nextCell.tabIndex = 0;
       nextCell.focus();
+      nextCell.scrollIntoView({ block: 'nearest', inline: 'nearest' });
       const nextZ = Number.parseInt(nextCell.dataset.z!, 10);
       const nextEl = this.elements.find((item) => item.Z === nextZ);
       if (nextEl) {
@@ -730,9 +1182,18 @@ export class PeriodicTableView {
     }
   }
 
-  private findCellRight(cells: HTMLElement[], currentRow: number, currentCol: number, currentZ: number): HTMLElement | undefined {
+  private findCellRight(
+    cells: HTMLElement[],
+    currentRow: number,
+    currentCol: number,
+    currentZ: number
+  ): HTMLElement | undefined {
     const nextInRow = cells
-      .filter((c) => Number.parseInt(c.dataset.row!, 10) === currentRow && Number.parseInt(c.dataset.col!, 10) > currentCol)
+      .filter(
+        (c) =>
+          Number.parseInt(c.dataset.row!, 10) === currentRow &&
+          Number.parseInt(c.dataset.col!, 10) > currentCol
+      )
       .sort((a, b) => Number.parseInt(a.dataset.col!, 10) - Number.parseInt(b.dataset.col!, 10))[0];
 
     if (nextInRow) {
@@ -741,9 +1202,18 @@ export class PeriodicTableView {
     return cells.find((c) => Number.parseInt(c.dataset.z!, 10) === currentZ + 1);
   }
 
-  private findCellLeft(cells: HTMLElement[], currentRow: number, currentCol: number, currentZ: number): HTMLElement | undefined {
+  private findCellLeft(
+    cells: HTMLElement[],
+    currentRow: number,
+    currentCol: number,
+    currentZ: number
+  ): HTMLElement | undefined {
     const nextInRow = cells
-      .filter((c) => Number.parseInt(c.dataset.row!, 10) === currentRow && Number.parseInt(c.dataset.col!, 10) < currentCol)
+      .filter(
+        (c) =>
+          Number.parseInt(c.dataset.row!, 10) === currentRow &&
+          Number.parseInt(c.dataset.col!, 10) < currentCol
+      )
       .sort((a, b) => Number.parseInt(b.dataset.col!, 10) - Number.parseInt(a.dataset.col!, 10))[0];
 
     if (nextInRow) {
@@ -752,15 +1222,31 @@ export class PeriodicTableView {
     return cells.find((c) => Number.parseInt(c.dataset.z!, 10) === currentZ - 1);
   }
 
-  private findCellDown(cells: HTMLElement[], currentRow: number, currentCol: number): HTMLElement | undefined {
+  private findCellDown(
+    cells: HTMLElement[],
+    currentRow: number,
+    currentCol: number
+  ): HTMLElement | undefined {
     return cells
-      .filter((c) => Number.parseInt(c.dataset.col!, 10) === currentCol && Number.parseInt(c.dataset.row!, 10) > currentRow)
+      .filter(
+        (c) =>
+          Number.parseInt(c.dataset.col!, 10) === currentCol &&
+          Number.parseInt(c.dataset.row!, 10) > currentRow
+      )
       .sort((a, b) => Number.parseInt(a.dataset.row!, 10) - Number.parseInt(b.dataset.row!, 10))[0];
   }
 
-  private findCellUp(cells: HTMLElement[], currentRow: number, currentCol: number): HTMLElement | undefined {
+  private findCellUp(
+    cells: HTMLElement[],
+    currentRow: number,
+    currentCol: number
+  ): HTMLElement | undefined {
     return cells
-      .filter((c) => Number.parseInt(c.dataset.col!, 10) === currentCol && Number.parseInt(c.dataset.row!, 10) < currentRow)
+      .filter(
+        (c) =>
+          Number.parseInt(c.dataset.col!, 10) === currentCol &&
+          Number.parseInt(c.dataset.row!, 10) < currentRow
+      )
       .sort((a, b) => Number.parseInt(b.dataset.row!, 10) - Number.parseInt(a.dataset.row!, 10))[0];
   }
 }

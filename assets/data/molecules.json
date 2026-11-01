@@ -1757,7 +1757,7 @@
           0
         ],
         "color": "#555555",
-        "radius": 0.75
+        "radius": 0.52
       },
       {
         "symbol": "C",
@@ -1767,7 +1767,7 @@
           0
         ],
         "color": "#555555",
-        "radius": 0.75
+        "radius": 0.52
       },
       {
         "symbol": "H",
@@ -1777,7 +1777,7 @@
           0
         ],
         "color": "#ffffff",
-        "radius": 0.38
+        "radius": 0.32
       },
       {
         "symbol": "H",
@@ -1787,7 +1787,7 @@
           0
         ],
         "color": "#ffffff",
-        "radius": 0.38
+        "radius": 0.32
       },
       {
         "symbol": "H",
@@ -1797,7 +1797,7 @@
           0
         ],
         "color": "#ffffff",
-        "radius": 0.38
+        "radius": 0.32
       },
       {
         "symbol": "H",
@@ -1807,7 +1807,7 @@
           0
         ],
         "color": "#ffffff",
-        "radius": 0.38
+        "radius": 0.32
       }
     ],
     "bonds": [
@@ -1840,7 +1840,7 @@
     "hybrid_lobes": [
       {
         "position": [
-          0,
+          -0.33,
           0,
           0
         ],
@@ -1850,7 +1850,22 @@
           0
         ],
         "color": "#40c0ff",
-        "scale": 0.9,
+        "scale": 0.75,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          0.33,
+          0,
+          0
+        ],
+        "direction": [
+          -1,
+          0,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.75,
         "type": "bonding"
       },
       {
@@ -1865,7 +1880,7 @@
           0
         ],
         "color": "#40c0ff",
-        "scale": 0.85,
+        "scale": 0.75,
         "type": "bonding"
       },
       {
@@ -1880,7 +1895,7 @@
           0
         ],
         "color": "#40c0ff",
-        "scale": 0.85,
+        "scale": 0.75,
         "type": "bonding"
       },
       {
@@ -1895,7 +1910,7 @@
           0
         ],
         "color": "#40c0ff",
-        "scale": 0.85,
+        "scale": 0.75,
         "type": "bonding"
       },
       {
@@ -1910,7 +1925,7 @@
           0
         ],
         "color": "#40c0ff",
-        "scale": 0.85,
+        "scale": 0.75,
         "type": "bonding"
       }
     ],
@@ -1920,5 +1935,767 @@
     "geometry_en": "Trigonal Planar (sp²)",
     "description_es": "Geometría plana coplanar con un doble enlace C=C (sigma + pi) e hibridación sp² en ambos carbonos.",
     "description_en": "Coplanar planar geometry with a C=C double bond (sigma + pi) and sp² hybridization on both carbons."
+  },
+  {
+    "id": "C2H2",
+    "formula": "C₂H₂",
+    "hybridization": "sp",
+    "bond_angle": "180°",
+    "atoms": [
+      {
+        "symbol": "C",
+        "position": [
+          -0.602,
+          0,
+          0
+        ],
+        "color": "#555555",
+        "radius": 0.5
+      },
+      {
+        "symbol": "C",
+        "position": [
+          0.602,
+          0,
+          0
+        ],
+        "color": "#555555",
+        "radius": 0.5
+      },
+      {
+        "symbol": "H",
+        "position": [
+          -1.665,
+          0,
+          0
+        ],
+        "color": "#ffffff",
+        "radius": 0.32
+      },
+      {
+        "symbol": "H",
+        "position": [
+          1.665,
+          0,
+          0
+        ],
+        "color": "#ffffff",
+        "radius": 0.32
+      }
+    ],
+    "bonds": [
+      {
+        "fromIndex": 0,
+        "toIndex": 1,
+        "type": "triple"
+      },
+      {
+        "fromIndex": 0,
+        "toIndex": 2,
+        "type": "single"
+      },
+      {
+        "fromIndex": 1,
+        "toIndex": 3,
+        "type": "single"
+      }
+    ],
+    "hybrid_lobes": [
+      {
+        "position": [
+          -0.3,
+          0,
+          0
+        ],
+        "direction": [
+          1,
+          0,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.72,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          0.3,
+          0,
+          0
+        ],
+        "direction": [
+          -1,
+          0,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.72,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          -1.13,
+          0,
+          0
+        ],
+        "direction": [
+          -1,
+          0,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.75,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          1.13,
+          0,
+          0
+        ],
+        "direction": [
+          1,
+          0,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.75,
+        "type": "bonding"
+      }
+    ],
+    "name_es": "Acetileno",
+    "name_en": "Acetylene",
+    "geometry_es": "Lineal",
+    "geometry_en": "Linear",
+    "description_es": "Geometría lineal con hibridación sp y un enlace triple C≡C compuesto por un enlace frontal σ y dos enlaces laterales π ortogonales.",
+    "description_en": "Linear geometry with sp hybridization and a C≡C triple bond composed of one head-on σ bond and two orthogonal side-by-side π bonds."
+  },
+  {
+    "id": "N2",
+    "formula": "N₂",
+    "hybridization": "sp",
+    "bond_angle": "—",
+    "atoms": [
+      {
+        "symbol": "N",
+        "position": [
+          -0.55,
+          0,
+          0
+        ],
+        "color": "#3366ff",
+        "radius": 0.46
+      },
+      {
+        "symbol": "N",
+        "position": [
+          0.55,
+          0,
+          0
+        ],
+        "color": "#3366ff",
+        "radius": 0.46
+      }
+    ],
+    "bonds": [
+      {
+        "fromIndex": 0,
+        "toIndex": 1,
+        "type": "triple"
+      }
+    ],
+    "hybrid_lobes": [
+      {
+        "position": [
+          -0.27,
+          0,
+          0
+        ],
+        "direction": [
+          1,
+          0,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.7,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          0.27,
+          0,
+          0
+        ],
+        "direction": [
+          -1,
+          0,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.7,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          -1.02,
+          0,
+          0
+        ],
+        "direction": [
+          -1,
+          0,
+          0
+        ],
+        "color": "#ffaa22",
+        "scale": 0.95,
+        "type": "lone_pair"
+      },
+      {
+        "position": [
+          1.02,
+          0,
+          0
+        ],
+        "direction": [
+          1,
+          0,
+          0
+        ],
+        "color": "#ffaa22",
+        "scale": 0.95,
+        "type": "lone_pair"
+      }
+    ],
+    "name_es": "Dinitrógeno",
+    "name_en": "Dinitrogen",
+    "geometry_es": "Lineal",
+    "geometry_en": "Linear",
+    "description_es": "Molécula diatómica homonuclear unida por un fuerte enlace triple N≡N (σ + 2π) con un par solitario sp en cada átomo de nitrógeno.",
+    "description_en": "Homonuclear diatomic molecule joined by a strong N≡N triple bond (σ + 2π) with an axial sp lone pair on each nitrogen atom."
+  },
+  {
+    "id": "H2CO",
+    "formula": "H₂CO",
+    "hybridization": "sp²",
+    "bond_angle": "116.5° / 121.8°",
+    "atoms": [
+      {
+        "symbol": "C",
+        "position": [
+          0,
+          0,
+          0
+        ],
+        "color": "#555555",
+        "radius": 0.52
+      },
+      {
+        "symbol": "O",
+        "position": [
+          0,
+          1.205,
+          0
+        ],
+        "color": "#ff3333",
+        "radius": 0.48
+      },
+      {
+        "symbol": "H",
+        "position": [
+          -0.943,
+          -0.587,
+          0
+        ],
+        "color": "#ffffff",
+        "radius": 0.32
+      },
+      {
+        "symbol": "H",
+        "position": [
+          0.943,
+          -0.587,
+          0
+        ],
+        "color": "#ffffff",
+        "radius": 0.32
+      }
+    ],
+    "bonds": [
+      {
+        "fromIndex": 0,
+        "toIndex": 1,
+        "type": "double"
+      },
+      {
+        "fromIndex": 0,
+        "toIndex": 2,
+        "type": "single"
+      },
+      {
+        "fromIndex": 0,
+        "toIndex": 3,
+        "type": "single"
+      }
+    ],
+    "hybrid_lobes": [
+      {
+        "position": [
+          0,
+          0.6,
+          0
+        ],
+        "direction": [
+          0,
+          1,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.76,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          -0.47,
+          -0.29,
+          0
+        ],
+        "direction": [
+          -0.849,
+          -0.528,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.75,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          0.47,
+          -0.29,
+          0
+        ],
+        "direction": [
+          0.849,
+          -0.528,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.75,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          -0.42,
+          1.45,
+          0
+        ],
+        "direction": [
+          -0.866,
+          0.5,
+          0
+        ],
+        "color": "#ffaa22",
+        "scale": 0.9,
+        "type": "lone_pair"
+      },
+      {
+        "position": [
+          0.42,
+          1.45,
+          0
+        ],
+        "direction": [
+          0.866,
+          0.5,
+          0
+        ],
+        "color": "#ffaa22",
+        "scale": 0.9,
+        "type": "lone_pair"
+      }
+    ],
+    "name_es": "Formaldehído",
+    "name_en": "Formaldehyde",
+    "geometry_es": "Plana Trigonal",
+    "geometry_en": "Trigonal Planar",
+    "description_es": "Geometría plana trigonal polar con un enlace doble carbonilo C=O (σ + π) que genera un intenso momento dipolar neto hacia el oxígeno.",
+    "description_en": "Polar trigonal planar geometry featuring a C=O carbonyl double bond (σ + π) that drives a strong net dipole moment toward oxygen."
+  },
+  {
+    "id": "C6H6",
+    "formula": "C₆H₆",
+    "hybridization": "sp²",
+    "bond_angle": "120°",
+    "atoms": [
+      {
+        "symbol": "C",
+        "position": [
+          1.397,
+          0,
+          0
+        ],
+        "color": "#555555",
+        "radius": 0.5
+      },
+      {
+        "symbol": "C",
+        "position": [
+          0.699,
+          1.21,
+          0
+        ],
+        "color": "#555555",
+        "radius": 0.5
+      },
+      {
+        "symbol": "C",
+        "position": [
+          -0.699,
+          1.21,
+          0
+        ],
+        "color": "#555555",
+        "radius": 0.5
+      },
+      {
+        "symbol": "C",
+        "position": [
+          -1.397,
+          0,
+          0
+        ],
+        "color": "#555555",
+        "radius": 0.5
+      },
+      {
+        "symbol": "C",
+        "position": [
+          -0.699,
+          -1.21,
+          0
+        ],
+        "color": "#555555",
+        "radius": 0.5
+      },
+      {
+        "symbol": "C",
+        "position": [
+          0.699,
+          -1.21,
+          0
+        ],
+        "color": "#555555",
+        "radius": 0.5
+      },
+      {
+        "symbol": "H",
+        "position": [
+          2.484,
+          0,
+          0
+        ],
+        "color": "#ffffff",
+        "radius": 0.32
+      },
+      {
+        "symbol": "H",
+        "position": [
+          1.242,
+          2.151,
+          0
+        ],
+        "color": "#ffffff",
+        "radius": 0.32
+      },
+      {
+        "symbol": "H",
+        "position": [
+          -1.242,
+          2.151,
+          0
+        ],
+        "color": "#ffffff",
+        "radius": 0.32
+      },
+      {
+        "symbol": "H",
+        "position": [
+          -2.484,
+          0,
+          0
+        ],
+        "color": "#ffffff",
+        "radius": 0.32
+      },
+      {
+        "symbol": "H",
+        "position": [
+          -1.242,
+          -2.151,
+          0
+        ],
+        "color": "#ffffff",
+        "radius": 0.32
+      },
+      {
+        "symbol": "H",
+        "position": [
+          1.242,
+          -2.151,
+          0
+        ],
+        "color": "#ffffff",
+        "radius": 0.32
+      }
+    ],
+    "bonds": [
+      {
+        "fromIndex": 0,
+        "toIndex": 1,
+        "type": "aromatic"
+      },
+      {
+        "fromIndex": 1,
+        "toIndex": 2,
+        "type": "aromatic"
+      },
+      {
+        "fromIndex": 2,
+        "toIndex": 3,
+        "type": "aromatic"
+      },
+      {
+        "fromIndex": 3,
+        "toIndex": 4,
+        "type": "aromatic"
+      },
+      {
+        "fromIndex": 4,
+        "toIndex": 5,
+        "type": "aromatic"
+      },
+      {
+        "fromIndex": 5,
+        "toIndex": 0,
+        "type": "aromatic"
+      },
+      {
+        "fromIndex": 0,
+        "toIndex": 6,
+        "type": "single"
+      },
+      {
+        "fromIndex": 1,
+        "toIndex": 7,
+        "type": "single"
+      },
+      {
+        "fromIndex": 2,
+        "toIndex": 8,
+        "type": "single"
+      },
+      {
+        "fromIndex": 3,
+        "toIndex": 9,
+        "type": "single"
+      },
+      {
+        "fromIndex": 4,
+        "toIndex": 10,
+        "type": "single"
+      },
+      {
+        "fromIndex": 5,
+        "toIndex": 11,
+        "type": "single"
+      }
+    ],
+    "hybrid_lobes": [
+      {
+        "position": [
+          1.048,
+          0.605,
+          0
+        ],
+        "direction": [
+          -0.5,
+          0.866,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.72,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          0,
+          1.21,
+          0
+        ],
+        "direction": [
+          -1,
+          0,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.72,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          -1.048,
+          0.605,
+          0
+        ],
+        "direction": [
+          -0.5,
+          -0.866,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.72,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          -1.048,
+          -0.605,
+          0
+        ],
+        "direction": [
+          0.5,
+          -0.866,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.72,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          0,
+          -1.21,
+          0
+        ],
+        "direction": [
+          1,
+          0,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.72,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          1.048,
+          -0.605,
+          0
+        ],
+        "direction": [
+          0.5,
+          0.866,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.72,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          1.941,
+          0,
+          0
+        ],
+        "direction": [
+          1,
+          0,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.72,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          0.971,
+          1.681,
+          0
+        ],
+        "direction": [
+          0.5,
+          0.866,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.72,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          -0.971,
+          1.681,
+          0
+        ],
+        "direction": [
+          -0.5,
+          0.866,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.72,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          -1.941,
+          0,
+          0
+        ],
+        "direction": [
+          -1,
+          0,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.72,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          -0.971,
+          -1.681,
+          0
+        ],
+        "direction": [
+          -0.5,
+          -0.866,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.72,
+        "type": "bonding"
+      },
+      {
+        "position": [
+          0.971,
+          -1.681,
+          0
+        ],
+        "direction": [
+          0.5,
+          -0.866,
+          0
+        ],
+        "color": "#40c0ff",
+        "scale": 0.72,
+        "type": "bonding"
+      }
+    ],
+    "name_es": "Benceno",
+    "name_en": "Benzene",
+    "geometry_es": "Plana Hexagonal (Aromática)",
+    "geometry_en": "Planar Hexagonal (Aromatic)",
+    "description_es": "Anillo aromático plano de seis carbonos sp² con ángulos de 120° y seis electrones π deslocalizados en dos nubes toroidales continuas sobre y bajo el plano.",
+    "description_en": "Planar six-carbon sp² aromatic ring with 120° bond angles and six π electrons delocalized into continuous toroidal clouds above and below the ring plane."
   }
 ]

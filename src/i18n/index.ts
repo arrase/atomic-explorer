@@ -16,7 +16,7 @@ import { strings as hiStrings } from './hi';
 import { strings as arStrings } from './ar';
 
 export type { Language, I18nStrings };
-export type { GlossaryItem, QuantumExplanation, ConceptExplanation } from './types';
+export type { GlossaryItem, QuantumExplanation, ConceptExplanation, ElementUseKey } from './types';
 
 const STORAGE_KEY = 'atomic_explorer_lang';
 

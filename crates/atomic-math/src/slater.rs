@@ -65,6 +65,7 @@ pub fn get_electron_configuration(z: u32) -> Vec<(u32, u32, u32)> {
         _ => {}
     }
 
+    config.retain(|&(_, _, count)| count > 0);
     config
 }
 

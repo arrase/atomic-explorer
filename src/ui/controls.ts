@@ -1,12 +1,14 @@
 import { OrbitalParams } from '../core/wasm-bridge';
-import { RenderMode, QualityPreset, ColorPalette } from '../render/orbital-renderer';
+import { RenderMode, QualityPreset, ColorPalette, CrossSectionAxis } from '../render/orbital-renderer';
 import { getStrings, onLanguageChange, I18nStrings } from '../i18n';
 import { ExplanationModal } from './info-modal';
 import { OrbitalPhysicsPanel } from './orbital-physics-panel';
+import { SpinBoxExplorer, SpinBoxSelection } from './spin-box-explorer';
 import { escapeHtml } from './modal-utils';
 import { icon } from './icons';
 
 export interface ExtendedOrbitalParams extends OrbitalParams {
+  atomicNumber: number;
   s: number;
   mode: RenderMode;
   quality: QualityPreset;
@@ -14,6 +16,8 @@ export interface ExtendedOrbitalParams extends OrbitalParams {
   resolutionScale: number;
   colorPalette: ColorPalette;
   contrast: number;
+  crossSection: CrossSectionAxis;
+  showNodalSurfaces: boolean;
 }
 
 /**
@@ -65,11 +69,29 @@ const SCALE_OPTIONS: { value: string; labelKey: keyof I18nStrings }[] = [
   { value: '2.0', labelKey: 'scale4K' },
 ];
 
+const CROSS_SECTION_OPTIONS: { value: CrossSectionAxis; labelKey: keyof I18nStrings }[] = [
+  { value: 'none', labelKey: 'crossSectionNone' },
+  { value: 'x', labelKey: 'crossSectionX' },
+  { value: 'y', labelKey: 'crossSectionY' },
+  { value: 'z', labelKey: 'crossSectionZ' },
+];
+
+/** Keeps the range track fill in sync with the current value. */
+function syncRangeFill(input: HTMLInputElement): void {
+  const min = Number.parseFloat(input.min);
+  const max = Number.parseFloat(input.max);
+  const value = Number.parseFloat(input.value);
+  if (Number.isNaN(min) || Number.isNaN(max) || max === min) return;
+  const pct = ((value - min) / (max - min)) * 100;
+  input.style.setProperty('--fill', `${Math.max(0, Math.min(100, pct))}%`);
+}
+
 export class ControlPanel {
   private readonly container: HTMLElement;
   private readonly onChange: (params: ExtendedOrbitalParams) => void;
   private readonly onExportClick?: () => void;
   private physicsPanel: OrbitalPhysicsPanel | null = null;
+  private spinBoxExplorer: SpinBoxExplorer | null = null;
 
   private isCollapsed: boolean = false;
   private readonly openSections: Record<string, boolean> = {
@@ -79,6 +101,7 @@ export class ControlPanel {
   };
 
   private currentParams: ExtendedOrbitalParams = {
+    atomicNumber: 1,
     n: 1,
     l: 0,
     m: 0,
@@ -92,6 +115,8 @@ export class ControlPanel {
     resolutionScale: 1.0,
     colorPalette: 'default',
     contrast: 0.0,
+    crossSection: 'none',
+    showNodalSurfaces: false,
   };
 
   constructor(
@@ -147,6 +172,23 @@ export class ControlPanel {
     if (this.physicsPanel) {
       this.physicsPanel.destroy();
     }
+    if (this.spinBoxExplorer) {
+      this.spinBoxExplorer.destroy();
+    }
+
+    const spinExplorerHost = this.container.querySelector('#spin-box-explorer-host') as HTMLElement;
+    this.spinBoxExplorer = new SpinBoxExplorer(
+      spinExplorerHost,
+      {
+        atomicNumber: this.currentParams.atomicNumber,
+        n: this.currentParams.n,
+        l: this.currentParams.l,
+        m: this.currentParams.m,
+        s: this.currentParams.s,
+      },
+      (selection) => this.handleSpinBoxSelection(selection),
+    );
+    void this.spinBoxExplorer.refreshDiagram();
 
     const physicsContainer = this.container.querySelector('.physics-panel-container') as HTMLElement;
     this.physicsPanel = new OrbitalPhysicsPanel(physicsContainer, this.currentParams);
@@ -296,6 +338,7 @@ export class ControlPanel {
 
         <div class="accordion-body" id="accordion-body-nuclear" role="region" aria-labelledby="accordion-header-nuclear">
           <div class="control-grid">
+            <div id="spin-box-explorer-host"></div>
             ${this.controlRow({
               id: 'zeff-input',
               label: strings.zEffCharge,
@@ -320,6 +363,9 @@ export class ControlPanel {
     ).join('');
     const paletteOptions = PALETTE_OPTIONS.map((opt) =>
       renderOption(opt.value, escapeHtml(strings[opt.labelKey] as string), this.currentParams.colorPalette)
+    ).join('');
+    const crossSectionOptions = CROSS_SECTION_OPTIONS.map((opt) =>
+      renderOption(opt.value, escapeHtml(strings[opt.labelKey] as string), this.currentParams.crossSection)
     ).join('');
 
     return `
@@ -360,6 +406,19 @@ export class ControlPanel {
               explainKey: 'explainContrast',
               control: this.slider('contrast-input', 0, 100, this.currentParams.contrast, 1),
             })}
+            ${this.controlRow({
+              id: 'cross-section-select',
+              label: strings.crossSectionControl,
+              explainKey: 'explainCrossSection',
+              control: this.select('cross-section-select', crossSectionOptions),
+            })}
+            <div class="control-toggle-row">
+              <label class="control-toggle-label" for="nodal-surfaces-toggle">
+                <input type="checkbox" id="nodal-surfaces-toggle" ${this.currentParams.showNodalSurfaces ? 'checked' : ''} />
+                <span>${escapeHtml(strings.showNodalSurfaces)}</span>
+              </label>
+              <button type="button" class="btn-info-icon" data-explain="explainNodalSurfaces" aria-label="Info">${icon('info')}</button>
+            </div>
 
             ${this.renderCustomTuningPanel(strings, isCustom)}
           </div>
@@ -400,38 +459,31 @@ export class ControlPanel {
   }
 
   private attachEventListeners(): void {
+    this.bindCollapseAndAccordionListeners();
+    this.bindMobileDrawerListeners();
+    this.bindControlInputListeners();
+  }
+
+  private bindCollapseAndAccordionListeners(): void {
     const controlPanel = this.container.querySelector('.control-panel') as HTMLElement;
-    const physicsContainer = this.container.querySelector('.physics-panel-container') as HTMLElement;
-    const backdrop = this.container.querySelector('#controls-drawer-backdrop') as HTMLElement;
-
-    const btnShowControls = this.container.querySelector('#btn-show-controls') as HTMLElement;
-    const btnShowPhysics = this.container.querySelector('#btn-show-physics') as HTMLElement;
-    const btnCloseControls = this.container.querySelector('#btn-close-controls') as HTMLElement;
-
     const btnCollapse = this.container.querySelector('#btn-collapse-controls') as HTMLElement;
     const btnExpand = this.container.querySelector('#btn-expand-controls') as HTMLElement;
 
-    if (btnCollapse) {
-      btnCollapse.addEventListener('click', () => {
-        this.isCollapsed = true;
-        controlPanel.classList.add('collapsed');
-        btnCollapse.setAttribute('aria-expanded', 'false');
-        if (btnExpand) {
-          btnExpand.classList.add('visible');
-          btnExpand.setAttribute('aria-expanded', 'false');
-        }
-      });
-    }
+    btnCollapse?.addEventListener('click', () => {
+      this.isCollapsed = true;
+      controlPanel.classList.add('collapsed');
+      btnCollapse.setAttribute('aria-expanded', 'false');
+      btnExpand?.classList.add('visible');
+      btnExpand?.setAttribute('aria-expanded', 'false');
+    });
 
-    if (btnExpand) {
-      btnExpand.addEventListener('click', () => {
-        this.isCollapsed = false;
-        controlPanel.classList.remove('collapsed');
-        btnCollapse?.setAttribute('aria-expanded', 'true');
-        btnExpand.classList.remove('visible');
-        btnExpand.setAttribute('aria-expanded', 'true');
-      });
-    }
+    btnExpand?.addEventListener('click', () => {
+      this.isCollapsed = false;
+      controlPanel.classList.remove('collapsed');
+      btnCollapse?.setAttribute('aria-expanded', 'true');
+      btnExpand.classList.remove('visible');
+      btnExpand.setAttribute('aria-expanded', 'true');
+    });
 
     // Accordion Toggle Listeners
     const accordionHeaders = this.container.querySelectorAll<HTMLElement>('.accordion-header');
@@ -439,14 +491,24 @@ export class ControlPanel {
       header.addEventListener('click', () => {
         const sectionName = header.dataset.toggle;
         if (!sectionName) return;
-        const sectionEl = this.container.querySelector(`.control-accordion-section[data-section="${sectionName}"]`);
-        if (sectionEl) {
-          const isOpen = sectionEl.classList.toggle('open');
-          this.openSections[sectionName] = isOpen;
-          header.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-        }
+        const sectionEl = this.container.querySelector(
+          `.control-accordion-section[data-section="${sectionName}"]`,
+        );
+        if (!sectionEl) return;
+        const isOpen = sectionEl.classList.toggle('open');
+        this.openSections[sectionName] = isOpen;
+        header.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
       });
     });
+  }
+
+  private bindMobileDrawerListeners(): void {
+    const controlPanel = this.container.querySelector('.control-panel') as HTMLElement;
+    const physicsContainer = this.container.querySelector('.physics-panel-container') as HTMLElement;
+    const backdrop = this.container.querySelector('#controls-drawer-backdrop') as HTMLElement;
+    const btnShowControls = this.container.querySelector('#btn-show-controls') as HTMLElement;
+    const btnShowPhysics = this.container.querySelector('#btn-show-physics') as HTMLElement;
+    const btnCloseControls = this.container.querySelector('#btn-close-controls') as HTMLElement;
 
     const closeAllDrawers = () => {
       controlPanel.classList.remove('mobile-open');
@@ -458,35 +520,30 @@ export class ControlPanel {
       btnShowPhysics.setAttribute('aria-expanded', 'false');
     };
 
-    const openDrawer = (panel: HTMLElement, trigger: HTMLElement) => {
+    const toggleDrawer = (panel: HTMLElement, trigger: HTMLElement, closeBtnSelector: string) => {
+      if (panel.classList.contains('mobile-open')) {
+        closeAllDrawers();
+        return;
+      }
       closeAllDrawers();
       panel.classList.add('mobile-open');
       backdrop.classList.add('active');
       trigger.classList.add('active');
       trigger.setAttribute('aria-expanded', 'true');
+      panel.querySelector<HTMLElement>(closeBtnSelector)?.focus();
     };
 
-    btnShowControls.addEventListener('click', () => {
-      if (controlPanel.classList.contains('mobile-open')) {
-        closeAllDrawers();
-      } else {
-        openDrawer(controlPanel, btnShowControls);
-        controlPanel.querySelector<HTMLElement>('#btn-close-controls')?.focus();
-      }
-    });
-
-    btnShowPhysics.addEventListener('click', () => {
-      if (physicsContainer.classList.contains('mobile-open')) {
-        closeAllDrawers();
-      } else {
-        openDrawer(physicsContainer, btnShowPhysics);
-        physicsContainer.querySelector<HTMLElement>('#btn-close-physics')?.focus();
-      }
-    });
-
+    btnShowControls.addEventListener('click', () =>
+      toggleDrawer(controlPanel, btnShowControls, '#btn-close-controls'),
+    );
+    btnShowPhysics.addEventListener('click', () =>
+      toggleDrawer(physicsContainer, btnShowPhysics, '#btn-close-physics'),
+    );
     btnCloseControls.addEventListener('click', closeAllDrawers);
     backdrop.addEventListener('click', closeAllDrawers);
+  }
 
+  private bindControlInputListeners(): void {
     const nInput = this.container.querySelector('#n-select') as HTMLInputElement;
     const lInput = this.container.querySelector('#l-select') as HTMLInputElement;
     const mInput = this.container.querySelector('#m-select') as HTMLInputElement;
@@ -497,18 +554,15 @@ export class ControlPanel {
     const paletteSelect = this.container.querySelector('#palette-select') as HTMLSelectElement;
     const zeffInput = this.container.querySelector('#zeff-input') as HTMLInputElement;
     const contrastInput = this.container.querySelector('#contrast-input') as HTMLInputElement;
+    const crossSectionSelect = this.container.querySelector('#cross-section-select') as HTMLSelectElement;
+    const nodalToggle = this.container.querySelector('#nodal-surfaces-toggle') as HTMLInputElement;
 
     const exportBtn = this.container.querySelector('#btn-open-export') as HTMLElement;
-
     const customPanel = this.container.querySelector('#custom-tuning') as HTMLElement;
     const ptsInput = this.container.querySelector('#pts-input') as HTMLInputElement;
     const stepsInput = this.container.querySelector('#steps-input') as HTMLInputElement;
     const scaleSelect = this.container.querySelector('#scale-select') as HTMLSelectElement;
 
-    const nVal = this.container.querySelector('#n-val') as HTMLElement;
-    const lVal = this.container.querySelector('#l-val') as HTMLElement;
-    const mVal = this.container.querySelector('#m-val') as HTMLElement;
-    const zeffVal = this.container.querySelector('#zeff-val') as HTMLElement;
     const contrastVal = this.container.querySelector('#contrast-val') as HTMLElement;
     const ptsVal = this.container.querySelector('#pts-val') as HTMLElement;
     const stepsVal = this.container.querySelector('#steps-val') as HTMLElement;
@@ -518,55 +572,10 @@ export class ControlPanel {
     });
 
     ExplanationModal.attachInfoButtons(this.container);
-
-    /** Keeps the range track fill in sync with the current value. */
-    const syncRangeFill = (input: HTMLInputElement) => {
-      const min = Number.parseFloat(input.min);
-      const max = Number.parseFloat(input.max);
-      const value = Number.parseFloat(input.value);
-      if (Number.isNaN(min) || Number.isNaN(max) || max === min) return;
-      const pct = ((value - min) / (max - min)) * 100;
-      input.style.setProperty('--fill', `${Math.max(0, Math.min(100, pct))}%`);
-    };
-
-    const allRanges = this.container.querySelectorAll<HTMLInputElement>('input[type="range"]');
-    allRanges.forEach(syncRangeFill);
+    this.syncAllRangeFills();
 
     const updateControls = () => {
-      const n = Number.parseInt(nInput.value, 10);
-      nVal.textContent = String(n);
-
-      const useRealOrbital = typeSelect.value === 'real';
-
-      // A real chemist orbital is only tabulated up to l = 3; past that the WASM
-      // side has no representation and the call would fail. The pure eigenstate
-      // form is defined for every l, so the cap only applies in real mode.
-      const maxL = useRealOrbital ? Math.min(n - 1, MAX_REAL_ORBITAL_L) : n - 1;
-      lInput.max = String(maxL);
-      let l = Number.parseInt(lInput.value, 10);
-      if (l > maxL) {
-        l = maxL;
-        lInput.value = String(l);
-      }
-      lVal.textContent = String(l);
-
-      mInput.min = String(-l);
-      mInput.max = String(l);
-      let m = Number.parseInt(mInput.value, 10);
-      if (m < -l) m = -l;
-      if (m > l) m = l;
-      mInput.value = String(m);
-      mVal.textContent = String(m);
-
-      const s = Number.parseFloat(spinSelect.value);
-      const mode = modeSelect.value as RenderMode;
       const quality = qualitySelect.value as QualityPreset;
-      const colorPalette = paletteSelect.value as ColorPalette;
-      const zEff = Number.parseFloat(zeffInput.value);
-      zeffVal.textContent = zEff.toFixed(2);
-      const contrast = Number.parseFloat(contrastInput.value);
-      contrastVal.textContent = String(Math.round(contrast));
-
       const qualitySettings = this.resolveQualityPreset(
         quality,
         customPanel,
@@ -574,51 +583,134 @@ export class ControlPanel {
         stepsInput,
         scaleSelect,
         ptsVal,
-        stepsVal
+        stepsVal,
       );
 
       ptsInput.value = String(qualitySettings.pointCount);
       stepsInput.value = String(qualitySettings.raymarchingSteps);
       scaleSelect.value = String(qualitySettings.resolutionScale);
 
+      const contrast = Number.parseFloat(contrastInput.value);
+      contrastVal.textContent = String(Math.round(contrast));
+
       this.currentParams = {
         ...this.currentParams,
-        n,
-        l,
-        m,
-        s,
-        useRealOrbital,
-        zEff,
+        n: Number.parseInt(nInput.value, 10),
+        l: Number.parseInt(lInput.value, 10),
+        m: Number.parseInt(mInput.value, 10),
+        s: Number.parseFloat(spinSelect.value),
+        useRealOrbital: typeSelect.value === 'real',
+        zEff: Number.parseFloat(zeffInput.value),
         pointCount: qualitySettings.pointCount,
-        mode,
+        mode: modeSelect.value as RenderMode,
         quality,
         raymarchingSteps: qualitySettings.raymarchingSteps,
         resolutionScale: qualitySettings.resolutionScale,
-        colorPalette,
+        colorPalette: paletteSelect.value as ColorPalette,
         contrast,
+        crossSection: crossSectionSelect.value as CrossSectionAxis,
+        showNodalSurfaces: nodalToggle.checked,
       };
 
-      this.physicsPanel!.updateParams(this.currentParams);
+      this.clampCurrentQuantumParams();
+      this.syncQuantumInputsToDom();
+      this.spinBoxExplorer?.syncActiveQuantumState(
+        this.currentParams.n,
+        this.currentParams.l,
+        this.currentParams.m,
+        this.currentParams.s,
+      );
+      this.physicsPanel?.updateParams(this.currentParams);
       this.onChange(this.currentParams);
-
-      // m/l bounds change as n changes, so the fills must be recomputed.
-      allRanges.forEach(syncRangeFill);
     };
 
-    nInput.addEventListener('input', updateControls);
-    lInput.addEventListener('input', updateControls);
-    mInput.addEventListener('input', updateControls);
-    spinSelect.addEventListener('change', updateControls);
-    modeSelect.addEventListener('change', updateControls);
-    typeSelect.addEventListener('change', updateControls);
-    qualitySelect.addEventListener('change', updateControls);
-    paletteSelect.addEventListener('change', updateControls);
-    zeffInput.addEventListener('input', updateControls);
-    contrastInput.addEventListener('input', updateControls);
+    const rangeInputs = [nInput, lInput, mInput, zeffInput, contrastInput, ptsInput, stepsInput];
+    for (const input of rangeInputs) {
+      input.addEventListener('input', updateControls);
+    }
 
-    ptsInput.addEventListener('input', updateControls);
-    stepsInput.addEventListener('input', updateControls);
-    scaleSelect.addEventListener('change', updateControls);
+    const changeControls = [
+      spinSelect,
+      modeSelect,
+      typeSelect,
+      qualitySelect,
+      paletteSelect,
+      crossSectionSelect,
+      nodalToggle,
+      scaleSelect,
+    ];
+    for (const ctrl of changeControls) {
+      ctrl.addEventListener('change', updateControls);
+    }
+  }
+
+  private handleSpinBoxSelection(selection: SpinBoxSelection): void {
+    this.currentParams = {
+      ...this.currentParams,
+      ...selection,
+    };
+    this.clampCurrentQuantumParams();
+    this.syncQuantumInputsToDom();
+    this.spinBoxExplorer?.syncActiveQuantumState(
+      this.currentParams.n,
+      this.currentParams.l,
+      this.currentParams.m,
+      this.currentParams.s,
+    );
+    this.physicsPanel?.updateParams(this.currentParams);
+    this.onChange(this.currentParams);
+  }
+
+  private syncQuantumInputsToDom(): void {
+    const nInput = this.container.querySelector('#n-select') as HTMLInputElement;
+    const lInput = this.container.querySelector('#l-select') as HTMLInputElement;
+    const mInput = this.container.querySelector('#m-select') as HTMLInputElement;
+    const spinSelect = this.container.querySelector('#spin-select') as HTMLSelectElement;
+    const zeffInput = this.container.querySelector('#zeff-input') as HTMLInputElement;
+
+    const nVal = this.container.querySelector('#n-val') as HTMLElement;
+    const lVal = this.container.querySelector('#l-val') as HTMLElement;
+    const mVal = this.container.querySelector('#m-val') as HTMLElement;
+    const zeffVal = this.container.querySelector('#zeff-val') as HTMLElement;
+
+    const { n, l, m, s, zEff } = this.currentParams;
+    const maxL = this.maxL();
+
+    nInput.value = String(n);
+    nVal.textContent = String(n);
+
+    lInput.max = String(maxL);
+    lInput.value = String(l);
+    lVal.textContent = String(l);
+
+    mInput.min = String(-l);
+    mInput.max = String(l);
+    mInput.value = String(m);
+    mVal.textContent = String(m);
+
+    spinSelect.value = String(s);
+    zeffInput.value = String(zEff);
+    zeffVal.textContent = zEff.toFixed(2);
+
+    // m/l bounds change as n changes, so the fills must be recomputed.
+    this.syncAllRangeFills();
+  }
+
+  private syncAllRangeFills(): void {
+    const allRanges = this.container.querySelectorAll<HTMLInputElement>('input[type="range"]');
+    allRanges.forEach(syncRangeFill);
+  }
+
+  private clampCurrentQuantumParams(): void {
+    const n = Math.max(1, Math.min(MAX_N, Math.floor(this.currentParams.n)));
+    this.currentParams.n = n;
+    // A real chemist orbital is only tabulated up to l = 3; past that the WASM
+    // side has no representation and the call would fail. The pure eigenstate
+    // form is defined for every l, so the cap only applies in real mode.
+    const maxL = this.maxL();
+    this.currentParams.l = Math.max(0, Math.min(maxL, Math.floor(this.currentParams.l)));
+    const maxM = this.currentParams.l;
+    this.currentParams.m = Math.max(-maxM, Math.min(maxM, Math.trunc(this.currentParams.m)));
   }
 
   private resolveQualityPreset(
@@ -657,19 +749,7 @@ export class ControlPanel {
 
   public setParams(params: Partial<ExtendedOrbitalParams>): void {
     this.currentParams = { ...this.currentParams, ...params };
-
-    const n = Math.max(1, Math.min(MAX_N, Math.floor(this.currentParams.n)));
-    this.currentParams.n = n;
-    // See MAX_REAL_ORBITAL_L: real chemist orbitals stop at l = 3.
-    const maxL = this.currentParams.useRealOrbital
-      ? Math.min(n - 1, MAX_REAL_ORBITAL_L)
-      : n - 1;
-    this.currentParams.l = Math.max(0, Math.min(maxL, Math.floor(this.currentParams.l)));
-    const maxM = this.currentParams.l;
-    if (Math.abs(this.currentParams.m) > maxM) {
-      this.currentParams.m = this.currentParams.m < 0 ? -maxM : maxM;
-    }
-
+    this.clampCurrentQuantumParams();
     this.render();
   }
 

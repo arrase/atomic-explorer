@@ -38,6 +38,7 @@ export class OrbitalPhysicsPanel {
   private radialChart: RadialDistributionChart | null = null;
   private unsubscribeLang: (() => void) | null = null;
   private isCollapsed: boolean = false;
+  private showSto: boolean = false;
 
   constructor(container: HTMLElement, params: ExtendedOrbitalParams) {
     this.container = container;
@@ -182,6 +183,23 @@ export class OrbitalPhysicsPanel {
             <h4>${escapeHtml(strings.radialDistributionTitle)}</h4>
             <button type="button" class="btn-info-icon" data-explain="explainRadialDistribution" aria-label="Info">${icon('info')}</button>
           </div>
+          <div class="radial-sto-bar">
+            <label class="control-toggle-label" for="toggle-sto-overlay">
+              <input type="checkbox" id="toggle-sto-overlay" ${this.showSto ? 'checked' : ''} />
+              <span>${escapeHtml(strings.compareStoToggle)}</span>
+            </label>
+            <button type="button" class="btn-info-icon" data-explain="explainStoComparison" aria-label="Info">${icon('info')}</button>
+          </div>
+          <div class="radial-chart-legend ${this.showSto ? '' : 'hidden'}" id="radial-chart-legend">
+            <span class="radial-legend-item">
+              <span class="radial-legend-swatch swatch-hydrogenic" aria-hidden="true"></span>
+              <span>${escapeHtml(strings.legendHydrogenic)}</span>
+            </span>
+            <span class="radial-legend-item">
+              <span class="radial-legend-swatch swatch-sto" aria-hidden="true"></span>
+              <span>${escapeHtml(strings.legendSto)}</span>
+            </span>
+          </div>
           <div class="radial-chart-wrapper" id="radial-chart-container"></div>
           <div class="radial-stats-row">
             <div class="radial-stat-badge">
@@ -270,6 +288,7 @@ export class OrbitalPhysicsPanel {
     }
     if (chartContainer) {
       this.radialChart = new RadialDistributionChart(chartContainer);
+      this.radialChart.setShowSto(this.showSto);
       this.radialChart.update(n, l, zEff);
       const peak = this.radialChart.getPeakRadius();
       const peakVal = this.container.querySelector('#val-peak-radius') as HTMLElement;
@@ -319,7 +338,13 @@ export class OrbitalPhysicsPanel {
       });
     }
 
-    const strings = getStrings();
+    const stoToggle = this.container.querySelector<HTMLInputElement>('#toggle-sto-overlay');
+    const stoLegend = this.container.querySelector<HTMLElement>('#radial-chart-legend');
+    stoToggle?.addEventListener('change', () => {
+      this.showSto = stoToggle.checked;
+      stoLegend?.classList.toggle('hidden', !this.showSto);
+      this.radialChart?.setShowSto(this.showSto);
+    });
 
     // The `data-explain` buttons reuse the shared handler (which also derives a
     // meaningful aria-label from the concept title).
@@ -333,60 +358,64 @@ export class OrbitalPhysicsPanel {
       btn.addEventListener('click', (e: Event) => {
         e.preventDefault();
         e.stopPropagation();
-
-        const nodeType = btn.dataset.node;
-        if (nodeType === 'radial') {
-          ExplanationModal.showSimple(
-            strings.radialNodes,
-            `${strings.radialNodes}: ${this.currentParams.n - this.currentParams.l - 1}`,
-            strings.radialNodesDesc
-          );
-          return;
-        }
-        if (nodeType === 'angular') {
-          ExplanationModal.showSimple(
-            strings.angularNodes,
-            `${strings.angularNodes}: ${this.currentParams.l}`,
-            strings.angularNodesDesc
-          );
-          return;
-        }
-        if (nodeType === 'total') {
-          ExplanationModal.showSimple(
-            strings.totalNodes,
-            `${strings.totalNodes}: ${this.currentParams.n - 1}`,
-            strings.totalNodesDesc
-          );
-          return;
-        }
-
-        const physType = btn.dataset.phys;
-        if (physType === 'radius') {
-          ExplanationModal.showSimple(
-            strings.expectationRadius,
-            strings.expectationRadiusDesc,
-            strings.expectationRadiusDetail
-          );
-          return;
-        }
-        if (physType === 'energy') {
-          ExplanationModal.showSimple(
-            strings.hydrogenicEnergy,
-            strings.hydrogenicEnergyDesc,
-            strings.hydrogenicEnergyDetail
-          );
-          return;
-        }
-
-        if (btn.dataset.formula === 'wavefunction') {
-          ExplanationModal.showSimple(
-            strings.wavefunctionFormula,
-            strings.wavefunctionFormulaDesc,
-            strings.wavefunctionFormulaDetail
-          );
-        }
+        this.showContextualExplanation(btn);
       });
     });
+  }
+
+  private showContextualExplanation(btn: HTMLElement): void {
+    const strings = getStrings();
+    const nodeType = btn.dataset.node;
+    if (nodeType === 'radial') {
+      ExplanationModal.showSimple(
+        strings.radialNodes,
+        `${strings.radialNodes}: ${this.currentParams.n - this.currentParams.l - 1}`,
+        strings.radialNodesDesc,
+      );
+      return;
+    }
+    if (nodeType === 'angular') {
+      ExplanationModal.showSimple(
+        strings.angularNodes,
+        `${strings.angularNodes}: ${this.currentParams.l}`,
+        strings.angularNodesDesc,
+      );
+      return;
+    }
+    if (nodeType === 'total') {
+      ExplanationModal.showSimple(
+        strings.totalNodes,
+        `${strings.totalNodes}: ${this.currentParams.n - 1}`,
+        strings.totalNodesDesc,
+      );
+      return;
+    }
+
+    const physType = btn.dataset.phys;
+    if (physType === 'radius') {
+      ExplanationModal.showSimple(
+        strings.expectationRadius,
+        strings.expectationRadiusDesc,
+        strings.expectationRadiusDetail,
+      );
+      return;
+    }
+    if (physType === 'energy') {
+      ExplanationModal.showSimple(
+        strings.hydrogenicEnergy,
+        strings.hydrogenicEnergyDesc,
+        strings.hydrogenicEnergyDetail,
+      );
+      return;
+    }
+
+    if (btn.dataset.formula === 'wavefunction') {
+      ExplanationModal.showSimple(
+        strings.wavefunctionFormula,
+        strings.wavefunctionFormulaDesc,
+        strings.wavefunctionFormulaDetail,
+      );
+    }
   }
 
   public destroy(): void {

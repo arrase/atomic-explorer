@@ -228,3 +228,53 @@ pub fn radial_quantile_radius(n: u32, l: u32, z_eff: f64, quantile: f64) -> Resu
 
     Ok(r_max)
 }
+
+fn bisect_laguerre_root(p: u32, q: u32, mut lo: f64, mut hi: f64) -> f64 {
+    let f_lo = associated_laguerre(p, q, lo);
+    for _ in 0..50 {
+        let mid = 0.5 * (lo + hi);
+        let f_mid = associated_laguerre(p, q, mid);
+        if f_lo * f_mid <= 0.0 {
+            hi = mid;
+        } else {
+            lo = mid;
+        }
+    }
+    0.5 * (lo + hi)
+}
+
+/// Radii (in Bohr radii a0) of the `n - l - 1` spherical radial nodes where `R_nl(r) = 0`.
+pub fn radial_nodes(n: u32, l: u32, z_eff: f64) -> Result<Vec<f64>, String> {
+    r_nl(n, l, z_eff, 0.0)?;
+
+    let p = n - l - 1;
+    let q = 2 * l + 1;
+    if p == 0 {
+        return Ok(Vec::new());
+    }
+
+    let steps = 2000usize;
+    let rho_min = 1e-6_f64;
+    let rho_max = (4 * n + 2 * l + 4) as f64;
+    let step = (rho_max - rho_min) / (steps as f64);
+
+    let mut nodes = Vec::with_capacity(p as usize);
+    let mut prev_rho = rho_min;
+    let mut prev_val = associated_laguerre(p, q, prev_rho);
+
+    for i in 1..=steps {
+        let rho = rho_min + (i as f64) * step;
+        let val = associated_laguerre(p, q, rho);
+        if prev_val != 0.0 && prev_val * val <= 0.0 {
+            let root_rho = bisect_laguerre_root(p, q, prev_rho, rho);
+            nodes.push((n as f64) * root_rho / (2.0 * z_eff));
+            if nodes.len() == p as usize {
+                break;
+            }
+        }
+        prev_rho = rho;
+        prev_val = val;
+    }
+
+    Ok(nodes)
+}

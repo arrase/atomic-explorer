@@ -1,5 +1,7 @@
 pub mod grid;
+pub mod lcao;
 pub mod math_utils;
+pub mod nuclear;
 pub mod sampling;
 pub mod slater;
 pub mod spherical_harmonics;
@@ -315,6 +317,19 @@ pub fn calculate_spontaneous_emission_rate(
 }
 
 #[wasm_bindgen]
+pub fn calculate_radial_dipole_integral(
+    n1: u32,
+    l1: u32,
+    n2: u32,
+    l2: u32,
+    z_eff: f64,
+) -> Result<f64, String> {
+    QuantumNumbers::new(n1, l1, 0)?;
+    QuantumNumbers::new(n2, l2, 0)?;
+    transition::radial_dipole_integral(n1, l1, n2, l2, z_eff)
+}
+
+#[wasm_bindgen]
 pub fn evaluate_density_grid(
     n: u32,
     l: u32,
@@ -355,4 +370,129 @@ pub fn evaluate_isosurface_grid(
         &qn, &mode, z_eff, grid_size, bounds, contrast, isolevel,
     )?;
     Ok(grid)
+}
+
+/// Stride of `get_electron_configuration`: `[n, l, count]` per occupied subshell.
+pub const SUBSHELL_STRIDE: usize = 3;
+
+#[wasm_bindgen]
+pub fn get_electron_configuration(z: u32) -> Result<Vec<u32>, String> {
+    if !(1..=118).contains(&z) {
+        return Err(format!("Atomic number Z ({}) must be in 1..=118", z));
+    }
+    let config = slater::get_electron_configuration(z);
+    let mut flat = Vec::with_capacity(config.len() * SUBSHELL_STRIDE);
+    for (n, l, count) in config {
+        flat.push(n);
+        flat.push(l);
+        flat.push(count);
+    }
+    Ok(flat)
+}
+
+#[wasm_bindgen]
+pub fn sto_radial_wavefunction(n: u32, z_eff: f64, r: f64) -> Result<f64, String> {
+    slater::sto_radial_wavefunction(n, z_eff, r)
+}
+
+#[wasm_bindgen]
+pub fn get_radial_nodes(n: u32, l: u32, z_eff: f64) -> Result<Vec<f64>, String> {
+    wavefunctions::radial_nodes(n, l, z_eff)
+}
+
+#[wasm_bindgen]
+pub fn get_polar_nodal_cosines(l: u32, m: i32, use_real_orbital: bool) -> Result<Vec<f64>, String> {
+    let real_kind = if use_real_orbital {
+        Some(real_orbital_kind_from_lm(l, m).ok_or_else(|| {
+            format!(
+                "No real orbital representation available for l={}, m={}",
+                l, m
+            )
+        })?)
+    } else {
+        None
+    };
+    spherical_harmonics::polar_nodal_cosines(l, m, real_kind.as_ref())
+}
+
+pub const LCAO_STATE_LEN: usize = 17;
+
+/// Layout (length = 17):
+/// `[0]` overlap_s, `[1]` c_a_bond, `[2]` c_b_bond, `[3]` c_a_anti, `[4]` c_b_anti,
+/// `[5]` share_a_bond, `[6]` share_b_bond, `[7]` eps_a_ev, `[8]` eps_b_ev,
+/// `[9]` mo_eps_bond_ev, `[10]` mo_eps_anti_ev, `[11]` e_pot_bond_ev, `[12]` e_pot_anti_ev,
+/// `[13]` r_eq_bohr, `[14]` d_e_ev, `[15]` peak_ref_density, `[16]` nodal_z_anti (NaN if none).
+#[wasm_bindgen]
+#[allow(clippy::too_many_arguments)]
+pub fn evaluate_lcao_state(
+    n_a: u32,
+    l_a: u32,
+    m_a: i32,
+    z_eff_a: f64,
+    n_b: u32,
+    l_b: u32,
+    m_b: i32,
+    z_eff_b: f64,
+    r_bohr: f64,
+) -> Result<Vec<f64>, String> {
+    let a = lcao::AtomicBasis::new(n_a, l_a, m_a, z_eff_a)?;
+    let b = lcao::AtomicBasis::new(n_b, l_b, m_b, z_eff_b)?;
+    lcao::evaluate_lcao_state_internal(&a, &b, r_bohr).map(|arr| arr.to_vec())
+}
+
+/// Samples `[r_bohr, e_pot_bond_ev, e_pot_anti_ev]` (stride = 3) across `[r_min, r_max]`
+/// in `steps` intervals (`(steps + 1) * 3` floats) for the 2D Potential Energy Chart.
+#[wasm_bindgen]
+#[allow(clippy::too_many_arguments)]
+pub fn evaluate_lcao_curve(
+    n_a: u32,
+    l_a: u32,
+    m_a: i32,
+    z_eff_a: f64,
+    n_b: u32,
+    l_b: u32,
+    m_b: i32,
+    z_eff_b: f64,
+    r_min: f64,
+    r_max: f64,
+    steps: usize,
+) -> Result<Vec<f32>, String> {
+    let a = lcao::AtomicBasis::new(n_a, l_a, m_a, z_eff_a)?;
+    let b = lcao::AtomicBasis::new(n_b, l_b, m_b, z_eff_b)?;
+    lcao::evaluate_lcao_curve_internal(&a, &b, r_min, r_max, steps)
+}
+
+#[wasm_bindgen]
+pub fn get_nuclear_binding_energy(z: u32, n: u32) -> Result<f64, String> {
+    nuclear::binding_energy_mev(z, n)
+}
+
+#[wasm_bindgen]
+pub fn get_nuclear_binding_per_nucleon(z: u32, n: u32) -> Result<f64, String> {
+    nuclear::binding_energy_per_nucleon_mev(z, n)
+}
+
+#[wasm_bindgen]
+pub fn get_nuclear_radius_fm(a: u32) -> Result<f64, String> {
+    nuclear::nuclear_radius_fm(a)
+}
+
+#[wasm_bindgen]
+pub fn get_nuclear_optimal_z(a: u32) -> Result<f64, String> {
+    nuclear::optimal_z(a)
+}
+
+#[wasm_bindgen]
+pub fn predict_nuclear_decay(z: u32, n: u32) -> Result<u8, String> {
+    nuclear::predict_decay_mode(z, n).map(|mode| mode as u8)
+}
+
+#[wasm_bindgen]
+pub fn evaluate_segre_grid(max_z: u32, max_n: u32) -> Vec<u8> {
+    nuclear::segre_decay_grid(max_z, max_n)
+}
+
+#[wasm_bindgen]
+pub fn evaluate_valley_ba_curve(max_a: u32) -> Vec<f32> {
+    nuclear::valley_binding_curve(max_a)
 }

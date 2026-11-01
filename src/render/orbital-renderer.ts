@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { MarchingCubes } from 'three/addons/objects/MarchingCubes.js';
-import { BaseThreeRenderer, RendererTarget } from './render-utils';
+import { BaseThreeRenderer, RendererTarget, SnapshotOptions } from './render-utils';
 import {
   ColorPalette,
   PALETTE_CONFIG,
@@ -11,16 +11,26 @@ import {
   updatePointSizing,
 } from './orbital-point-cloud';
 import {
+  CrossSectionAxis,
+  applyClippingToNodalGroup,
+  buildNodalSurfacesGroup,
+  createCrossSectionPlane,
+  createRaymarchBoxMax,
+  crossSectionAxisToIndex,
+  disposeNodalSurfacesGroup,
+} from './orbital-nodal-surfaces';
+import {
   SAMPLE_STRIDE,
   evaluateIsosurfaceGrid,
   getOrbitalPeakDensity,
+  getPolarNodalCosines,
   resolveOrbitalGeometry,
   sampleOrbitalPoints,
 } from '../core/wasm-bridge';
 
 export type RenderMode = 'points' | 'isosurface' | 'raymarching';
 export type QualityPreset = 'low' | 'medium' | 'high' | 'ultra' | 'extreme' | 'custom';
-export type { ColorPalette };
+export type { ColorPalette, CrossSectionAxis };
 
 export interface OrbitalRenderParams {
   n: number;
@@ -36,6 +46,17 @@ export interface OrbitalRenderParams {
   resolutionScale?: number;
   colorPalette: ColorPalette;
   contrast?: number;
+  crossSection?: CrossSectionAxis;
+  showNodalSurfaces?: boolean;
+}
+
+interface CachedOverlayState {
+  frameRadius: number;
+  boxExtent: number;
+  radialNodes: number[];
+  polarCosines: number[];
+  m: number;
+  useRealOrbital: boolean;
 }
 
 export type { RendererTarget };
@@ -331,7 +352,12 @@ const raymarchFragmentShader = `
   }
 
   vec2 rayBoxIntersection(vec3 ro, vec3 rd, vec3 boxMin, vec3 boxMax) {
-    vec3 invDir = 1.0 / rd;
+    vec3 safeDir = vec3(
+      abs(rd.x) < 1e-7 ? (rd.x < 0.0 ? -1e-7 : 1e-7) : rd.x,
+      abs(rd.y) < 1e-7 ? (rd.y < 0.0 ? -1e-7 : 1e-7) : rd.y,
+      abs(rd.z) < 1e-7 ? (rd.z < 0.0 ? -1e-7 : 1e-7) : rd.z
+    );
+    vec3 invDir = 1.0 / safeDir;
     vec3 t0 = (boxMin - ro) * invDir;
     vec3 t1 = (boxMax - ro) * invDir;
     vec3 tmin = min(t0, t1);
@@ -450,6 +476,10 @@ export class OrbitalRenderer extends BaseThreeRenderer {
   private marchingCubesGroup: THREE.Group | null = null;
   private raymarchingMesh: THREE.Mesh | null = null;
   private raymarchingMaterial: THREE.ShaderMaterial | null = null;
+  private nodalSurfacesGroup: THREE.Group | null = null;
+  private cachedOverlayState: CachedOverlayState | null = null;
+  private crossSection: CrossSectionAxis = 'none';
+  private showNodalSurfaces = false;
 
   /** Radius of the orbital currently on screen, and the distance framing it. */
   private frameRadius = INITIAL_FRAME_RADIUS;
@@ -479,6 +509,8 @@ export class OrbitalRenderer extends BaseThreeRenderer {
     colorPalette: 'default',
     resolutionScale: 1.0,
     contrast: 0.0,
+    crossSection: 'none',
+    showNodalSurfaces: false,
   };
 
   constructor(target: RendererTarget) {
@@ -603,16 +635,106 @@ export class OrbitalRenderer extends BaseThreeRenderer {
     return token === this.updateToken;
   }
 
+  public override start(): void {
+    this.renderer.localClippingEnabled = this.crossSection !== 'none';
+    super.start();
+  }
+
+  public override stop(): void {
+    super.stop();
+    this.renderer.localClippingEnabled = false;
+  }
+
+  public override captureSnapshot(options: SnapshotOptions): string {
+    this.renderer.localClippingEnabled = this.crossSection !== 'none';
+    const dataUrl = super.captureSnapshot(options);
+    this.renderer.localClippingEnabled = this.isAnimating && this.crossSection !== 'none';
+    return dataUrl;
+  }
+
+  public setCrossSection(axis: CrossSectionAxis): void {
+    this.crossSection = axis;
+    this.currentParams.crossSection = axis;
+    if (this.isAnimating) {
+      this.renderer.localClippingEnabled = axis !== 'none';
+    }
+
+    const clipPlane = createCrossSectionPlane(axis);
+    if (this.pointsMaterial) {
+      this.pointsMaterial.uniforms.u_clipAxis.value = crossSectionAxisToIndex(axis);
+    }
+    if (this.marchingCubesGroup) {
+      this.applyIsosurfaceClipping(clipPlane);
+    }
+    if (this.raymarchingMaterial && this.cachedOverlayState) {
+      this.raymarchingMaterial.uniforms.u_boxMax.value.copy(
+        createRaymarchBoxMax(this.cachedOverlayState.boxExtent, axis),
+      );
+    }
+    if (this.nodalSurfacesGroup) {
+      applyClippingToNodalGroup(this.nodalSurfacesGroup, clipPlane);
+    }
+  }
+
+  public setShowNodalSurfaces(show: boolean): void {
+    this.showNodalSurfaces = show;
+    this.currentParams.showNodalSurfaces = show;
+    this.rebuildNodalSurfaces();
+  }
+
+  private syncOverlayFlags(params?: Partial<OrbitalRenderParams>): void {
+    if (params?.crossSection !== undefined) {
+      this.crossSection = params.crossSection;
+    }
+    if (params?.showNodalSurfaces !== undefined) {
+      this.showNodalSurfaces = params.showNodalSurfaces;
+    }
+    if (this.isAnimating) {
+      this.renderer.localClippingEnabled = this.crossSection !== 'none';
+    }
+  }
+
+  private applyIsosurfaceClipping(clipPlane: THREE.Plane | null): void {
+    if (!this.marchingCubesGroup) return;
+    const planes = clipPlane ? [clipPlane] : null;
+    for (const child of this.marchingCubesGroup.children) {
+      const material = (child as MarchingCubes).material as THREE.Material;
+      material.clippingPlanes = planes;
+      material.needsUpdate = true;
+    }
+  }
+
+  private rebuildNodalSurfaces(): void {
+    this.clearNodalSurfaces();
+    if (!this.showNodalSurfaces || !this.cachedOverlayState) return;
+    this.nodalSurfacesGroup = buildNodalSurfacesGroup({
+      ...this.cachedOverlayState,
+      clipPlane: createCrossSectionPlane(this.crossSection),
+    });
+    this.scene.add(this.nodalSurfacesGroup);
+  }
+
+  private clearNodalSurfaces(): void {
+    if (!this.nodalSurfacesGroup) return;
+    this.scene.remove(this.nodalSurfacesGroup);
+    disposeNodalSurfacesGroup(this.nodalSurfacesGroup);
+    this.nodalSurfacesGroup = null;
+  }
+
   public async setPointCloud(buffer: Float32Array, params?: OrbitalRenderParams): Promise<void> {
     const token = this.beginUpdate();
     if (params) {
       this.currentParams = { ...this.currentParams, ...params };
+      this.syncOverlayFlags(params);
     }
     // Snapshot before awaiting: `updateParams` can land a newer parameter set
     // while this call is suspended, and reading `this.currentParams` afterwards
     // would paint one cloud with another's palette and contrast curve.
     const p: OrbitalRenderParams = { ...this.currentParams };
-    const orbitalGeometry = await resolveOrbitalGeometry(p.n, p.l, p.zEff);
+    const [orbitalGeometry, polarCosines] = await Promise.all([
+      resolveOrbitalGeometry(p.n, p.l, p.zEff),
+      getPolarNodalCosines(p.l, p.m, p.useRealOrbital),
+    ]);
     if (!this.isCurrentUpdate(token)) return;
 
     this.clearCurrentMesh();
@@ -621,16 +743,27 @@ export class OrbitalRenderer extends BaseThreeRenderer {
 
     if (buffer.length === 0) return;
 
+    this.cachedOverlayState = {
+      frameRadius: orbitalGeometry.frameRadius,
+      boxExtent: orbitalGeometry.boxExtent,
+      radialNodes: orbitalGeometry.radialNodes,
+      polarCosines,
+      m: p.m,
+      useRealOrbital: p.useRealOrbital,
+    };
+
     const { points, material, count } = createPointCloud(buffer, {
       contrast: p.contrast ?? 0.0,
       useRealOrbital: p.useRealOrbital,
       palette: p.colorPalette,
       frameRadius: orbitalGeometry.frameRadius,
+      clipAxis: crossSectionAxisToIndex(this.crossSection),
     });
 
     this.pointsMaterial = material;
     this.pointsMesh = points;
     this.scene.add(this.pointsMesh);
+    this.rebuildNodalSurfaces();
 
     this.clipReach = orbitalGeometry.frameRadius * POINT_CLIP_FACTOR;
     this.applyFraming(orbitalGeometry.frameRadius, true);
@@ -715,7 +848,10 @@ export class OrbitalRenderer extends BaseThreeRenderer {
     }
   }
 
-  private createIsosurfaceMaterial(color: number): THREE.MeshPhysicalMaterial {
+  private createIsosurfaceMaterial(
+    color: number,
+    clipPlane: THREE.Plane | null,
+  ): THREE.MeshPhysicalMaterial {
     return new THREE.MeshPhysicalMaterial({
       color,
       roughness: 0.15,
@@ -724,6 +860,7 @@ export class OrbitalRenderer extends BaseThreeRenderer {
       opacity: 0.85,
       transparent: true,
       side: THREE.DoubleSide,
+      clippingPlanes: clipPlane ? [clipPlane] : null,
     });
   }
 
@@ -762,32 +899,18 @@ export class OrbitalRenderer extends BaseThreeRenderer {
   public async updateIsosurface(params: OrbitalRenderParams): Promise<void> {
     const token = this.beginUpdate();
     this.currentParams = { ...params };
+    this.syncOverlayFlags(params);
     const p: OrbitalRenderParams = { ...params };
-    const orbitalGeometry = await resolveOrbitalGeometry(p.n, p.l, p.zEff);
+    const [orbitalGeometry, polarCosines] = await Promise.all([
+      resolveOrbitalGeometry(p.n, p.l, p.zEff),
+      getPolarNodalCosines(p.l, p.m, p.useRealOrbital),
+    ]);
     if (!this.isCurrentUpdate(token)) return;
 
-    this.clearCurrentMesh();
-    this.currentMode = 'isosurface';
-    this.syncPixelRatio();
-
     const gridRes = this.getGridResolution(p.quality);
-    const palette = PALETTE_CONFIG[p.colorPalette];
-
-    const materialPos = this.createIsosurfaceMaterial(palette.posColor);
-    const materialNeg = this.createIsosurfaceMaterial(palette.negColor);
-
-    const mcPos = new MarchingCubes(gridRes, materialPos, false, false, 150000);
-    const mcNeg = new MarchingCubes(gridRes, materialNeg, false, false, 150000);
     const boxExtent = orbitalGeometry.boxExtent;
-    // A cube of half-size h puts its far corner sqrt(3) * h from the target.
-    this.clipReach = boxExtent * Math.sqrt(3) * CLIP_HEADROOM;
-    mcPos.scale.set(boxExtent, boxExtent, boxExtent);
-    mcNeg.scale.set(boxExtent, boxExtent, boxExtent);
-
     const isolevel = p.isolevel ?? 0.05;
     const contrast = p.contrast ?? 0.0;
-    mcPos.reset();
-    mcNeg.reset();
 
     // Fast grid evaluation via WASM engine
     const gridData = await evaluateIsosurfaceGrid({
@@ -803,21 +926,51 @@ export class OrbitalRenderer extends BaseThreeRenderer {
     });
     if (!this.isCurrentUpdate(token)) return;
 
+    this.clearCurrentMesh();
+    this.currentMode = 'isosurface';
+    this.syncPixelRatio();
+
+    this.cachedOverlayState = {
+      frameRadius: orbitalGeometry.frameRadius,
+      boxExtent,
+      radialNodes: orbitalGeometry.radialNodes,
+      polarCosines,
+      m: p.m,
+      useRealOrbital: p.useRealOrbital,
+    };
+
+    const palette = PALETTE_CONFIG[p.colorPalette];
+    const clipPlane = createCrossSectionPlane(this.crossSection);
+    const materialPos = this.createIsosurfaceMaterial(palette.posColor, clipPlane);
+    const materialNeg = this.createIsosurfaceMaterial(palette.negColor, clipPlane);
+
+    const mcPos = new MarchingCubes(gridRes, materialPos, false, false, 150000);
+    const mcNeg = new MarchingCubes(gridRes, materialNeg, false, false, 150000);
+    // A cube of half-size h puts its far corner sqrt(3) * h from the target.
+    this.clipReach = boxExtent * Math.sqrt(3) * CLIP_HEADROOM;
+    mcPos.scale.set(boxExtent, boxExtent, boxExtent);
+    mcNeg.scale.set(boxExtent, boxExtent, boxExtent);
+    mcPos.reset();
+    mcNeg.reset();
+
     this.populateMarchingCubes(mcPos, mcNeg, gridData, isolevel);
 
     this.marchingCubesGroup = new THREE.Group();
     this.marchingCubesGroup.add(mcPos);
     this.marchingCubesGroup.add(mcNeg);
     this.scene.add(this.marchingCubesGroup);
+    this.rebuildNodalSurfaces();
     this.applyFraming(orbitalGeometry.frameRadius, true);
   }
 
   public async updateRaymarching(params: OrbitalRenderParams): Promise<void> {
     const token = this.beginUpdate();
     this.currentParams = { ...params };
+    this.syncOverlayFlags(params);
     const p: OrbitalRenderParams = { ...params };
-    const [orbitalGeometry, peakDensity, samples] = await Promise.all([
+    const [orbitalGeometry, polarCosines, peakDensity, samples] = await Promise.all([
       resolveOrbitalGeometry(p.n, p.l, p.zEff),
+      getPolarNodalCosines(p.l, p.m, p.useRealOrbital),
       getOrbitalPeakDensity(p.n, p.l, p.m, p.useRealOrbital, p.zEff),
       // The log ramp has to be told how much dynamic range this state actually
       // spans before it can be integrated over a box, and the only honest way to
@@ -847,6 +1000,15 @@ export class OrbitalRenderer extends BaseThreeRenderer {
     this.syncPixelRatio();
 
     const boxExtent = orbitalGeometry.boxExtent;
+    this.cachedOverlayState = {
+      frameRadius: orbitalGeometry.frameRadius,
+      boxExtent,
+      radialNodes: orbitalGeometry.radialNodes,
+      polarCosines,
+      m: p.m,
+      useRealOrbital: p.useRealOrbital,
+    };
+
     // A cube of half-size h puts its far corner sqrt(3) * h from the target.
     this.clipReach = boxExtent * Math.sqrt(3) * CLIP_HEADROOM;
     const geometry = new THREE.BoxGeometry(boxExtent * 2, boxExtent * 2, boxExtent * 2);
@@ -867,7 +1029,7 @@ export class OrbitalRenderer extends BaseThreeRenderer {
         u_useReal: { value: p.useRealOrbital },
         u_zEff: { value: p.zEff },
         u_boxMin: { value: new THREE.Vector3(-boxExtent, -boxExtent, -boxExtent) },
-        u_boxMax: { value: new THREE.Vector3(boxExtent, boxExtent, boxExtent) },
+        u_boxMax: { value: createRaymarchBoxMax(boxExtent, this.crossSection) },
         u_steps: { value: steps },
         u_palette: { value: palette.id },
         u_peakDensity: { value: peakDensity },
@@ -885,10 +1047,12 @@ export class OrbitalRenderer extends BaseThreeRenderer {
 
     this.raymarchingMesh = new THREE.Mesh(geometry, this.raymarchingMaterial);
     this.scene.add(this.raymarchingMesh);
+    this.rebuildNodalSurfaces();
     this.applyFraming(orbitalGeometry.frameRadius, true);
   }
 
   private clearCurrentMesh(): void {
+    this.clearNodalSurfaces();
     if (this.pointsMesh) {
       this.scene.remove(this.pointsMesh);
       this.pointsMesh.geometry.dispose();
@@ -918,6 +1082,7 @@ export class OrbitalRenderer extends BaseThreeRenderer {
 
   public updateParams(params: Partial<OrbitalRenderParams>): void {
     this.currentParams = { ...this.currentParams, ...params };
+    this.syncOverlayFlags(params);
     this.syncPixelRatio();
     if (params.mode && params.mode !== this.currentMode) {
       // The caller drives the per-mode update itself, so all that is left when the
@@ -936,5 +1101,7 @@ export class OrbitalRenderer extends BaseThreeRenderer {
   protected override cleanupScene(): void {
     this.beginUpdate();
     this.clearCurrentMesh();
+    this.cachedOverlayState = null;
+    this.renderer.localClippingEnabled = false;
   }
 }

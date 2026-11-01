@@ -5,6 +5,7 @@ export interface ViewportHUDCallbacks {
   onResetCamera: () => void;
   onToggleAutoRotate: () => void;
   onToggleZenMode: () => void;
+  onShareLink?: () => void;
 }
 
 export class ViewportHUD {
@@ -64,6 +65,10 @@ export class ViewportHUD {
       <div class="hud-divider"></div>
 
       <div class="hud-group">
+        <button type="button" class="hud-btn" id="hud-btn-share" title="${strings.shareLink}" aria-label="${strings.shareLink}" data-tooltip="${strings.shareLink}">
+          ${icon('share')}
+        </button>
+
         <button type="button" class="hud-btn" id="hud-btn-zen" title="${strings.hudZenMode}" aria-label="${strings.hudZenMode}" data-tooltip="${strings.hudZenMode}">
           ${icon('zen')}
         </button>
@@ -76,6 +81,7 @@ export class ViewportHUD {
   private attachEvents(): void {
     const btnReset = this.container.querySelector('#hud-btn-reset');
     const btnTurntable = this.container.querySelector('#hud-btn-turntable');
+    const btnShare = this.container.querySelector('#hud-btn-share');
     const btnZen = this.container.querySelector('#hud-btn-zen');
 
     if (btnReset) {
@@ -89,6 +95,13 @@ export class ViewportHUD {
       btnTurntable.addEventListener('click', (e) => {
         e.stopPropagation();
         this.callbacks.onToggleAutoRotate();
+      });
+    }
+
+    if (btnShare) {
+      btnShare.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.callbacks.onShareLink?.();
       });
     }
 

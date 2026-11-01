@@ -1,7 +1,8 @@
 use approx::assert_relative_eq;
 use atomic_math::{
     calculate_spontaneous_emission_rate, calculate_transition_wavelength, evaluate_density_grid,
-    evaluate_isosurface_grid, get_slater_z_eff,
+    evaluate_isosurface_grid, get_electron_configuration, get_polar_nodal_cosines,
+    get_radial_nodes, get_slater_z_eff,
     grid::evaluate_density_grid_internal,
     is_dipole_transition_allowed,
     math_utils::{associated_legendre, factorial},
@@ -9,11 +10,13 @@ use atomic_math::{
     real_orbital_kind_from_lm, sample_orbital_points, sample_points,
     slater::{calculate_slater_z_eff, get_slater_z_eff_by_name, parse_orbital_designation},
     spherical_harmonics::{angular_density_max, y_lm_density, y_lm_real, y_lm_theta_component},
+    sto_radial_wavefunction,
     transition::{
         calculate_energy_ev, calculate_transition, radial_dipole_integral, spectral_series_name,
     },
+    wavefunction_value,
     wavefunctions::r_nl,
-    OrbitalMode, QuantumNumbers, RealOrbitalKind, SAMPLE_STRIDE,
+    OrbitalMode, QuantumNumbers, RealOrbitalKind, SAMPLE_STRIDE, SUBSHELL_STRIDE,
 };
 
 #[allow(clippy::too_many_arguments)]
@@ -1122,4 +1125,221 @@ fn test_radial_dipole_integral_forbidden() {
 
     let forbidden_1s_3d = radial_dipole_integral(1, 0, 3, 2, 1.0).unwrap();
     assert_eq!(forbidden_1s_3d, 0.0);
+}
+
+#[test]
+fn test_wasm_get_electron_configuration_all_elements() {
+    let parse_subshells = |flat: &[u32]| -> Vec<(u32, u32, u32)> {
+        assert_eq!(flat.len() % SUBSHELL_STRIDE, 0);
+        flat.chunks_exact(SUBSHELL_STRIDE)
+            .map(|c| (c[0], c[1], c[2]))
+            .collect()
+    };
+
+    for z in 1..=118u32 {
+        let flat = get_electron_configuration(z).unwrap();
+        let subshells = parse_subshells(&flat);
+        assert!(!subshells.is_empty(), "empty configuration for Z={z}");
+        let mut total = 0u32;
+        for &(n, l, count) in &subshells {
+            assert!(n > 0 && l < n, "invalid (n={n}, l={l}) for Z={z}");
+            assert!(count > 0, "zero-occupancy subshell ({n}, {l}) for Z={z}");
+            total += count;
+        }
+        assert_eq!(total, z, "electron sum mismatch for Z={z}");
+    }
+
+    // Cr (24): [Ar] 4s1 3d5
+    let cr = parse_subshells(&get_electron_configuration(24).unwrap());
+    assert!(cr.contains(&(4, 0, 1)));
+    assert_eq!(cr.last().copied(), Some((3, 2, 5)));
+
+    // Cu (29): [Ar] 4s1 3d10
+    let cu = parse_subshells(&get_electron_configuration(29).unwrap());
+    assert!(cu.contains(&(4, 0, 1)));
+    assert_eq!(cu.last().copied(), Some((3, 2, 10)));
+
+    // Pd (46): [Kr] 4d10 (no 5s)
+    let pd = parse_subshells(&get_electron_configuration(46).unwrap());
+    assert!(!pd.iter().any(|&(n, l, _)| n == 5 && l == 0));
+    assert_eq!(pd.last().copied(), Some((4, 2, 10)));
+
+    // La (57): [Xe] 6s2 5d1 (no 4f)
+    let la = parse_subshells(&get_electron_configuration(57).unwrap());
+    assert!(!la.iter().any(|&(n, l, _)| n == 4 && l == 3));
+    assert_eq!(la.last().copied(), Some((5, 2, 1)));
+
+    // Au (79): [Xe] 6s1 4f14 5d10
+    let au = parse_subshells(&get_electron_configuration(79).unwrap());
+    assert!(au.contains(&(6, 0, 1)));
+    assert!(au.contains(&(4, 3, 14)));
+    assert_eq!(au.last().copied(), Some((5, 2, 10)));
+
+    // Lr (103): [Rn] 7s2 5f14 7p1 (no 6d)
+    let lr = parse_subshells(&get_electron_configuration(103).unwrap());
+    assert!(!lr.iter().any(|&(n, l, _)| n == 6 && l == 2));
+    assert_eq!(lr.last().copied(), Some((7, 1, 1)));
+
+    assert!(atomic_math::slater::get_electron_configuration(0).is_empty());
+    assert!(get_electron_configuration(0).is_err());
+    assert!(get_electron_configuration(119).is_err());
+}
+
+#[test]
+fn test_wasm_sto_radial_wavefunction_and_normalization() {
+    // Nodeless hydrogenic states (l = n - 1 for n = 1, 2, 3 where n* = n) match R_nl identically.
+    for &(n, l, z_eff) in &[(1u32, 0u32, 1.7), (2, 1, 3.25), (3, 2, 3.0)] {
+        for &r in &[0.2, 0.75, 1.5, 4.0] {
+            assert_relative_eq!(
+                sto_radial_wavefunction(n, z_eff, r).unwrap(),
+                r_nl(n, l, z_eff, r).unwrap(),
+                epsilon = 1e-10
+            );
+        }
+    }
+
+    // Numerical normalization: \int_0^\infty r^2 |R_STO(r)|^2 dr = 1 for fractional n* (4s, 5s, 6s, 7s).
+    for &(n, z_eff) in &[(4u32, 2.2), (5, 2.2), (6, 2.2), (7, 2.2)] {
+        let r_max = 60.0;
+        let steps = 20_000usize;
+        let dr = r_max / (steps as f64);
+        let mut integral = 0.0;
+        let mut prev = 0.0;
+        for i in 0..=steps {
+            let r = (i as f64) * dr;
+            let val = sto_radial_wavefunction(n, z_eff, r).unwrap();
+            let density = r * r * val * val;
+            if i > 0 {
+                integral += 0.5 * (prev + density) * dr;
+            }
+            prev = density;
+        }
+        assert_relative_eq!(integral, 1.0, epsilon = 1e-5);
+    }
+
+    // r = 0.0 boundary behavior
+    assert_relative_eq!(
+        sto_radial_wavefunction(1, 2.0, 0.0).unwrap(),
+        2.0 * 2.0_f64.powf(1.5),
+        epsilon = 1e-10
+    );
+    assert_eq!(sto_radial_wavefunction(2, 2.0, 0.0).unwrap(), 0.0);
+
+    // Error cases
+    assert!(sto_radial_wavefunction(0, 1.0, 1.0).is_err());
+    assert!(sto_radial_wavefunction(1, 0.0, 1.0).is_err());
+    assert!(sto_radial_wavefunction(1, -1.5, 1.0).is_err());
+    assert!(sto_radial_wavefunction(1, 1.0, -0.1).is_err());
+}
+
+#[test]
+fn test_wasm_get_radial_nodes() {
+    let z_eff = 1.5;
+
+    // 1s: 0 nodes
+    assert!(get_radial_nodes(1, 0, z_eff).unwrap().is_empty());
+
+    // 2s: 1 node at r = 2 / Z_eff
+    let nodes_2s = get_radial_nodes(2, 0, z_eff).unwrap();
+    assert_eq!(nodes_2s.len(), 1);
+    assert_relative_eq!(nodes_2s[0], 2.0 / z_eff, epsilon = 1e-11);
+    assert!(r_nl(2, 0, z_eff, nodes_2s[0]).unwrap().abs() < 1e-11);
+
+    // 3s: 2 nodes at rho = 3 +/- sqrt(3) => r = 3 * (3 +/- sqrt(3)) / (2 * Z_eff)
+    let nodes_3s = get_radial_nodes(3, 0, z_eff).unwrap();
+    assert_eq!(nodes_3s.len(), 2);
+    let sqrt3 = 3.0_f64.sqrt();
+    assert_relative_eq!(
+        nodes_3s[0],
+        3.0 * (3.0 - sqrt3) / (2.0 * z_eff),
+        epsilon = 1e-11
+    );
+    assert_relative_eq!(
+        nodes_3s[1],
+        3.0 * (3.0 + sqrt3) / (2.0 * z_eff),
+        epsilon = 1e-11
+    );
+
+    // General node counts n - l - 1 and zero verification for 3s, 4p, 7s
+    for &(n, l) in &[(3u32, 0u32), (4, 1), (7, 0)] {
+        let nodes = get_radial_nodes(n, l, z_eff).unwrap();
+        assert_eq!(nodes.len(), (n - l - 1) as usize);
+        for (idx, &r_node) in nodes.iter().enumerate() {
+            if idx > 0 {
+                assert!(r_node > nodes[idx - 1]);
+            }
+            let val = r_nl(n, l, z_eff, r_node).unwrap();
+            assert!(
+                val.abs() < 1e-11,
+                "R_{n},{l}({r_node}) = {val} exceeds 1e-11"
+            );
+        }
+    }
+
+    // Invalid parameters
+    assert!(get_radial_nodes(0, 0, 1.0).is_err());
+    assert!(get_radial_nodes(2, 2, 1.0).is_err());
+    assert!(get_radial_nodes(2, 0, 0.0).is_err());
+    assert!(get_radial_nodes(2, 0, -1.0).is_err());
+}
+
+#[test]
+fn test_wasm_get_polar_nodal_cosines() {
+    // All 16 real chemist (l, m) pairs (l = 0..=3, m = -l..=l)
+    let mut real_pair_count = 0usize;
+    for l in 0..=3u32 {
+        let n = l + 1;
+        for m in -(l as i32)..=(l as i32) {
+            real_pair_count += 1;
+            let cosines = get_polar_nodal_cosines(l, m, true).unwrap();
+            let qn = QuantumNumbers::new(n, l, m).unwrap();
+            let mode = OrbitalMode::RealChemist(real_orbital_kind_from_lm(l, m).unwrap());
+            for (idx, &c) in cosines.iter().enumerate() {
+                assert!(c > -1.0 && c < 1.0);
+                if idx > 0 {
+                    assert!(c > cosines[idx - 1]);
+                }
+                let psi = wavefunction_value(&qn, &mode, 1.5, 2.0, c.acos(), 0.37).unwrap();
+                assert!(
+                    psi.abs() < 1e-11,
+                    "real (l={l}, m={m}) psi={psi} at cos(theta)={c}"
+                );
+            }
+        }
+    }
+    assert_eq!(real_pair_count, 16);
+
+    // Pure eigenstates for l = 0..=6, m = -l..=l
+    for l in 0..=6u32 {
+        let n = l + 1;
+        for m in -(l as i32)..=(l as i32) {
+            let cosines = get_polar_nodal_cosines(l, m, false).unwrap();
+            let expected_count = (l - m.unsigned_abs()) as usize;
+            assert_eq!(
+                cosines.len(),
+                expected_count,
+                "pure (l={l}, m={m}) expected {expected_count} polar nodes, got {}",
+                cosines.len()
+            );
+            let qn = QuantumNumbers::new(n, l, m).unwrap();
+            let mode = OrbitalMode::PureEigenstate;
+            for (idx, &c) in cosines.iter().enumerate() {
+                assert!(c > -1.0 && c < 1.0);
+                if idx > 0 {
+                    assert!(c > cosines[idx - 1]);
+                }
+                let psi = wavefunction_value(&qn, &mode, 1.5, 2.0, c.acos(), 0.37).unwrap();
+                assert!(
+                    psi.abs() < 1e-11,
+                    "pure (l={l}, m={m}) psi={psi} at cos(theta)={c}"
+                );
+            }
+        }
+    }
+
+    // Error cases: |m| > l and real orbital with l = 4
+    assert!(get_polar_nodal_cosines(1, 2, false).is_err());
+    assert!(get_polar_nodal_cosines(2, -3, false).is_err());
+    assert!(get_polar_nodal_cosines(1, 2, true).is_err());
+    assert!(get_polar_nodal_cosines(4, 0, true).is_err());
 }

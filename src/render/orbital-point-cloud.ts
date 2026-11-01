@@ -81,8 +81,19 @@ const pointVertexShader = `
   uniform float u_pointRadius;
   uniform float u_radiusRef;
   uniform float u_viewportHalfHeight;
+  uniform int u_clipAxis;
 
   void main() {
+    if (
+      (u_clipAxis == 1 && position.x > 0.0) ||
+      (u_clipAxis == 2 && position.y > 0.0) ||
+      (u_clipAxis == 3 && position.z > 0.0)
+    ) {
+      gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
+      gl_PointSize = 0.0;
+      return;
+    }
+
     vSign = a_sign;
     vRadiusNorm = length(position) / u_radiusRef;
 
@@ -268,6 +279,7 @@ export function createPointCloud(buffer: Float32Array, options: {
   useRealOrbital: boolean;
   palette: ColorPalette;
   frameRadius: number;
+  clipAxis?: number;
 }): { points: THREE.Points; material: THREE.ShaderMaterial; count: number } {
   const count = Math.floor(buffer.length / SAMPLE_STRIDE);
   const interleaved = new THREE.InterleavedBuffer(buffer, SAMPLE_STRIDE);
@@ -290,6 +302,7 @@ export function createPointCloud(buffer: Float32Array, options: {
       u_viewportHalfHeight: { value: 1.0 },
       u_palette: { value: palette.id },
       u_useReal: { value: options.useRealOrbital },
+      u_clipAxis: { value: options.clipAxis ?? 0 },
     },
     // Alpha compositing, not additive: overlapping samples converge to the
     // average of their phase colours instead of summing past white. Additive
