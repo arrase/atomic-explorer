@@ -109,7 +109,7 @@ fn test_potential_curve_equilibrium_and_asymptote() {
     let steps = 120usize;
     let curve = evaluate_lcao_curve(1, 0, 0, 1.0, 1, 0, 0, 1.0, 0.6, 10.0, steps).unwrap();
     assert_eq!(curve.len(), (steps + 1) * 3);
-    for chunk in curve.chunks_exact(3) {
+    for chunk in curve.as_chunks::<3>().0 {
         assert!(chunk[0] >= 0.6 && chunk[0] <= 10.0);
         assert!(chunk[2] > 0.0, "Antibonding curve must remain repulsive");
     }

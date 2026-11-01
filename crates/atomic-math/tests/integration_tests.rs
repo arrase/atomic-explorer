@@ -1131,7 +1131,9 @@ fn test_radial_dipole_integral_forbidden() {
 fn test_wasm_get_electron_configuration_all_elements() {
     let parse_subshells = |flat: &[u32]| -> Vec<(u32, u32, u32)> {
         assert_eq!(flat.len() % SUBSHELL_STRIDE, 0);
-        flat.chunks_exact(SUBSHELL_STRIDE)
+        flat.as_chunks::<SUBSHELL_STRIDE>()
+            .0
+            .iter()
             .map(|c| (c[0], c[1], c[2]))
             .collect()
     };
