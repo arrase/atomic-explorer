@@ -13,12 +13,12 @@
     "wasm:build:dev": "cd crates/atomic-math && wasm-pack build --target web --out-dir pkg --dev"
   },
   "dependencies": {
-    "three": "^0.186.1"
+    "three": "^0.187.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/node": "^26.6.6",
-    "@types/three": "^0.186.0",
+    "@types/three": "^0.187.0",
     "eslint": "^10.14.0",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.72.1",
