@@ -20,7 +20,7 @@ import { ColorPalette, PALETTE_CONFIG } from '../render/orbital-point-cloud';
 import { icon } from './icons';
 import { ExplanationModal } from './info-modal';
 import { escapeHtml } from './modal-utils';
-import { bindCollapsiblePanel, bindDualMobileDrawers } from './panel-helpers';
+import { PanelCollapseState, bindDualWorkspacePanels } from './panel-helpers';
 import { PotentialEnergyChart } from './potential-energy-chart';
 
 interface PresetUiMeta {
@@ -148,8 +148,7 @@ export class BondingView {
   private palette: ColorPalette = 'default';
   private contrast = 0;
 
-  private isLeftCollapsed = false;
-  private isRightCollapsed = false;
+  private readonly panelState: PanelCollapseState = { left: false, right: false };
 
   private potentialChart: PotentialEnergyChart | null = null;
   private cachedCurve: Float32Array = new Float32Array(0);
@@ -303,13 +302,13 @@ export class BondingView {
         </span>
       </div>
 
-      <button type="button" class="dock-tab-pill dock-left-pill ${this.isLeftCollapsed ? 'visible' : ''}" id="btn-expand-bonding-controls" title="${escapeHtml(strings.expandPanel)}" aria-label="${escapeHtml(strings.expandPanel)}" aria-expanded="${!this.isLeftCollapsed}" aria-controls="bonding-controls-panel">
+      <button type="button" class="dock-tab-pill dock-left-pill ${this.panelState.left ? 'visible' : ''}" id="btn-expand-bonding-controls" title="${escapeHtml(strings.expandPanel)}" aria-label="${escapeHtml(strings.expandPanel)}" aria-expanded="${!this.panelState.left}" aria-controls="bonding-controls-panel">
         ${icon('bond')}
         <span>${escapeHtml(strings.bondingTitle)}</span>
         ${icon('chevron-right', 'pill-chevron')}
       </button>
 
-      <div class="control-panel ${this.isLeftCollapsed ? 'collapsed' : ''}" id="bonding-controls-panel">
+      <div class="control-panel ${this.panelState.left ? 'collapsed' : ''}" id="bonding-controls-panel">
         <div class="mobile-drawer-handle"></div>
         ${this.renderLeftHeader(strings)}
         <div class="control-accordion-container bonding-controls-scroll">
@@ -348,7 +347,7 @@ export class BondingView {
             ${icon('camera')}
             <span>${escapeHtml(strings.exportImage)}</span>
           </button>
-          <button type="button" class="panel-icon-btn panel-collapse-btn desktop-only" id="btn-collapse-bonding-controls" title="${escapeHtml(strings.collapsePanel)}" aria-label="${escapeHtml(strings.collapsePanel)}" aria-expanded="${!this.isLeftCollapsed}" aria-controls="bonding-controls-panel">
+          <button type="button" class="panel-icon-btn panel-collapse-btn desktop-only" id="btn-collapse-bonding-controls" title="${escapeHtml(strings.collapsePanel)}" aria-label="${escapeHtml(strings.collapsePanel)}" aria-expanded="${!this.panelState.left}" aria-controls="bonding-controls-panel">
             ${icon('chevron-left')}
           </button>
           <button type="button" class="panel-close-btn mobile-only" id="btn-close-bonding-controls" aria-label="${escapeHtml(strings.infoModalClose)}">
@@ -535,13 +534,13 @@ export class BondingView {
     const initialSymbol = this.mode === 'bonding' ? meta.bondSymbolHtml : meta.antiSymbolHtml;
 
     return `
-      <button type="button" class="dock-tab-pill dock-right-pill ${this.isRightCollapsed ? 'visible' : ''}" id="btn-expand-bonding-energy" title="${escapeHtml(strings.expandPanel)}" aria-label="${escapeHtml(strings.expandPanel)}" aria-expanded="${!this.isRightCollapsed}" aria-controls="bonding-energy-panel">
+      <button type="button" class="dock-tab-pill dock-right-pill ${this.panelState.right ? 'visible' : ''}" id="btn-expand-bonding-energy" title="${escapeHtml(strings.expandPanel)}" aria-label="${escapeHtml(strings.expandPanel)}" aria-expanded="${!this.panelState.right}" aria-controls="bonding-energy-panel">
         ${icon('chevron-left', 'pill-chevron')}
         <span>${escapeHtml(strings.bondingEnergyPanelTitle)}</span>
         ${icon('chart')}
       </button>
 
-      <div class="orbital-physics-panel glass-panel ${this.isRightCollapsed ? 'collapsed' : ''}" id="bonding-energy-panel">
+      <div class="orbital-physics-panel glass-panel ${this.panelState.right ? 'collapsed' : ''}" id="bonding-energy-panel">
         <div class="mobile-drawer-handle"></div>
         <div class="physics-header">
           <div class="physics-header-top">
@@ -550,7 +549,7 @@ export class BondingView {
               <h2>${escapeHtml(strings.bondingEnergyPanelTitle)}</h2>
             </div>
             <div class="panel-header-actions">
-              <button type="button" class="panel-icon-btn panel-collapse-btn desktop-only" id="btn-collapse-bonding-energy" title="${escapeHtml(strings.collapsePanel)}" aria-label="${escapeHtml(strings.collapsePanel)}" aria-expanded="${!this.isRightCollapsed}" aria-controls="bonding-energy-panel">
+              <button type="button" class="panel-icon-btn panel-collapse-btn desktop-only" id="btn-collapse-bonding-energy" title="${escapeHtml(strings.collapsePanel)}" aria-label="${escapeHtml(strings.collapsePanel)}" aria-expanded="${!this.panelState.right}" aria-controls="bonding-energy-panel">
                 ${icon('chevron-right')}
               </button>
               <button type="button" class="panel-close-btn mobile-only" id="btn-close-bonding-energy" aria-label="${escapeHtml(strings.infoModalClose)}">
@@ -652,47 +651,18 @@ export class BondingView {
   }
 
   private attachEventListeners(): void {
-    this.bindPanelCollapseListeners();
-    this.bindMobileDrawerListeners();
+    bindDualWorkspacePanels(
+      this.container,
+      'bonding-controls',
+      'bonding-energy',
+      this.panelState,
+      () => this.potentialChart?.draw(),
+    );
     this.bindPresetRadioListeners();
     this.bindBondControlListeners();
     this.bindPolarAndVisualListeners();
     this.bindSvgMoHitListeners();
     ExplanationModal.attachInfoButtons(this.container);
-  }
-
-  private bindPanelCollapseListeners(): void {
-    bindCollapsiblePanel({
-      panel: this.container.querySelector('#bonding-controls-panel') as HTMLElement,
-      collapseBtn: this.container.querySelector('#btn-collapse-bonding-controls') as HTMLElement,
-      expandBtn: this.container.querySelector('#btn-expand-bonding-controls') as HTMLElement,
-      onChange: (collapsed) => {
-        this.isLeftCollapsed = collapsed;
-      },
-    });
-
-    bindCollapsiblePanel({
-      panel: this.container.querySelector('#bonding-energy-panel') as HTMLElement,
-      collapseBtn: this.container.querySelector('#btn-collapse-bonding-energy') as HTMLElement,
-      expandBtn: this.container.querySelector('#btn-expand-bonding-energy') as HTMLElement,
-      onChange: (collapsed) => {
-        this.isRightCollapsed = collapsed;
-        if (!collapsed) this.potentialChart?.draw();
-      },
-    });
-  }
-
-  private bindMobileDrawerListeners(): void {
-    bindDualMobileDrawers({
-      leftPanel: this.container.querySelector('#bonding-controls-panel') as HTMLElement,
-      rightContainer: this.container.querySelector('#bonding-physics-container') as HTMLElement,
-      backdrop: this.container.querySelector('#bonding-drawer-backdrop') as HTMLElement,
-      showLeftBtn: this.container.querySelector('#btn-show-bonding-controls') as HTMLElement,
-      showRightBtn: this.container.querySelector('#btn-show-bonding-energy') as HTMLElement,
-      closeLeftBtn: this.container.querySelector('#btn-close-bonding-controls') as HTMLElement,
-      closeRightBtn: this.container.querySelector('#btn-close-bonding-energy') as HTMLElement,
-      onOpenRight: () => this.potentialChart?.draw(),
-    });
   }
 
   private bindPresetRadioListeners(): void {

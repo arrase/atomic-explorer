@@ -18,7 +18,7 @@ import { SpectroscopyRenderer, SpectroscopyVisualMode } from '../render/spectros
 import { icon } from './icons';
 import { ExplanationModal } from './info-modal';
 import { escapeHtml } from './modal-utils';
-import { bindCollapsiblePanel, bindDualMobileDrawers } from './panel-helpers';
+import { PanelCollapseState, bindDualWorkspacePanels } from './panel-helpers';
 import { DischargeSpectrumStrip, EnergyLevelDiagram } from './spectroscopy-charts';
 
 type QuantumNumberKey = 'n' | 'l' | 'm';
@@ -210,8 +210,7 @@ export class SpectroscopyView {
   private visualMode: SpectroscopyVisualMode = 'slice';
   private speed = 1.0;
 
-  private isLeftCollapsed = false;
-  private isRightCollapsed = false;
+  private readonly panelState: PanelCollapseState = { left: false, right: false };
   private readonly openSections: Record<string, boolean> = {
     presets: true,
     upper: true,
@@ -358,13 +357,13 @@ export class SpectroscopyView {
   private renderLeftPanel(strings: I18nStrings): string {
     const isEmission = this.mode === 'emission';
     return `
-      <button type="button" class="dock-tab-pill dock-left-pill ${this.isLeftCollapsed ? 'visible' : ''}" id="btn-expand-spec-controls" title="${escapeHtml(strings.expandPanel)}" aria-label="${escapeHtml(strings.expandPanel)}" aria-expanded="${!this.isLeftCollapsed}" aria-controls="spec-controls-panel">
+      <button type="button" class="dock-tab-pill dock-left-pill ${this.panelState.left ? 'visible' : ''}" id="btn-expand-spec-controls" title="${escapeHtml(strings.expandPanel)}" aria-label="${escapeHtml(strings.expandPanel)}" aria-expanded="${!this.panelState.left}" aria-controls="spec-controls-panel">
         ${icon('spectrum')}
         <span>${escapeHtml(strings.spectroscopyTitle)}</span>
         ${icon('chevron-right', 'pill-chevron')}
       </button>
 
-      <div class="control-panel ${this.isLeftCollapsed ? 'collapsed' : ''}" id="spec-controls-panel">
+      <div class="control-panel ${this.panelState.left ? 'collapsed' : ''}" id="spec-controls-panel">
         <div class="mobile-drawer-handle"></div>
         <div class="panel-header">
           <div class="panel-title-group">
@@ -376,7 +375,7 @@ export class SpectroscopyView {
               ${icon('camera')}
               <span>${escapeHtml(strings.exportImage)}</span>
             </button>
-            <button type="button" class="panel-icon-btn panel-collapse-btn desktop-only" id="btn-collapse-spec-controls" title="${escapeHtml(strings.collapsePanel)}" aria-label="${escapeHtml(strings.collapsePanel)}" aria-expanded="${!this.isLeftCollapsed}" aria-controls="spec-controls-panel">
+            <button type="button" class="panel-icon-btn panel-collapse-btn desktop-only" id="btn-collapse-spec-controls" title="${escapeHtml(strings.collapsePanel)}" aria-label="${escapeHtml(strings.collapsePanel)}" aria-expanded="${!this.panelState.left}" aria-controls="spec-controls-panel">
               ${icon('chevron-left')}
             </button>
             <button type="button" class="panel-close-btn mobile-only" id="btn-close-spec-controls" aria-label="${escapeHtml(strings.infoModalClose)}">
@@ -612,13 +611,13 @@ export class SpectroscopyView {
   private renderRightPanel(strings: I18nStrings): string {
     return `
       <div class="physics-panel-container">
-        <button type="button" class="dock-tab-pill dock-right-pill ${this.isRightCollapsed ? 'visible' : ''}" id="btn-expand-spec-physics" title="${escapeHtml(strings.expandPanel)}" aria-label="${escapeHtml(strings.expandPanel)}" aria-expanded="${!this.isRightCollapsed}" aria-controls="spec-physics-panel">
+        <button type="button" class="dock-tab-pill dock-right-pill ${this.panelState.right ? 'visible' : ''}" id="btn-expand-spec-physics" title="${escapeHtml(strings.expandPanel)}" aria-label="${escapeHtml(strings.expandPanel)}" aria-expanded="${!this.panelState.right}" aria-controls="spec-physics-panel">
           ${icon('chevron-left', 'pill-chevron')}
           <span>${escapeHtml(strings.spectroscopyAnalysisTitle)}</span>
           ${icon('chart')}
         </button>
 
-        <div class="orbital-physics-panel glass-panel ${this.isRightCollapsed ? 'collapsed' : ''}" id="spec-physics-panel">
+        <div class="orbital-physics-panel glass-panel ${this.panelState.right ? 'collapsed' : ''}" id="spec-physics-panel">
           <div class="mobile-drawer-handle"></div>
           <div class="physics-header">
             <div class="physics-header-top">
@@ -627,7 +626,7 @@ export class SpectroscopyView {
                 <h2>${escapeHtml(strings.spectroscopyAnalysisTitle)}</h2>
               </div>
               <div class="panel-header-actions">
-                <button type="button" class="panel-icon-btn panel-collapse-btn desktop-only" id="btn-collapse-spec-physics" title="${escapeHtml(strings.collapsePanel)}" aria-label="${escapeHtml(strings.collapsePanel)}" aria-expanded="${!this.isRightCollapsed}" aria-controls="spec-physics-panel">
+                <button type="button" class="panel-icon-btn panel-collapse-btn desktop-only" id="btn-collapse-spec-physics" title="${escapeHtml(strings.collapsePanel)}" aria-label="${escapeHtml(strings.collapsePanel)}" aria-expanded="${!this.panelState.right}" aria-controls="spec-physics-panel">
                   ${icon('chevron-right')}
                 </button>
                 <button type="button" class="panel-close-btn mobile-only" id="btn-close-spec-physics" aria-label="${escapeHtml(strings.infoModalClose)}">
@@ -730,33 +729,15 @@ export class SpectroscopyView {
   }
 
   private attachEventListeners(): void {
-    this.bindCollapseAndAccordionListeners();
-    this.bindMobileDrawerListeners();
+    bindDualWorkspacePanels(this.container, 'spec-controls', 'spec-physics', this.panelState);
+    this.bindAccordionListeners();
     this.bindModeAndPresetListeners();
     this.bindQuantumPillListeners();
     this.bindIonAndAntennaListeners();
     ExplanationModal.attachInfoButtons(this.container);
   }
 
-  private bindCollapseAndAccordionListeners(): void {
-    bindCollapsiblePanel({
-      panel: this.container.querySelector('#spec-controls-panel') as HTMLElement,
-      collapseBtn: this.container.querySelector('#btn-collapse-spec-controls') as HTMLElement,
-      expandBtn: this.container.querySelector('#btn-expand-spec-controls') as HTMLElement,
-      onChange: (collapsed) => {
-        this.isLeftCollapsed = collapsed;
-      },
-    });
-
-    bindCollapsiblePanel({
-      panel: this.container.querySelector('#spec-physics-panel') as HTMLElement,
-      collapseBtn: this.container.querySelector('#btn-collapse-spec-physics') as HTMLElement,
-      expandBtn: this.container.querySelector('#btn-expand-spec-physics') as HTMLElement,
-      onChange: (collapsed) => {
-        this.isRightCollapsed = collapsed;
-      },
-    });
-
+  private bindAccordionListeners(): void {
     const accordionSections = this.container.querySelectorAll<HTMLDetailsElement>(
       'details.control-accordion-section',
     );
@@ -767,18 +748,6 @@ export class SpectroscopyView {
           this.openSections[key] = detailsEl.open;
         }
       });
-    });
-  }
-
-  private bindMobileDrawerListeners(): void {
-    bindDualMobileDrawers({
-      leftPanel: this.container.querySelector('#spec-controls-panel') as HTMLElement,
-      rightContainer: this.container.querySelector('.physics-panel-container') as HTMLElement,
-      backdrop: this.container.querySelector('#spec-drawer-backdrop') as HTMLElement,
-      showLeftBtn: this.container.querySelector('#btn-show-spec-controls') as HTMLElement,
-      showRightBtn: this.container.querySelector('#btn-show-spec-physics') as HTMLElement,
-      closeLeftBtn: this.container.querySelector('#btn-close-spec-controls') as HTMLElement,
-      closeRightBtn: this.container.querySelector('#btn-close-spec-physics') as HTMLElement,
     });
   }
 
