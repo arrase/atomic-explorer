@@ -367,6 +367,17 @@ export interface I18nStrings {
   bondStableBadge: string;
   bondUnstableBadge: string;
   chargeSharingLabel: string;
+  bondingRenderModeLabel: string;
+  bondingModeSlice: string;
+  bondingModeIsosurface: string;
+  bondingModeVolume: string;
+  bondingShowAtomGuides: string;
+  bondingLegendPhasePos: string;
+  bondingLegendPhaseNeg: string;
+  bondingLegendNodalPlane: string;
+  bondingInsightConstructive: string;
+  bondingInsightDestructive: string;
+  bondingInsightSeparated: string;
   explainLcao: ConceptExplanation;
   explainPotentialCurve: ConceptExplanation;
   explainBondOrder: ConceptExplanation;

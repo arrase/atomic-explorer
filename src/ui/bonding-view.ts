@@ -15,8 +15,8 @@ import {
 } from '../core/lcao';
 import { bohrToPm } from '../core/physics-constants';
 import { I18nStrings, getStrings, onLanguageChange } from '../i18n';
-import { BondingRenderer } from '../render/bonding-renderer';
-import { ColorPalette } from '../render/orbital-point-cloud';
+import { BondingRenderer, BondingVisualMode } from '../render/bonding-renderer';
+import { ColorPalette, PALETTE_CONFIG } from '../render/orbital-point-cloud';
 import { icon } from './icons';
 import { ExplanationModal } from './info-modal';
 import { escapeHtml } from './modal-utils';
@@ -123,6 +123,10 @@ function formatSignedCoeff(c: number, isFirst: boolean): string {
   return `${c >= 0 ? ' + ' : ' − '}${abs}`;
 }
 
+function formatHexColor(color: number): string {
+  return `#${color.toString(16).padStart(6, '0')}`;
+}
+
 export class BondingView {
   private readonly container: HTMLElement;
   private readonly renderer: BondingRenderer;
@@ -138,6 +142,8 @@ export class BondingView {
   private polarZEffA = 1.0;
   private polarZEffB = 1.85;
   private showNodalPlanes = true;
+  private visualMode: BondingVisualMode = 'slice';
+  private showAtomGuides = true;
   private palette: ColorPalette = 'default';
   private contrast = 0;
 
@@ -260,6 +266,7 @@ export class BondingView {
   private render(): void {
     const strings = getStrings();
     const preset = this.getPreset();
+    const paletteColors = PALETTE_CONFIG[this.palette];
 
     if (this.potentialChart) {
       this.potentialChart.destroy();
@@ -278,6 +285,21 @@ export class BondingView {
           <span class="btn-icon">${icon('chart')}</span>
           <span class="btn-label">${escapeHtml(strings.bondingEnergyPanelTitle)}</span>
         </button>
+      </div>
+
+      <div class="bonding-viewport-legend" id="bonding-viewport-legend">
+        <span class="bonding-legend-item">
+          <span class="bonding-legend-swatch" id="bonding-legend-pos" style="background-color: ${formatHexColor(paletteColors.posColor)}"></span>
+          <span>${escapeHtml(strings.bondingLegendPhasePos)}</span>
+        </span>
+        <span class="bonding-legend-item">
+          <span class="bonding-legend-swatch" id="bonding-legend-neg" style="background-color: ${formatHexColor(paletteColors.negColor)}"></span>
+          <span>${escapeHtml(strings.bondingLegendPhaseNeg)}</span>
+        </span>
+        <span class="bonding-legend-item hidden" id="bonding-legend-nodal">
+          <span class="bonding-legend-nodal-swatch"></span>
+          <span>${escapeHtml(strings.bondingLegendNodalPlane)}</span>
+        </span>
       </div>
 
       <button type="button" class="dock-tab-pill dock-left-pill ${this.isLeftCollapsed ? 'visible' : ''}" id="btn-expand-bonding-controls" title="${escapeHtml(strings.expandPanel)}" aria-label="${escapeHtml(strings.expandPanel)}" aria-expanded="${!this.isLeftCollapsed}" aria-controls="bonding-controls-panel">
@@ -454,9 +476,33 @@ export class BondingView {
 
     return `
       <div class="control-group">
+        <div class="control-label-row">
+          <span class="control-label">${escapeHtml(strings.bondingRenderModeLabel)}</span>
+        </div>
+        <div class="segmented-toggle segmented-toggle-3" role="group" aria-label="${escapeHtml(strings.bondingRenderModeLabel)}">
+          <button type="button" class="segmented-toggle-btn ${this.visualMode === 'slice' ? 'active' : ''}" data-visual-mode="slice" aria-pressed="${this.visualMode === 'slice'}">
+            ${escapeHtml(strings.bondingModeSlice)}
+          </button>
+          <button type="button" class="segmented-toggle-btn ${this.visualMode === 'isosurface' ? 'active' : ''}" data-visual-mode="isosurface" aria-pressed="${this.visualMode === 'isosurface'}">
+            ${escapeHtml(strings.bondingModeIsosurface)}
+          </button>
+          <button type="button" class="segmented-toggle-btn ${this.visualMode === 'volume' ? 'active' : ''}" data-visual-mode="volume" aria-pressed="${this.visualMode === 'volume'}">
+            ${escapeHtml(strings.bondingModeVolume)}
+          </button>
+        </div>
+      </div>
+
+      <div class="control-group">
         <button type="button" class="btn-action-toggle ${this.showNodalPlanes ? 'active' : ''}" id="btn-bonding-nodal-planes" aria-pressed="${this.showNodalPlanes}">
           ${this.showNodalPlanes ? icon('eye') : icon('eye-off')}
           <span>${escapeHtml(strings.toggleNodalPlanes)}</span>
+        </button>
+      </div>
+
+      <div class="control-group">
+        <button type="button" class="btn-action-toggle ${this.showAtomGuides ? 'active' : ''}" id="btn-bonding-atom-guides" aria-pressed="${this.showAtomGuides}">
+          ${icon('atom')}
+          <span>${escapeHtml(strings.bondingShowAtomGuides)}</span>
         </button>
       </div>
 
@@ -515,6 +561,7 @@ export class BondingView {
             <span class="badge-label">${escapeHtml(strings.activeState)}</span>
             <span class="badge-value" id="bonding-active-equation">${initialSymbol}</span>
           </div>
+          <p class="bonding-insight-text" id="bonding-insight-text"></p>
         </div>
 
         <div class="physics-section">
@@ -552,7 +599,11 @@ export class BondingView {
           <div class="charge-share-bar">
             <div class="charge-share-header">
               <span class="charge-share-label">${escapeHtml(strings.chargeSharingLabel)}</span>
-              <span class="charge-share-readout" id="bonding-share-readout">A: 50% / B: 50%</span>
+              <span class="charge-share-readout" id="bonding-share-readout">
+                <span class="charge-share-tag"><span class="charge-share-dot is-a"></span><span id="bonding-share-text-a">A: 50%</span></span>
+                <span>/</span>
+                <span class="charge-share-tag"><span class="charge-share-dot is-b"></span><span id="bonding-share-text-b">B: 50%</span></span>
+              </span>
             </div>
             <div class="charge-share-track">
               <div class="charge-share-fill-a" id="bonding-share-bar-a" style="width: 50%"></div>
@@ -566,34 +617,34 @@ export class BondingView {
 
   private renderCorrelationSvg(strings: I18nStrings): string {
     return `
-      <svg viewBox="0 0 280 142" class="mo-correlation-svg" role="img" aria-label="${escapeHtml(strings.moDiagramTitle)}">
-        <line id="mo-corr-a-anti" x1="72" y1="72" x2="108" y2="38" stroke="rgba(248, 113, 113, 0.42)" stroke-width="1.2" stroke-dasharray="3 3" />
-        <line id="mo-corr-b-anti" x1="208" y1="72" x2="172" y2="38" stroke="rgba(248, 113, 113, 0.42)" stroke-width="1.2" stroke-dasharray="3 3" />
-        <line id="mo-corr-a-bond" x1="72" y1="72" x2="108" y2="106" stroke="rgba(79, 143, 247, 0.45)" stroke-width="1.2" stroke-dasharray="3 3" />
-        <line id="mo-corr-b-bond" x1="208" y1="72" x2="172" y2="106" stroke="rgba(79, 143, 247, 0.45)" stroke-width="1.2" stroke-dasharray="3 3" />
+      <svg viewBox="0 0 280 162" class="mo-correlation-svg" role="img" aria-label="${escapeHtml(strings.moDiagramTitle)}">
+        <line id="mo-corr-a-anti" x1="72" y1="81" x2="108" y2="36" stroke="rgba(248, 113, 113, 0.42)" stroke-width="1.2" stroke-dasharray="3 3" />
+        <line id="mo-corr-b-anti" x1="208" y1="81" x2="172" y2="36" stroke="rgba(248, 113, 113, 0.42)" stroke-width="1.2" stroke-dasharray="3 3" />
+        <line id="mo-corr-a-bond" x1="72" y1="81" x2="108" y2="126" stroke="rgba(79, 143, 247, 0.45)" stroke-width="1.2" stroke-dasharray="3 3" />
+        <line id="mo-corr-b-bond" x1="208" y1="81" x2="172" y2="126" stroke="rgba(79, 143, 247, 0.45)" stroke-width="1.2" stroke-dasharray="3 3" />
 
-        <line id="mo-line-ao-a" x1="18" y1="72" x2="72" y2="72" stroke="rgba(169, 177, 194, 0.85)" stroke-width="2.2" stroke-linecap="round" />
-        <text id="mo-spin-ao-a" x="45" y="67" text-anchor="middle" fill="#eef1f7" font-size="11" font-weight="700">↑</text>
-        <text id="mo-label-ao-a" x="45" y="84" text-anchor="middle" fill="#a9b1c2" font-size="9.5" font-weight="600">φ_A</text>
-        <text id="mo-eps-ao-a" x="45" y="95" text-anchor="middle" fill="#7f8899" font-size="8.5">-- eV</text>
+        <line id="mo-line-ao-a" x1="18" y1="81" x2="72" y2="81" stroke="rgba(169, 177, 194, 0.85)" stroke-width="2.2" stroke-linecap="round" />
+        <text id="mo-spin-ao-a" x="45" y="76" text-anchor="middle" fill="#eef1f7" font-size="11" font-weight="700">↑</text>
+        <text id="mo-label-ao-a" x="45" y="93" text-anchor="middle" fill="#a9b1c2" font-size="9.5" font-weight="600">φ_A</text>
+        <text id="mo-eps-ao-a" x="45" y="104" text-anchor="middle" fill="#7f8899" font-size="8.5">-- eV</text>
 
-        <line id="mo-line-ao-b" x1="208" y1="72" x2="262" y2="72" stroke="rgba(169, 177, 194, 0.85)" stroke-width="2.2" stroke-linecap="round" />
-        <text id="mo-spin-ao-b" x="235" y="67" text-anchor="middle" fill="#eef1f7" font-size="11" font-weight="700">↓</text>
-        <text id="mo-label-ao-b" x="235" y="84" text-anchor="middle" fill="#a9b1c2" font-size="9.5" font-weight="600">φ_B</text>
-        <text id="mo-eps-ao-b" x="235" y="95" text-anchor="middle" fill="#7f8899" font-size="8.5">-- eV</text>
+        <line id="mo-line-ao-b" x1="208" y1="81" x2="262" y2="81" stroke="rgba(169, 177, 194, 0.85)" stroke-width="2.2" stroke-linecap="round" />
+        <text id="mo-spin-ao-b" x="235" y="76" text-anchor="middle" fill="#eef1f7" font-size="11" font-weight="700">↓</text>
+        <text id="mo-label-ao-b" x="235" y="93" text-anchor="middle" fill="#a9b1c2" font-size="9.5" font-weight="600">φ_B</text>
+        <text id="mo-eps-ao-b" x="235" y="104" text-anchor="middle" fill="#7f8899" font-size="8.5">-- eV</text>
 
         <g id="mo-hit-anti" class="mo-level-hit" role="button" tabindex="0" aria-label="${escapeHtml(strings.modeAntibonding)}" style="cursor: pointer">
-          <rect id="mo-rect-anti" x="102" y="26" width="76" height="20" rx="5" fill="transparent" />
-          <line id="mo-line-anti" x1="108" y1="38" x2="172" y2="38" stroke="#f87171" stroke-width="2.2" stroke-linecap="round" />
-          <text id="mo-spin-anti" x="140" y="34" text-anchor="middle" fill="#fde2e2" font-size="11" font-weight="700"></text>
-          <text id="mo-caption-anti" x="140" y="23" text-anchor="middle" fill="#f87171" font-size="9.5" font-weight="600">Ψ₋</text>
+          <rect id="mo-rect-anti" x="102" y="24" width="76" height="24" rx="5" fill="transparent" />
+          <line id="mo-line-anti" x1="108" y1="36" x2="172" y2="36" stroke="#f87171" stroke-width="2.2" stroke-linecap="round" />
+          <text id="mo-spin-anti" x="140" y="33" text-anchor="middle" fill="#fde2e2" font-size="11" font-weight="700"></text>
+          <text id="mo-caption-anti" x="140" y="22" text-anchor="middle" fill="#f87171" font-size="9.5" font-weight="600">Ψ₋</text>
         </g>
 
         <g id="mo-hit-bond" class="mo-level-hit" role="button" tabindex="0" aria-label="${escapeHtml(strings.modeBonding)}" style="cursor: pointer">
-          <rect id="mo-rect-bond" x="102" y="94" width="76" height="20" rx="5" fill="transparent" />
-          <line id="mo-line-bond" x1="108" y1="106" x2="172" y2="106" stroke="#4f8ff7" stroke-width="2.8" stroke-linecap="round" />
-          <text id="mo-spin-bond" x="140" y="102" text-anchor="middle" fill="#e0edff" font-size="11" font-weight="700">↑↓</text>
-          <text id="mo-caption-bond" x="140" y="120" text-anchor="middle" fill="#8ab4ff" font-size="9.5" font-weight="600">Ψ₊</text>
+          <rect id="mo-rect-bond" x="102" y="114" width="76" height="24" rx="5" fill="transparent" />
+          <line id="mo-line-bond" x1="108" y1="126" x2="172" y2="126" stroke="#4f8ff7" stroke-width="2.8" stroke-linecap="round" />
+          <text id="mo-spin-bond" x="140" y="123" text-anchor="middle" fill="#e0edff" font-size="11" font-weight="700">↑↓</text>
+          <text id="mo-caption-bond" x="140" y="139" text-anchor="middle" fill="#8ab4ff" font-size="9.5" font-weight="600">Ψ₊</text>
         </g>
       </svg>
     `;
@@ -796,9 +847,27 @@ export class BondingView {
       this.recomputeCurveAndSync(false);
     });
 
+    const visualModeBtns = this.container.querySelectorAll<HTMLButtonElement>('[data-visual-mode]');
+    visualModeBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const nextMode = btn.dataset.visualMode as BondingVisualMode;
+        if (nextMode === this.visualMode) return;
+        this.visualMode = nextMode;
+        this.syncControlsToState();
+        this.syncPhysics(false);
+      });
+    });
+
     const nodalBtn = this.container.querySelector('#btn-bonding-nodal-planes') as HTMLButtonElement;
     nodalBtn.addEventListener('click', () => {
       this.showNodalPlanes = !this.showNodalPlanes;
+      this.syncControlsToState();
+      this.syncPhysics(false);
+    });
+
+    const guidesBtn = this.container.querySelector('#btn-bonding-atom-guides') as HTMLButtonElement;
+    guidesBtn.addEventListener('click', () => {
+      this.showAtomGuides = !this.showAtomGuides;
       this.syncControlsToState();
       this.syncPhysics(false);
     });
@@ -926,10 +995,21 @@ export class BondingView {
     zeffABadge.textContent = this.polarZEffA.toFixed(2);
     zeffBBadge.textContent = this.polarZEffB.toFixed(2);
 
+    const visualModeBtns = this.container.querySelectorAll<HTMLButtonElement>('[data-visual-mode]');
+    visualModeBtns.forEach((btn) => {
+      const isMatch = btn.dataset.visualMode === this.visualMode;
+      btn.classList.toggle('active', isMatch);
+      btn.setAttribute('aria-pressed', String(isMatch));
+    });
+
     const nodalBtn = this.container.querySelector('#btn-bonding-nodal-planes') as HTMLButtonElement;
     nodalBtn.classList.toggle('active', this.showNodalPlanes);
     nodalBtn.setAttribute('aria-pressed', String(this.showNodalPlanes));
     nodalBtn.innerHTML = `${this.showNodalPlanes ? icon('eye') : icon('eye-off')}<span>${escapeHtml(strings.toggleNodalPlanes)}</span>`;
+
+    const guidesBtn = this.container.querySelector('#btn-bonding-atom-guides') as HTMLButtonElement;
+    guidesBtn.classList.toggle('active', this.showAtomGuides);
+    guidesBtn.setAttribute('aria-pressed', String(this.showAtomGuides));
   }
 
   private recomputeCurveAndSync(reframeCamera: boolean): void {
@@ -951,6 +1031,7 @@ export class BondingView {
     const cA = isBonding ? state.cABond : state.cAAnti;
     const cB = isBonding ? state.cBBond : state.cBAnti;
     const hasTransverseNode = !isBonding && state.nodalZAnti !== null;
+    const hasPiPlane = preset.symmetry === 'pi';
 
     this.renderer.updateState(
       {
@@ -963,9 +1044,11 @@ export class BondingView {
         showNodalPlanes: this.showNodalPlanes,
         hasTransverseNode,
         nodalZ: state.nodalZAnti ?? 0,
-        hasPiPlane: preset.symmetry === 'pi',
+        hasPiPlane,
         palette: this.palette,
         contrast: this.contrast,
+        visualMode: this.visualMode,
+        showAtomGuides: this.showAtomGuides,
       },
       reframeCamera,
     );
@@ -980,8 +1063,20 @@ export class BondingView {
       isUnstableDimer: bondOrder === 0,
     });
 
+    this.updateViewportLegend(hasTransverseNode, hasPiPlane);
     this.updateEnergeticsDom(preset, state, cA, cB, bondOrder);
     this.updateCorrelationSvg(preset, atomA, atomB, state);
+  }
+
+  private updateViewportLegend(hasTransverseNode: boolean, hasPiPlane: boolean): void {
+    const paletteColors = PALETTE_CONFIG[this.palette];
+    const posSwatch = this.container.querySelector('#bonding-legend-pos') as HTMLElement;
+    const negSwatch = this.container.querySelector('#bonding-legend-neg') as HTMLElement;
+    const nodalItem = this.container.querySelector('#bonding-legend-nodal') as HTMLElement;
+
+    posSwatch.style.backgroundColor = formatHexColor(paletteColors.posColor);
+    negSwatch.style.backgroundColor = formatHexColor(paletteColors.negColor);
+    nodalItem.classList.toggle('hidden', !(this.showNodalPlanes && (hasTransverseNode || hasPiPlane)));
   }
 
   private updateEnergeticsDom(
@@ -1001,6 +1096,19 @@ export class BondingView {
 
     const eqEl = this.container.querySelector('#bonding-active-equation') as HTMLElement;
     eqEl.innerHTML = `${symbolHtml} &middot; ${psiHtml} = ${termA}${termB}`;
+
+    const insightEl = this.container.querySelector('#bonding-insight-text') as HTMLElement;
+    const isSeparated = state.overlapS < 0.08;
+    if (isSeparated) {
+      insightEl.textContent = strings.bondingInsightSeparated;
+    } else if (isBonding) {
+      insightEl.textContent = strings.bondingInsightConstructive;
+    } else {
+      insightEl.textContent = strings.bondingInsightDestructive;
+    }
+    insightEl.classList.toggle('is-separated', isSeparated);
+    insightEl.classList.toggle('is-bonding', !isSeparated && isBonding);
+    insightEl.classList.toggle('is-antibonding', !isSeparated && !isBonding);
 
     const reqEl = this.container.querySelector('#bonding-stat-req') as HTMLElement;
     reqEl.innerHTML = `${state.rEqBohr.toFixed(2)} a₀<small>${bohrToPm(state.rEqBohr).toFixed(0)} pm</small>`;
@@ -1024,10 +1132,12 @@ export class BondingView {
 
     const pctA = Math.round(state.shareABond * 100);
     const pctB = Math.round(state.shareBBond * 100);
-    const shareReadout = this.container.querySelector('#bonding-share-readout') as HTMLElement;
+    const shareTextA = this.container.querySelector('#bonding-share-text-a') as HTMLElement;
+    const shareTextB = this.container.querySelector('#bonding-share-text-b') as HTMLElement;
     const shareBarA = this.container.querySelector('#bonding-share-bar-a') as HTMLElement;
     const shareBarB = this.container.querySelector('#bonding-share-bar-b') as HTMLElement;
-    shareReadout.textContent = `A: ${pctA}% / B: ${pctB}%`;
+    shareTextA.textContent = `A: ${pctA}%`;
+    shareTextB.textContent = `B: ${pctB}%`;
     shareBarA.style.width = `${pctA}%`;
     shareBarB.style.width = `${100 - pctA}%`;
   }
@@ -1044,14 +1154,21 @@ export class BondingView {
     const eLow = eMinRaw - span * 0.14;
     const eHigh = eMaxRaw + span * 0.14;
 
-    const yTop = 34;
-    const yBottom = 110;
+    const yTop = 36;
+    const yBottom = 126;
     const toY = (ev: number) => yTop + ((eHigh - ev) / (eHigh - eLow)) * (yBottom - yTop);
 
     const yA = toY(state.epsAEv);
     const yB = toY(state.epsBEv);
-    const yAnti = toY(state.moEpsAntiEv);
-    const yBond = toY(state.moEpsBondEv);
+    let yAnti = toY(state.moEpsAntiEv);
+    let yBond = toY(state.moEpsBondEv);
+
+    const minGap = 36;
+    if (yBond - yAnti < minGap) {
+      const mid = Math.max(32 + minGap * 0.5, Math.min(132 - minGap * 0.5, (yAnti + yBond) * 0.5));
+      yAnti = mid - minGap * 0.5;
+      yBond = mid + minGap * 0.5;
+    }
 
     this.setSvgLineY('#mo-line-ao-a', yA, yA);
     this.setSvgLineY('#mo-line-ao-b', yB, yB);
@@ -1079,7 +1196,7 @@ export class BondingView {
     this.setSvgText('#mo-spin-bond', yBond - 3, '↑↓');
     this.setSvgText('#mo-caption-bond', yBond + 13, `${meta.bondSymbolPlain} (${state.moEpsBondEv.toFixed(1)} eV)`);
 
-    const halfGap = Math.max(4, Math.min(11, (yBond - yAnti) * 0.48));
+    const halfGap = Math.max(6, Math.min(12, (yBond - yAnti) * 0.25));
     this.updateSvgMoHighlight('#mo-rect-anti', '#mo-line-anti', yAnti, halfGap, this.mode === 'antibonding', true);
     this.updateSvgMoHighlight('#mo-rect-bond', '#mo-line-bond', yBond, halfGap, this.mode === 'bonding', false);
   }
