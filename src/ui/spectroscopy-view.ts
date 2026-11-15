@@ -288,7 +288,7 @@ export class SpectroscopyView {
         <div class="panel-header">
           <div class="panel-title-group">
             <span class="panel-header-icon">${icon('spectrum')}</span>
-            <h3>${escapeHtml(strings.spectroscopyTitle)}</h3>
+            <h2>${escapeHtml(strings.spectroscopyTitle)}</h2>
           </div>
           <div class="panel-header-actions">
             <button type="button" class="btn-export-hdr" id="btn-spec-export" title="${escapeHtml(strings.exportImage)}" aria-label="${escapeHtml(strings.exportImage)}">
@@ -339,20 +339,20 @@ export class SpectroscopyView {
     }).join('');
 
     return `
-      <div class="control-accordion-section ${isOpen ? 'open' : ''}" data-section="presets">
-        <button type="button" class="accordion-header" id="spec-acc-hdr-presets" data-toggle="presets" aria-expanded="${isOpen}" aria-controls="spec-acc-body-presets">
+      <details class="control-accordion-section" data-section="presets"${isOpen ? ' open' : ''}>
+        <summary class="accordion-header" id="spec-acc-hdr-presets">
           <span class="accordion-title">
             ${icon('spectrum')}
             <span>${escapeHtml(strings.famousLinesSection)}</span>
           </span>
           <span class="accordion-chevron">${icon('chevron-down')}</span>
-        </button>
-        <div class="accordion-body" id="spec-acc-body-presets" role="region" aria-labelledby="spec-acc-hdr-presets">
+        </summary>
+        <div class="accordion-body" id="spec-acc-body-presets">
           <div class="spec-presets-grid">
             ${buttonsHtml}
           </div>
         </div>
-      </div>
+      </details>
     `;
   }
 
@@ -370,15 +370,15 @@ export class SpectroscopyView {
     const subshellBadge = `${state.l} (${SUBSHELL_LETTERS[state.l]})`;
 
     return `
-      <div class="control-accordion-section ${isOpen ? 'open' : ''}" data-section="${sectionKey}">
-        <button type="button" class="accordion-header" id="spec-acc-hdr-${sectionKey}" data-toggle="${sectionKey}" aria-expanded="${isOpen}" aria-controls="spec-acc-body-${sectionKey}">
+      <details class="control-accordion-section" data-section="${sectionKey}"${isOpen ? ' open' : ''}>
+        <summary class="accordion-header" id="spec-acc-hdr-${sectionKey}">
           <span class="accordion-title">
             ${icon('atom')}
             <span>${escapeHtml(title)}</span>
           </span>
           <span class="accordion-chevron">${icon('chevron-down')}</span>
-        </button>
-        <div class="accordion-body" id="spec-acc-body-${sectionKey}" role="region" aria-labelledby="spec-acc-hdr-${sectionKey}">
+        </summary>
+        <div class="accordion-body" id="spec-acc-body-${sectionKey}">
           <div class="control-grid">
             ${this.controlRow({
               id: `spec-n${idx}`,
@@ -406,7 +406,7 @@ export class SpectroscopyView {
             })}
           </div>
         </div>
-      </div>
+      </details>
     `;
   }
 
@@ -422,15 +422,15 @@ export class SpectroscopyView {
 
     const sliderMax = Math.max(6, this.zEff);
     return `
-      <div class="control-accordion-section ${isOpen ? 'open' : ''}" data-section="ion">
-        <button type="button" class="accordion-header" id="spec-acc-hdr-ion" data-toggle="ion" aria-expanded="${isOpen}" aria-controls="spec-acc-body-ion">
+      <details class="control-accordion-section" data-section="ion"${isOpen ? ' open' : ''}>
+        <summary class="accordion-header" id="spec-acc-hdr-ion">
           <span class="accordion-title">
             ${icon('zap')}
             <span>${escapeHtml(strings.ionPresetLabel)}</span>
           </span>
           <span class="accordion-chevron">${icon('chevron-down')}</span>
-        </button>
-        <div class="accordion-body" id="spec-acc-body-ion" role="region" aria-labelledby="spec-acc-hdr-ion">
+        </summary>
+        <div class="accordion-body" id="spec-acc-body-ion">
           <div class="control-grid">
             <div class="spec-ion-pills">
               ${pillsHtml}
@@ -445,7 +445,7 @@ export class SpectroscopyView {
             })}
           </div>
         </div>
-      </div>
+      </details>
     `;
   }
 
@@ -456,15 +456,15 @@ export class SpectroscopyView {
     const playIcon = isPlaying ? icon('pause') : icon('play');
 
     return `
-      <div class="control-accordion-section ${isOpen ? 'open' : ''}" data-section="antenna">
-        <button type="button" class="accordion-header" id="spec-acc-hdr-antenna" data-toggle="antenna" aria-expanded="${isOpen}" aria-controls="spec-acc-body-antenna">
+      <details class="control-accordion-section" data-section="antenna"${isOpen ? ' open' : ''}>
+        <summary class="accordion-header" id="spec-acc-hdr-antenna">
           <span class="accordion-title">
             ${icon('dipole')}
             <span>${escapeHtml(strings.antennaSection)}</span>
           </span>
           <span class="accordion-chevron">${icon('chevron-down')}</span>
-        </button>
-        <div class="accordion-body" id="spec-acc-body-antenna" role="region" aria-labelledby="spec-acc-hdr-antenna">
+        </summary>
+        <div class="accordion-body" id="spec-acc-body-antenna">
           <div class="control-grid">
             <div class="control-label-row">
               <button type="button" class="btn-action-toggle ${isPlaying ? 'active' : ''}" id="btn-spec-play" aria-pressed="${isPlaying}">
@@ -482,7 +482,7 @@ export class SpectroscopyView {
             })}
           </div>
         </div>
-      </div>
+      </details>
     `;
   }
 
@@ -501,7 +501,7 @@ export class SpectroscopyView {
             <div class="physics-header-top">
               <div class="panel-title-group">
                 <span class="panel-header-icon">${icon('chart')}</span>
-                <h3>${escapeHtml(strings.spectroscopyAnalysisTitle)}</h3>
+                <h2>${escapeHtml(strings.spectroscopyAnalysisTitle)}</h2>
               </div>
               <div class="panel-header-actions">
                 <button type="button" class="panel-icon-btn panel-collapse-btn desktop-only" id="btn-collapse-spec-physics" title="${escapeHtml(strings.collapsePanel)}" aria-label="${escapeHtml(strings.collapsePanel)}" aria-expanded="${!this.isRightCollapsed}" aria-controls="spec-physics-panel">
@@ -526,14 +526,14 @@ export class SpectroscopyView {
 
           <div class="physics-section">
             <div class="section-title">
-              <h4>${escapeHtml(strings.energyDiagramTitle)}</h4>
+              <h3>${escapeHtml(strings.energyDiagramTitle)}</h3>
             </div>
             <div class="energy-diagram-wrapper radial-chart-wrapper" id="spec-energy-diagram"></div>
           </div>
 
           <div class="physics-section">
             <div class="section-title">
-              <h4>${escapeHtml(strings.spectrumStripTitle)}</h4>
+              <h3>${escapeHtml(strings.spectrumStripTitle)}</h3>
             </div>
             <div class="spectrum-strip-wrapper radial-chart-wrapper" id="spec-spectrum-strip"></div>
           </div>
@@ -654,18 +654,15 @@ export class SpectroscopyView {
       btnExpandRight.setAttribute('aria-expanded', 'true');
     });
 
-    const accordionHeaders = this.container.querySelectorAll<HTMLElement>('.accordion-header');
-    accordionHeaders.forEach((header) => {
-      header.addEventListener('click', () => {
-        const key = header.dataset.toggle;
-        if (!key) return;
-        const section = this.container.querySelector(
-          `.control-accordion-section[data-section="${key}"]`,
-        );
-        if (!section) return;
-        const isOpen = section.classList.toggle('open');
-        this.openSections[key] = isOpen;
-        header.setAttribute('aria-expanded', String(isOpen));
+    const accordionSections = this.container.querySelectorAll<HTMLDetailsElement>(
+      'details.control-accordion-section',
+    );
+    accordionSections.forEach((detailsEl) => {
+      detailsEl.addEventListener('toggle', () => {
+        const key = detailsEl.dataset.section;
+        if (key) {
+          this.openSections[key] = detailsEl.open;
+        }
       });
     });
   }

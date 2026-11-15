@@ -15,6 +15,7 @@ export class ViewportHUD {
   private readonly callbacks: ViewportHUDCallbacks;
   private isAutoRotating: boolean = false;
   private scaleText: string = '1 a₀ = 52.9 pm';
+  private readonly keydownHandler: (e: KeyboardEvent) => void;
 
   constructor(parent: HTMLElement, callbacks: ViewportHUDCallbacks) {
     this.callbacks = callbacks;
@@ -33,6 +34,15 @@ export class ViewportHUD {
     this.extraSlot.className = 'hud-extra';
     this.container.appendChild(this.extraSlot);
 
+    this.keydownHandler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        this.inner
+          .querySelectorAll<HTMLElement>('.hud-btn[data-tooltip]:hover, .hud-btn[data-tooltip]:focus-visible')
+          .forEach((btn) => btn.setAttribute('data-tooltip-dismissed', ''));
+      }
+    };
+    document.addEventListener('keydown', this.keydownHandler);
+
     this.render();
     onLanguageChange(() => this.render());
   }
@@ -46,11 +56,11 @@ export class ViewportHUD {
 
     this.inner.innerHTML = `
       <div class="hud-group">
-        <button type="button" class="hud-btn" id="hud-btn-reset" title="${strings.hudResetCamera}" aria-label="${strings.hudResetCamera}" data-tooltip="${strings.hudResetCamera}">
+        <button type="button" class="hud-btn" id="hud-btn-reset" aria-label="${strings.hudResetCamera}" data-tooltip="${strings.hudResetCamera}">
           ${icon('rotate-ccw')}
         </button>
 
-        <button type="button" class="hud-btn ${this.isAutoRotating ? 'active' : ''}" id="hud-btn-turntable" title="${strings.hudTurntable}" aria-label="${strings.hudTurntable}" aria-pressed="${this.isAutoRotating}" data-tooltip="${strings.hudTurntable}">
+        <button type="button" class="hud-btn ${this.isAutoRotating ? 'active' : ''}" id="hud-btn-turntable" aria-label="${strings.hudTurntable}" aria-pressed="${this.isAutoRotating}" data-tooltip="${strings.hudTurntable}">
           ${icon('turntable')}
         </button>
       </div>
@@ -65,11 +75,11 @@ export class ViewportHUD {
       <div class="hud-divider"></div>
 
       <div class="hud-group">
-        <button type="button" class="hud-btn" id="hud-btn-share" title="${strings.shareLink}" aria-label="${strings.shareLink}" data-tooltip="${strings.shareLink}">
+        <button type="button" class="hud-btn" id="hud-btn-share" aria-label="${strings.shareLink}" data-tooltip="${strings.shareLink}">
           ${icon('share')}
         </button>
 
-        <button type="button" class="hud-btn" id="hud-btn-zen" title="${strings.hudZenMode}" aria-label="${strings.hudZenMode}" data-tooltip="${strings.hudZenMode}">
+        <button type="button" class="hud-btn" id="hud-btn-zen" aria-label="${strings.hudZenMode}" data-tooltip="${strings.hudZenMode}">
           ${icon('zen')}
         </button>
       </div>
@@ -79,6 +89,14 @@ export class ViewportHUD {
   }
 
   private attachEvents(): void {
+    const clearDismissed = (e: Event) => {
+      (e.currentTarget as HTMLElement).removeAttribute('data-tooltip-dismissed');
+    };
+    this.inner.querySelectorAll<HTMLElement>('.hud-btn[data-tooltip]').forEach((btn) => {
+      btn.addEventListener('pointerleave', clearDismissed);
+      btn.addEventListener('blur', clearDismissed);
+    });
+
     const btnReset = this.container.querySelector('#hud-btn-reset');
     const btnTurntable = this.container.querySelector('#hud-btn-turntable');
     const btnShare = this.container.querySelector('#hud-btn-share');
@@ -118,6 +136,7 @@ export class ViewportHUD {
     const btnTurntable = this.container.querySelector('#hud-btn-turntable');
     if (btnTurntable) {
       btnTurntable.classList.toggle('active', active);
+      btnTurntable.setAttribute('aria-pressed', String(active));
     }
   }
 
@@ -134,6 +153,7 @@ export class ViewportHUD {
   }
 
   public destroy(): void {
+    document.removeEventListener('keydown', this.keydownHandler);
     this.container.remove();
   }
 }

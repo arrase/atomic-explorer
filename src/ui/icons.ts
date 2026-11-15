@@ -186,5 +186,5 @@ export function icon(name: IconName, className: string = ''): string {
   const innerPath = ICON_PATHS[name];
   const classes = ['svg-icon', `icon-${name}`, className].filter(Boolean).join(' ');
 
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${classes}">${innerPath}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="${classes}" aria-hidden="true" focusable="false">${innerPath}</svg>`;
 }

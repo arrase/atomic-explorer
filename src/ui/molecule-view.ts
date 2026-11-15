@@ -83,6 +83,7 @@ export class MoleculeView {
   private showDipoles: boolean = false;
   private showPiBonds: boolean = true;
   private isCollapsed: boolean = false;
+  private galleryObserver: IntersectionObserver | null = null;
 
   public onStateChange?: () => void;
 
@@ -223,7 +224,7 @@ export class MoleculeView {
         <div class="panel-header">
           <div class="panel-title-group">
             <span class="panel-header-icon">${icon('molecule')}</span>
-            <h3>${escapeHtml(strings.moleculesVseprTitle)}</h3>
+            <h2>${escapeHtml(strings.moleculesVseprTitle)}</h2>
           </div>
           <div class="panel-header-actions">
             <button type="button" class="panel-icon-btn panel-collapse-btn desktop-only" id="btn-collapse-molecule" title="${escapeHtml(strings.collapsePanel)}" aria-label="${escapeHtml(strings.collapsePanel)}" aria-expanded="${!this.isCollapsed}" aria-controls="molecule-panel">
@@ -251,7 +252,7 @@ export class MoleculeView {
 
         <div class="vsepr-guide-card">
           <div class="vsepr-guide-header">
-            <h4>${escapeHtml(strings.vseprGuideTitle)}</h4>
+            <h3>${escapeHtml(strings.vseprGuideTitle)}</h3>
             <button type="button" class="btn-info-icon" data-explain="explainVsepr" aria-label="Info">${icon('info')}</button>
           </div>
           <p>${escapeHtml(strings.vseprGuideText)}</p>
@@ -296,7 +297,7 @@ export class MoleculeView {
     return `
       <div class="mol-header">
         <span class="mol-formula">${escapeHtml(m.formula)}</span>
-        <h2 class="mol-name">${escapeHtml(name)}</h2>
+        <h3 class="mol-name">${escapeHtml(name)}</h3>
       </div>
       <div class="mol-details">
         ${this.infoDetailRow(strings.vseprGeometry, 'explainVsepr', escapeHtml(geometry))}
@@ -423,12 +424,38 @@ export class MoleculeView {
   }
 
   private attachGalleryListeners(): void {
+    const gallery = this.container.querySelector<HTMLElement>('.molecule-gallery');
     const cards = Array.from(this.container.querySelectorAll<HTMLElement>('.molecule-card'));
 
     for (const card of cards) {
       const molId = card.dataset.moleculeId!;
       card.addEventListener('click', () => this.selectMolecule(molId));
       card.addEventListener('keydown', (e: KeyboardEvent) => this.handleCardKeydown(e, card, cards));
+    }
+
+    this.galleryObserver?.disconnect();
+    this.galleryObserver = null;
+
+    if (gallery && cards.length > 0 && !CSS.supports('animation-timeline', 'scroll()')) {
+      const first = cards[0];
+      const last = cards[cards.length - 1];
+      this.galleryObserver = new IntersectionObserver(
+        (entries) => {
+          for (const { target, intersectionRatio } of entries) {
+            if (target === first) {
+              gallery.classList.toggle('more-start', intersectionRatio < 1);
+            }
+            if (target === last) {
+              gallery.classList.toggle('more-end', intersectionRatio < 1);
+            }
+          }
+        },
+        { root: gallery, threshold: 1, rootMargin: '1px' },
+      );
+      this.galleryObserver.observe(first);
+      if (last !== first) {
+        this.galleryObserver.observe(last);
+      }
     }
   }
 

@@ -1,26 +1,31 @@
 import { ConceptExplanation, getStrings, I18nStrings } from '../i18n';
+import {
+  closeModalDialog,
+  waitDialogExitAnimations,
+  wireModalDialogLifecycle,
+} from './dialog-helpers';
 import { icon } from './icons';
-import { escapeHtml, trapModalFocus } from './modal-utils';
+import { escapeHtml } from './modal-utils';
 
 export class ExplanationModal {
-  private static overlayElement: HTMLElement | null = null;
-  private static keydownHandler: ((e: KeyboardEvent) => void) | null = null;
-  private static previousActiveElement: HTMLElement | null = null;
+  private static dialogElement: HTMLDialogElement | null = null;
 
   public static show(info: ConceptExplanation, options?: { showDontShowAgain?: boolean, storageKey?: string }): void {
-    ExplanationModal.previousActiveElement = document.activeElement as HTMLElement | null;
-    ExplanationModal.close();
+    if (ExplanationModal.dialogElement) {
+      const prev = ExplanationModal.dialogElement;
+      ExplanationModal.dialogElement = null;
+      if (prev.open) {
+        prev.close();
+      }
+      prev.remove();
+    }
 
     const strings = getStrings();
 
-    const overlay = document.createElement('div');
-    overlay.className = 'glass-modal-overlay modal-backdrop info-modal-overlay';
-
-    const card = document.createElement('div');
-    card.className = 'glass-modal-card info-modal-card';
-    card.setAttribute('role', 'dialog');
-    card.setAttribute('aria-modal', 'true');
-    card.setAttribute('aria-labelledby', 'info-modal-title');
+    const dialog = document.createElement('dialog');
+    dialog.className = 'glass-modal-card info-modal-card app-dialog';
+    dialog.setAttribute('closedby', 'any');
+    dialog.setAttribute('aria-labelledby', 'info-modal-title');
 
     const analogyHtml = info.analogy
       ? `<div class="info-modal-analogy">
@@ -29,13 +34,13 @@ export class ExplanationModal {
          </div>`
       : '';
 
-    card.innerHTML = `
+    dialog.innerHTML = `
       <div class="glass-modal-header">
         <div class="panel-title-group">
           <span class="panel-header-icon">${icon('info')}</span>
-          <h3 class="glass-modal-title" id="info-modal-title">${info.title}</h3>
+          <h2 class="glass-modal-title" id="info-modal-title">${info.title}</h2>
         </div>
-        <button class="btn-close-modal" aria-label="${strings.infoModalClose}">${icon('close')}</button>
+        <button type="button" class="btn-close-modal" aria-label="${escapeHtml(strings.infoModalClose)}">${icon('close')}</button>
       </div>
       <div class="glass-modal-body">
         <p class="info-modal-summary">${info.summary}</p>
@@ -46,49 +51,47 @@ export class ExplanationModal {
         ${options?.showDontShowAgain ? `
           <label class="info-modal-dont-show-again">
             <input type="checkbox" id="dont-show-again-checkbox">
-            ${strings.dontShowAgain}
+            <span>${strings.dontShowAgain}</span>
           </label>
         ` : ''}
-        <button class="btn-primary info-modal-close-btn">${strings.infoModalClose}</button>
+        <button type="button" class="btn-primary info-modal-close-btn">${strings.infoModalClose}</button>
       </div>
     `;
 
-    overlay.appendChild(card);
-    document.body.appendChild(overlay);
-    ExplanationModal.overlayElement = overlay;
+    document.body.appendChild(dialog);
+    ExplanationModal.dialogElement = dialog;
 
-    const closeBtn = card.querySelector('.btn-close-modal') as HTMLElement;
-    const footerCloseBtn = card.querySelector('.info-modal-close-btn') as HTMLElement;
-
-    const handleClose = () => {
+    const persistPreferences = () => {
       if (options?.showDontShowAgain && options?.storageKey) {
-        const checkbox = card.querySelector('#dont-show-again-checkbox') as HTMLInputElement | null;
+        const checkbox = dialog.querySelector('#dont-show-again-checkbox') as HTMLInputElement | null;
         if (checkbox?.checked) {
           localStorage.setItem(options.storageKey, 'true');
         }
       }
-      ExplanationModal.close();
     };
 
-    closeBtn.addEventListener('click', handleClose);
-    footerCloseBtn.addEventListener('click', handleClose);
+    const requestClose = () => {
+      persistPreferences();
+      closeModalDialog(dialog);
+    };
 
-    overlay.addEventListener('click', (e: MouseEvent) => {
-      if (e.target === overlay) {
-        handleClose();
+    wireModalDialogLifecycle(dialog, requestClose);
+
+    dialog.addEventListener('close', async () => {
+      persistPreferences();
+      if (ExplanationModal.dialogElement === dialog) {
+        ExplanationModal.dialogElement = null;
       }
+      await waitDialogExitAnimations(dialog);
+      dialog.remove();
     });
 
-    ExplanationModal.keydownHandler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        handleClose();
-      } else if (e.key === 'Tab') {
-        trapModalFocus(card, e);
-      }
-    };
-    document.addEventListener('keydown', ExplanationModal.keydownHandler);
+    const closeBtn = dialog.querySelector('.btn-close-modal') as HTMLElement;
+    const footerCloseBtn = dialog.querySelector('.info-modal-close-btn') as HTMLElement;
+    closeBtn.addEventListener('click', requestClose);
+    footerCloseBtn.addEventListener('click', requestClose);
 
-    closeBtn.focus();
+    dialog.showModal();
   }
 
   public static showSimple(title: string, summary: string, detail: string): void {
@@ -125,28 +128,8 @@ export class ExplanationModal {
   }
 
   public static close(): void {
-    if (ExplanationModal.keydownHandler) {
-      document.removeEventListener('keydown', ExplanationModal.keydownHandler);
-      ExplanationModal.keydownHandler = null;
-    }
-
-    if (ExplanationModal.previousActiveElement) {
-      ExplanationModal.previousActiveElement.focus();
-      ExplanationModal.previousActiveElement = null;
-    }
-
-    if (ExplanationModal.overlayElement) {
-      const overlay = ExplanationModal.overlayElement;
-      ExplanationModal.overlayElement = null;
-
-      overlay.classList.add('fade-out');
-
-      const cleanup = () => {
-        overlay.remove();
-      };
-
-      overlay.addEventListener('animationend', cleanup, { once: true });
-      setTimeout(cleanup, 300);
+    if (ExplanationModal.dialogElement) {
+      closeModalDialog(ExplanationModal.dialogElement);
     }
   }
 }

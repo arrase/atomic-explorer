@@ -157,10 +157,10 @@ export class NavigationBar {
     ).join('');
 
     this.container.innerHTML = `
-      <nav class="top-nav">
+      <nav class="top-nav" aria-label="${strings.title}">
         <div class="nav-brand">
           <span class="nav-logo">${icon('atom', 'nav-logo-icon')}</span>
-          <span class="nav-title">${strings.title}</span>
+          <h1 class="nav-title">${strings.title}</h1>
         </div>
         <div class="nav-tabs" id="nav-tabs-menu">
           <div class="nav-tablist" role="tablist" aria-label="${strings.title}">

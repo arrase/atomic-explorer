@@ -238,7 +238,7 @@ export class PeriodicTableView {
           </div>
           <div class="periodic-trends-card">
             <div class="trends-card-header">
-              <h4>${escapeHtml(strings.periodicTrendsGuideTitle)}</h4>
+              <h2>${escapeHtml(strings.periodicTrendsGuideTitle)}</h2>
               <button type="button" class="btn-info-icon" data-explain="explainAtomicRadius" aria-label="Info">${icon('info')}</button>
             </div>
             <p>${escapeHtml(strings.periodicTrendsGuideText)}</p>
@@ -661,21 +661,23 @@ export class PeriodicTableView {
     const color = this.getElementColor(el);
 
     return `
-      <div class="quick-inspector-card" id="quick-inspector-trigger">
-        <div class="quick-el-badge" style="border-color: ${color}">
-          <span class="quick-z">${el.Z}</span>
-          <span class="quick-symbol">${escapeHtml(el.symbol)}</span>
-        </div>
-        <div class="quick-el-info">
-          <span class="quick-name">${escapeHtml(name)}</span>
-          <span class="quick-config"><code>${escapeHtml(el.electron_config_str)}</code></span>
-        </div>
+      <div class="quick-inspector-card">
+        <button type="button" class="quick-inspector-main" id="quick-inspector-trigger" aria-label="${escapeHtml(name)} — ${escapeHtml(strings.viewFullDetails)}">
+          <div class="quick-el-badge" style="border-color: ${color}">
+            <span class="quick-z">${el.Z}</span>
+            <span class="quick-symbol">${escapeHtml(el.symbol)}</span>
+          </div>
+          <div class="quick-el-info">
+            <span class="quick-name">${escapeHtml(name)}</span>
+            <span class="quick-config"><code>${escapeHtml(el.electron_config_str)}</code></span>
+          </div>
+        </button>
         <div class="quick-actions">
           <button type="button" class="btn-primary btn-quick-3d" id="btn-quick-3d" title="${escapeHtml(strings.btnView3DOrbital)}">
             ${icon('atom')}
             <span>3D</span>
           </button>
-          <button type="button" class="btn-secondary btn-quick-details" id="btn-quick-details" title="${escapeHtml(strings.viewFullDetails)}">
+          <button type="button" class="btn-secondary btn-quick-details" id="btn-quick-details" title="${escapeHtml(strings.viewFullDetails)}" aria-label="${escapeHtml(strings.viewFullDetails)}">
             ${icon('chart')}
           </button>
         </div>
@@ -728,7 +730,7 @@ export class PeriodicTableView {
 
         <div class="inspector-details">
           <div class="inspector-uses-section">
-            <h4 class="section-title">${escapeHtml(strings.dailyLifeTitle)}</h4>
+            <h3 class="section-title">${escapeHtml(strings.dailyLifeTitle)}</h3>
             <div class="inspector-uses-chips">
               ${usesChips}
             </div>

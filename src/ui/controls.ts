@@ -201,7 +201,7 @@ export class ControlPanel {
       <div class="panel-header">
         <div class="panel-title-group">
           <span class="panel-header-icon">${icon('atom')}</span>
-          <h3>${escapeHtml(strings.orbitalControls)}</h3>
+          <h2>${escapeHtml(strings.orbitalControls)}</h2>
         </div>
         <div class="panel-header-actions">
           <button type="button" class="btn-export-hdr" id="btn-open-export" title="${escapeHtml(strings.exportImage)}" aria-label="${escapeHtml(strings.exportImage)}">
@@ -271,16 +271,16 @@ export class ControlPanel {
       renderOption('eigen', escapeHtml(strings.modeEigenstate), typeValue);
 
     return `
-      <div class="control-accordion-section ${isOpen ? 'open' : ''}" data-section="quantum">
-        <button type="button" class="accordion-header" id="accordion-header-quantum" data-toggle="quantum" aria-expanded="${isOpen ? 'true' : 'false'}" aria-controls="accordion-body-quantum">
+      <details class="control-accordion-section" data-section="quantum"${isOpen ? ' open' : ''}>
+        <summary class="accordion-header" id="accordion-header-quantum">
           <span class="accordion-title">
             ${icon('atom')}
             <span>${escapeHtml(strings.quantumSection)}</span>
           </span>
           <span class="accordion-chevron">${icon('chevron-down')}</span>
-        </button>
+        </summary>
 
-        <div class="accordion-body" id="accordion-body-quantum" role="region" aria-labelledby="accordion-header-quantum">
+        <div class="accordion-body" id="accordion-body-quantum">
           <div class="control-grid">
             ${this.controlRow({
               id: 'n-select',
@@ -320,23 +320,23 @@ export class ControlPanel {
             })}
           </div>
         </div>
-      </div>
+      </details>
     `;
   }
 
   private renderNuclearSection(strings: I18nStrings): string {
     const isOpen = this.openSections.nuclear;
     return `
-      <div class="control-accordion-section ${isOpen ? 'open' : ''}" data-section="nuclear">
-        <button type="button" class="accordion-header" id="accordion-header-nuclear" data-toggle="nuclear" aria-expanded="${isOpen ? 'true' : 'false'}" aria-controls="accordion-body-nuclear">
+      <details class="control-accordion-section" data-section="nuclear"${isOpen ? ' open' : ''}>
+        <summary class="accordion-header" id="accordion-header-nuclear">
           <span class="accordion-title">
             ${icon('chart')}
             <span>${escapeHtml(strings.nuclearSection)}</span>
           </span>
           <span class="accordion-chevron">${icon('chevron-down')}</span>
-        </button>
+        </summary>
 
-        <div class="accordion-body" id="accordion-body-nuclear" role="region" aria-labelledby="accordion-header-nuclear">
+        <div class="accordion-body" id="accordion-body-nuclear">
           <div class="control-grid">
             <div id="spin-box-explorer-host"></div>
             ${this.controlRow({
@@ -349,7 +349,7 @@ export class ControlPanel {
             })}
           </div>
         </div>
-      </div>
+      </details>
     `;
   }
 
@@ -369,16 +369,16 @@ export class ControlPanel {
     ).join('');
 
     return `
-      <div class="control-accordion-section ${isOpen ? 'open' : ''}" data-section="render">
-        <button type="button" class="accordion-header" id="accordion-header-render" data-toggle="render" aria-expanded="${isOpen ? 'true' : 'false'}" aria-controls="accordion-body-render">
+      <details class="control-accordion-section" data-section="render"${isOpen ? ' open' : ''}>
+        <summary class="accordion-header" id="accordion-header-render">
           <span class="accordion-title">
             ${icon('sliders')}
             <span>${escapeHtml(strings.renderSection)}</span>
           </span>
           <span class="accordion-chevron">${icon('chevron-down')}</span>
-        </button>
+        </summary>
 
-        <div class="accordion-body" id="accordion-body-render" role="region" aria-labelledby="accordion-header-render">
+        <div class="accordion-body" id="accordion-body-render">
           <div class="control-grid">
             ${this.controlRow({
               id: 'mode-select',
@@ -423,7 +423,7 @@ export class ControlPanel {
             ${this.renderCustomTuningPanel(strings, isCustom)}
           </div>
         </div>
-      </div>
+      </details>
     `;
   }
 
@@ -485,19 +485,16 @@ export class ControlPanel {
       btnExpand.setAttribute('aria-expanded', 'true');
     });
 
-    // Accordion Toggle Listeners
-    const accordionHeaders = this.container.querySelectorAll<HTMLElement>('.accordion-header');
-    accordionHeaders.forEach((header) => {
-      header.addEventListener('click', () => {
-        const sectionName = header.dataset.toggle;
-        if (!sectionName) return;
-        const sectionEl = this.container.querySelector(
-          `.control-accordion-section[data-section="${sectionName}"]`,
-        );
-        if (!sectionEl) return;
-        const isOpen = sectionEl.classList.toggle('open');
-        this.openSections[sectionName] = isOpen;
-        header.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+    // Accordion state sync via native <details> toggle events
+    const accordionSections = this.container.querySelectorAll<HTMLDetailsElement>(
+      'details.control-accordion-section',
+    );
+    accordionSections.forEach((detailsEl) => {
+      detailsEl.addEventListener('toggle', () => {
+        const sectionName = detailsEl.dataset.section;
+        if (sectionName) {
+          this.openSections[sectionName] = detailsEl.open;
+        }
       });
     });
   }

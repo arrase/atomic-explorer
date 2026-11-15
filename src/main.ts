@@ -278,17 +278,37 @@ function createShareToast(uiOverlay: HTMLElement): () => void {
   shareToast.id = 'share-toast-pill';
   shareToast.setAttribute('role', 'status');
   shareToast.setAttribute('aria-live', 'polite');
+  const supportsPopover = 'showPopover' in HTMLElement.prototype;
+  if (supportsPopover) {
+    shareToast.setAttribute('popover', 'manual');
+  }
   uiOverlay.appendChild(shareToast);
 
   let timerId: number | undefined;
   return (): void => {
+    // Avoid surfacing transient background toasts while a top-layer modal is open.
+    if (document.querySelector('dialog[open]')) {
+      return;
+    }
     if (timerId !== undefined) {
       window.clearTimeout(timerId);
     }
     shareToast.innerHTML = `${icon('check')} <span>${getStrings().shareCopied}</span>`;
-    shareToast.classList.add('visible');
+    if (supportsPopover) {
+      if (!shareToast.matches(':popover-open')) {
+        shareToast.showPopover();
+      }
+    } else {
+      shareToast.classList.add('visible');
+    }
     timerId = window.setTimeout(() => {
-      shareToast.classList.remove('visible');
+      if (supportsPopover) {
+        if (shareToast.matches(':popover-open')) {
+          shareToast.hidePopover();
+        }
+      } else {
+        shareToast.classList.remove('visible');
+      }
       timerId = undefined;
     }, 2000);
   };
@@ -585,9 +605,7 @@ function init(): void {
   const getActiveRenderer = (): BaseThreeRenderer =>
     activeTab === 'periodic-table' ? orbitalRenderer : renderers3D[activeTab];
 
-  const navContainer = document.createElement('div');
-  navContainer.className = 'top-nav-container';
-  uiOverlay.appendChild(navContainer);
+  const navContainer = document.getElementById('top-nav-container') as HTMLElement;
 
   const viewLayers = createViewLayers(uiOverlay);
   const orientationGizmo = new OrientationGizmo(uiOverlay);

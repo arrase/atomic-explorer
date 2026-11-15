@@ -2,13 +2,14 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
     <meta name="description" content="Visualizador interactivo de orbitales atómicos" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>Atomic Explorer</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-ERT0MYRQWH"></script>
     <script>
@@ -22,6 +23,7 @@
   </head>
   <body>
     <canvas id="orbital-canvas" aria-label="Visualizador 3D de orbitales atómicos"></canvas>
+    <header id="top-nav-container" class="top-nav-container"></header>
     <main id="ui-overlay"></main>
     <div class="is-loading-bar" aria-hidden="true"></div>
     <script type="module" src="/src/main.ts"></script>

@@ -1,6 +1,7 @@
 import { getStrings } from '../i18n';
+import { closeModalDialog, wireModalDialogLifecycle } from './dialog-helpers';
 import { icon } from './icons';
-import { escapeHtml, trapModalFocus } from './modal-utils';
+import { escapeHtml } from './modal-utils';
 
 export interface ExportOptions {
   width: number;
@@ -11,27 +12,27 @@ export interface ExportOptions {
 }
 
 export class ImageExporterModal {
-  private readonly overlay: HTMLElement;
+  private readonly dialog: HTMLDialogElement;
   private readonly onExport: (options: ExportOptions) => string;
-  private previousActiveElement: HTMLElement | null = null;
-  private keydownHandler: ((e: KeyboardEvent) => void) | null = null;
 
   constructor(onExport: (options: ExportOptions) => string) {
     this.onExport = onExport;
-    this.overlay = document.createElement('div');
-    this.overlay.className = 'export-modal-overlay modal-backdrop hidden';
-    document.body.appendChild(this.overlay);
+    this.dialog = document.createElement('dialog');
+    this.dialog.className = 'export-modal app-dialog';
+    this.dialog.setAttribute('closedby', 'any');
+    this.dialog.setAttribute('aria-labelledby', 'export-modal-title');
+    document.body.appendChild(this.dialog);
+    wireModalDialogLifecycle(this.dialog);
     this.render();
   }
 
   public open(): void {
-    this.previousActiveElement = document.activeElement as HTMLElement | null;
+    this.dialog.removeAttribute('data-closing');
     this.render();
-    this.overlay.classList.remove('hidden');
-    this.attachKeyHandler();
+    this.dialog.showModal();
 
-    const resSelect = this.overlay.querySelector('#export-res-select') as HTMLSelectElement | null;
-    const closeBtn = this.overlay.querySelector('#btn-close-export') as HTMLElement | null;
+    const resSelect = this.dialog.querySelector('#export-res-select') as HTMLSelectElement | null;
+    const closeBtn = this.dialog.querySelector('#btn-close-export') as HTMLElement | null;
     if (resSelect) {
       resSelect.focus();
     } else if (closeBtn) {
@@ -40,99 +41,69 @@ export class ImageExporterModal {
   }
 
   public close(): void {
-    this.overlay.classList.add('hidden');
-    this.detachKeyHandler();
-
-    if (this.previousActiveElement) {
-      this.previousActiveElement.focus();
-      this.previousActiveElement = null;
-    }
-  }
-
-  private attachKeyHandler(): void {
-    this.detachKeyHandler();
-    this.keydownHandler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        this.close();
-      } else if (e.key === 'Tab') {
-        const modal = this.overlay.querySelector('.export-modal');
-        if (modal) {
-          trapModalFocus(modal, e);
-        }
-      }
-    };
-    document.addEventListener('keydown', this.keydownHandler);
-  }
-
-  private detachKeyHandler(): void {
-    if (this.keydownHandler) {
-      document.removeEventListener('keydown', this.keydownHandler);
-      this.keydownHandler = null;
-    }
+    closeModalDialog(this.dialog);
   }
 
   private render(): void {
     const strings = getStrings();
 
-    this.overlay.innerHTML = `
-      <div class="export-modal" role="dialog" aria-modal="true" aria-labelledby="export-modal-title">
-        <div class="export-modal-header">
-          <div class="panel-title-group">
-            <span class="panel-header-icon">${icon('camera')}</span>
-            <h3 id="export-modal-title">${strings.exportTitle}</h3>
-          </div>
-          <button class="btn-close-modal" id="btn-close-export" aria-label="${escapeHtml(strings.exportClose)}">${icon('close')}</button>
+    this.dialog.innerHTML = `
+      <div class="export-modal-header">
+        <div class="panel-title-group">
+          <span class="panel-header-icon">${icon('camera')}</span>
+          <h2 id="export-modal-title">${strings.exportTitle}</h2>
+        </div>
+        <button type="button" class="btn-close-modal" id="btn-close-export" aria-label="${escapeHtml(strings.exportClose)}">${icon('close')}</button>
+      </div>
+
+      <div class="export-modal-body">
+        <!-- Resolution -->
+        <div class="control-group">
+          <label for="export-res-select">${strings.exportResolution}</label>
+          <select id="export-res-select">
+            <option value="screen">${strings.resScreen}</option>
+            <option value="1080p" selected>${strings.res1080p}</option>
+            <option value="2K">${strings.res2K}</option>
+            <option value="4K">${strings.res4K}</option>
+            <option value="8K">${strings.res8K}</option>
+          </select>
         </div>
 
-        <div class="export-modal-body">
-          <!-- Resolution -->
-          <div class="control-group">
-            <label for="export-res-select">${strings.exportResolution}</label>
-            <select id="export-res-select">
-              <option value="screen">${strings.resScreen}</option>
-              <option value="1080p" selected>${strings.res1080p}</option>
-              <option value="2K">${strings.res2K}</option>
-              <option value="4K">${strings.res4K}</option>
-              <option value="8K">${strings.res8K}</option>
-            </select>
-          </div>
-
-          <!-- SuperSampling -->
-          <div class="control-group">
-            <label for="export-ss-select">${strings.superSampling}</label>
-            <select id="export-ss-select">
-              <option value="1">${strings.ssNative}</option>
-              <option value="2" selected>${strings.ssCrisp}</option>
-              <option value="4">${strings.ssUltra}</option>
-            </select>
-          </div>
-
-          <!-- Background -->
-          <div class="control-group">
-            <label for="export-bg-select">${strings.exportBackground}</label>
-            <select id="export-bg-select">
-              <option value="dark" selected>${strings.bgDark}</option>
-              <option value="black">${strings.bgBlack}</option>
-              <option value="white">${strings.bgWhite}</option>
-              <option value="transparent">${strings.bgTransparent}</option>
-            </select>
-          </div>
-
-          <!-- Format -->
-          <div class="control-group">
-            <label for="export-fmt-select">${strings.exportFormat}</label>
-            <select id="export-fmt-select">
-              <option value="image/png" selected>${strings.formatPng}</option>
-              <option value="image/jpeg">${strings.formatJpeg}</option>
-              <option value="image/webp">${strings.formatWebp}</option>
-            </select>
-          </div>
+        <!-- SuperSampling -->
+        <div class="control-group">
+          <label for="export-ss-select">${strings.superSampling}</label>
+          <select id="export-ss-select">
+            <option value="1">${strings.ssNative}</option>
+            <option value="2" selected>${strings.ssCrisp}</option>
+            <option value="4">${strings.ssUltra}</option>
+          </select>
         </div>
 
-        <div class="export-modal-footer">
-          <button class="btn-secondary" id="btn-cancel-export">${strings.exportClose}</button>
-          <button class="btn-primary" id="btn-do-export">${strings.exportBtn}</button>
+        <!-- Background -->
+        <div class="control-group">
+          <label for="export-bg-select">${strings.exportBackground}</label>
+          <select id="export-bg-select">
+            <option value="dark" selected>${strings.bgDark}</option>
+            <option value="black">${strings.bgBlack}</option>
+            <option value="white">${strings.bgWhite}</option>
+            <option value="transparent">${strings.bgTransparent}</option>
+          </select>
         </div>
+
+        <!-- Format -->
+        <div class="control-group">
+          <label for="export-fmt-select">${strings.exportFormat}</label>
+          <select id="export-fmt-select">
+            <option value="image/png" selected>${strings.formatPng}</option>
+            <option value="image/jpeg">${strings.formatJpeg}</option>
+            <option value="image/webp">${strings.formatWebp}</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="export-modal-footer">
+        <button type="button" class="btn-secondary" id="btn-cancel-export">${strings.exportClose}</button>
+        <button type="button" class="btn-primary" id="btn-do-export">${strings.exportBtn}</button>
       </div>
     `;
 
@@ -140,27 +111,18 @@ export class ImageExporterModal {
   }
 
   private attachEvents(): void {
-    const closeBtn = this.overlay.querySelector('#btn-close-export') as HTMLElement;
-    const cancelBtn = this.overlay.querySelector('#btn-cancel-export') as HTMLElement;
-    const exportBtn = this.overlay.querySelector('#btn-do-export') as HTMLButtonElement;
+    const closeBtn = this.dialog.querySelector('#btn-close-export') as HTMLElement;
+    const cancelBtn = this.dialog.querySelector('#btn-cancel-export') as HTMLElement;
+    const exportBtn = this.dialog.querySelector('#btn-do-export') as HTMLButtonElement;
 
     closeBtn.addEventListener('click', () => this.close());
     cancelBtn.addEventListener('click', () => this.close());
 
-    // Assigned rather than added: `render` runs on every open but the overlay
-    // element itself is never replaced, so addEventListener would stack up a
-    // new delegated handler each time the modal is opened.
-    this.overlay.onclick = (e: MouseEvent) => {
-      if (e.target === this.overlay) {
-        this.close();
-      }
-    };
-
     exportBtn.addEventListener('click', () => {
-      const resSelect = this.overlay.querySelector('#export-res-select') as HTMLSelectElement;
-      const ssSelect = this.overlay.querySelector('#export-ss-select') as HTMLSelectElement;
-      const bgSelect = this.overlay.querySelector('#export-bg-select') as HTMLSelectElement;
-      const fmtSelect = this.overlay.querySelector('#export-fmt-select') as HTMLSelectElement;
+      const resSelect = this.dialog.querySelector('#export-res-select') as HTMLSelectElement;
+      const ssSelect = this.dialog.querySelector('#export-ss-select') as HTMLSelectElement;
+      const bgSelect = this.dialog.querySelector('#export-bg-select') as HTMLSelectElement;
+      const fmtSelect = this.dialog.querySelector('#export-fmt-select') as HTMLSelectElement;
 
       let width = window.innerWidth;
       let height = window.innerHeight;

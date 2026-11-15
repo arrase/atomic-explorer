@@ -32,7 +32,23 @@
    0. TOKENS
    ========================================================================== */
 
+@property --fade-start {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --fade-end {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 28px;
+}
+
 :root {
+  color-scheme: dark;
+  accent-color: var(--accent-solid);
+  scrollbar-color: var(--gray-600) transparent;
+
   /* --- Typography ------------------------------------------------------- */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
     Helvetica, Arial, sans-serif;
@@ -149,6 +165,10 @@
   --z-tooltip: 70;
   --z-drawer: 50;
   --z-modal: 100;
+
+  /* --- Controls & Icons ------------------------------------------------- */
+  --target-size: 24px;
+  --icon-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
 }
 
 /* =============================================================================
@@ -159,8 +179,23 @@
 *::before,
 *::after {
   box-sizing: border-box;
+}
+
+body,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+ul,
+ol,
+dl,
+dd,
+figure,
+blockquote {
   margin: 0;
-  padding: 0;
 }
 
 html {
@@ -177,9 +212,11 @@ body {
   font-size: var(--text-base);
   line-height: var(--leading-normal);
   letter-spacing: var(--tracking-tight);
+  overflow-wrap: anywhere;
   overflow: hidden;
-  width: 100vw;
+  width: 100%;
   height: 100vh;
+  height: 100dvh;
   position: relative;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -224,8 +261,17 @@ h1, h2, h3, h4, h5, h6 {
   line-height: var(--leading-tight);
 }
 
+h1, h2, h3 {
+  text-wrap: balance;
+}
+
+p, li {
+  text-wrap: pretty;
+}
+
 ul, ol {
   list-style: none;
+  padding: 0;
 }
 
 code, kbd, samp {
@@ -237,6 +283,17 @@ code, kbd, samp {
 
 :root .hidden {
   display: none;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .desktop-only {
@@ -302,41 +359,38 @@ body.loading .is-loading-bar {
    3. SCROLLBARS
    ========================================================================== */
 
-* {
-  scrollbar-width: thin;
-  scrollbar-color: var(--gray-600) transparent;
-}
+@supports not (scrollbar-color: auto) {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
 
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
+  ::-webkit-scrollbar-thumb {
+    background: var(--gray-700);
+    border: 3px solid transparent;
+    background-clip: content-box;
+    border-radius: var(--radius-full);
+  }
 
-::-webkit-scrollbar-thumb {
-  background: var(--gray-700);
-  border: 3px solid transparent;
-  background-clip: content-box;
-  border-radius: var(--radius-full);
-}
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--gray-600);
+    background-clip: content-box;
+  }
 
-::-webkit-scrollbar-thumb:hover {
-  background: var(--gray-600);
-  background-clip: content-box;
-}
-
-::-webkit-scrollbar-corner {
-  background: transparent;
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
 }
 
 /* =============================================================================
    4. FOCUS
    ========================================================================== */
 
-:focus {
+:focus:not(:focus-visible) {
   outline: none;
 }
 
@@ -379,6 +433,20 @@ body.loading .is-loading-bar {
 .view-layer.active {
   display: flex;
   flex-direction: column;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .view-layer.active {
+    transition-property: opacity, display;
+    transition-duration: var(--duration-base);
+    transition-timing-function: var(--ease-out);
+    transition-behavior: allow-discrete;
+
+    @starting-style {
+      opacity: 0;
+    }
+  }
 }
 
 /* =============================================================================
@@ -409,6 +477,7 @@ body.loading .is-loading-bar {
   max-height: 100%;
   overflow-y: auto;
   overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   padding: var(--space-4);
   z-index: var(--z-panel);
   transition:
@@ -443,7 +512,7 @@ body.loading .is-loading-bar {
   min-width: 0;
 }
 
-.section-title > h4,
+.section-title > h3,
 .section-title > span:first-child {
   min-width: 0;
   overflow: hidden;
@@ -470,7 +539,7 @@ body.loading .is-loading-bar {
   min-width: 0;
 }
 
-.panel-title-group h3 {
+.panel-title-group h2 {
   font-size: var(--text-md);
   font-weight: 600;
   color: var(--text-primary);
@@ -737,10 +806,11 @@ input[type='range'] {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
-  height: 16px;
+  block-size: var(--target-size);
   background: transparent;
   border-radius: var(--radius-full);
   cursor: pointer;
+  touch-action: none;
   --fill: 0%;
   --range-dir: to right;
 }
@@ -812,6 +882,11 @@ input[type='range']:active::-webkit-slider-thumb {
   background: var(--accent-text);
 }
 
+input[type='range']:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 input[type='range']:focus-visible::-webkit-slider-thumb {
   transform: scale(1.15);
 }
@@ -852,7 +927,8 @@ select {
 
 select:focus-visible {
   border-color: var(--accent);
-  outline: none;
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
   box-shadow: 0 0 0 3px var(--accent-subtle);
 }
 
@@ -892,7 +968,8 @@ select option {
   width: 100%;
   min-width: 0;
   height: 32px;
-  padding: 0 var(--space-3) 0 var(--space-8);
+  padding-block: 0;
+  padding-inline: var(--space-8) var(--space-3);
   background: var(--surface-sunken);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
@@ -910,7 +987,8 @@ select option {
 .search-input-wrapper input:focus-visible {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--accent-subtle);
-  outline: none;
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* Checkbox ----------------------------------------------------------------- */
@@ -918,8 +996,10 @@ select option {
 input[type='checkbox'] {
   appearance: none;
   -webkit-appearance: none;
-  width: 15px;
-  height: 15px;
+  display: grid;
+  place-content: center;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-xs);
@@ -930,18 +1010,35 @@ input[type='checkbox'] {
     border-color var(--duration-fast) var(--ease-standard);
 }
 
+input[type='checkbox']::before {
+  content: '';
+  width: 12px;
+  height: 12px;
+  background-color: var(--accent-contrast);
+  mask: var(--icon-check) center / contain no-repeat;
+  -webkit-mask: var(--icon-check) center / contain no-repeat;
+  transform: scale(0);
+  transition: transform var(--duration-fast) var(--ease-out);
+}
+
 input[type='checkbox']:checked {
   background-color: var(--accent-solid);
   border-color: var(--accent-solid);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
-  background-size: 11px 11px;
-  background-position: center;
-  background-repeat: no-repeat;
+}
+
+input[type='checkbox']:checked::before {
+  transform: scale(1);
 }
 
 input[type='checkbox']:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
   box-shadow: 0 0 0 3px var(--accent-subtle);
-  outline: none;
+}
+
+.control-toggle-label,
+.info-modal-dont-show-again {
+  min-block-size: var(--target-size);
 }
 
 /* =============================================================================
@@ -1362,7 +1459,8 @@ input[type='checkbox']:focus-visible {
   gap: var(--space-2);
 }
 
-.control-accordion-section {
+details.control-accordion-section {
+  interpolate-size: allow-keywords;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
   background: var(--surface-inset);
@@ -1370,11 +1468,13 @@ input[type='checkbox']:focus-visible {
   transition: border-color var(--duration-base) var(--ease-standard);
 }
 
-.control-accordion-section.open {
+details.control-accordion-section[open] {
   border-color: var(--border-default);
 }
 
-.accordion-header {
+summary.accordion-header {
+  list-style: none;
+  cursor: pointer;
   width: 100%;
   display: flex;
   align-items: center;
@@ -1391,14 +1491,18 @@ input[type='checkbox']:focus-visible {
     color var(--duration-base) var(--ease-standard);
 }
 
+summary.accordion-header::-webkit-details-marker {
+  display: none;
+}
+
 @media (hover: hover) {
-  .accordion-header:hover {
+  summary.accordion-header:hover {
     background: var(--surface-hover);
     color: var(--text-primary);
   }
 }
 
-.accordion-header:focus-visible {
+summary.accordion-header:focus-visible {
   outline-offset: -2px;
 }
 
@@ -1420,11 +1524,11 @@ input[type='checkbox']:focus-visible {
   white-space: nowrap;
 }
 
-.control-accordion-section.open .accordion-title {
+details.control-accordion-section[open] .accordion-title {
   color: var(--text-primary);
 }
 
-.control-accordion-section.open .accordion-title .svg-icon {
+details.control-accordion-section[open] .accordion-title .svg-icon {
   color: var(--accent-text);
 }
 
@@ -1438,9 +1542,30 @@ input[type='checkbox']:focus-visible {
     color var(--duration-base) var(--ease-standard);
 }
 
-.control-accordion-section.open .accordion-chevron {
+details.control-accordion-section[open] .accordion-chevron {
   transform: rotate(180deg);
   color: var(--text-tertiary);
+}
+
+details.control-accordion-section::details-content {
+  overflow: clip;
+  contain: layout;
+  block-size: 0;
+  opacity: 0;
+}
+
+details.control-accordion-section[open]::details-content {
+  block-size: auto;
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  details.control-accordion-section::details-content {
+    transition-property: block-size, opacity, content-visibility;
+    transition-duration: var(--duration-base), var(--duration-fast), var(--duration-base);
+    transition-timing-function: var(--ease-out);
+    transition-behavior: allow-discrete;
+  }
 }
 
 .accordion-body {
@@ -1730,6 +1855,7 @@ input[type='checkbox']:focus-visible {
   overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   /* Transparent to the canvas so the dead strip below a short panel does not
      swallow orbit-drag gestures. The panel itself opts back in. */
   pointer-events: none;
@@ -1740,6 +1866,7 @@ input[type='checkbox']:focus-visible {
    hidden panel still forces a scrollbar down the right edge of the viewport. */
 .physics-panel-container:has(> .orbital-physics-panel.collapsed) {
   overflow: hidden;
+  scrollbar-gutter: auto;
 }
 
 .orbital-physics-panel {
@@ -2435,8 +2562,8 @@ input[type='checkbox']:focus-visible {
   gap: var(--space-2);
 }
 
-.trends-card-header h4,
-.vsepr-guide-header h4 {
+.trends-card-header h2,
+.vsepr-guide-header h3 {
   font-size: var(--text-xs);
   font-weight: 600;
   text-transform: uppercase;
@@ -2612,6 +2739,8 @@ input[type='checkbox']:focus-visible {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .inspector-uses-section {
@@ -2665,7 +2794,7 @@ input[type='checkbox']:focus-visible {
 .quick-inspector-card {
   display: flex;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   width: 100%;
   padding: var(--space-2) var(--space-3);
   background: var(--surface-panel);
@@ -2674,11 +2803,20 @@ input[type='checkbox']:focus-visible {
   border: 1px solid var(--border-default);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
-  cursor: pointer;
+}
+
+.quick-inspector-main {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 1;
+  min-width: 0;
+  text-align: start;
+  border-radius: var(--radius-md);
   transition: transform var(--duration-fast) var(--ease-standard);
 }
 
-.quick-inspector-card:active {
+.quick-inspector-main:active {
   transform: scale(0.99);
 }
 
@@ -2768,6 +2906,7 @@ input[type='checkbox']:focus-visible {
   max-height: 100%;
   overflow-y: auto;
   overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   padding: var(--space-4);
   display: flex;
   flex-direction: column;
@@ -2800,15 +2939,53 @@ input[type='checkbox']:focus-visible {
 }
 
 .molecule-gallery {
+  --fade-start: 0px;
+  --fade-end: 0px;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-2);
   max-height: 264px;
   overflow-y: auto;
-  padding-right: 2px;
-  /* Fade the cut-off row instead of slicing a card in half. */
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent 100%);
-  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 28px), transparent 100%);
+  overscroll-behavior: contain;
+  scroll-padding-block: 28px;
+  padding-inline-end: 2px;
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--fade-start),
+    #000 calc(100% - var(--fade-end)),
+    transparent 100%
+  );
+  transition:
+    --fade-start var(--duration-fast) var(--ease-standard),
+    --fade-end var(--duration-fast) var(--ease-standard);
+}
+
+.molecule-gallery.more-start {
+  --fade-start: 28px;
+}
+
+.molecule-gallery.more-end {
+  --fade-end: 28px;
+}
+
+@keyframes gallery-fade-start {
+  from { --fade-start: 0px; }
+  to { --fade-start: 28px; }
+}
+
+@keyframes gallery-fade-end {
+  from { --fade-end: 28px; }
+  to { --fade-end: 0px; }
+}
+
+@supports (animation-timeline: scroll()) {
+  .molecule-gallery {
+    animation-name: gallery-fade-start, gallery-fade-end;
+    animation-timeline: scroll(self block);
+    animation-range: 0 28px, calc(100% - 28px) 100%;
+    animation-fill-mode: both;
+  }
 }
 
 .molecule-card {
@@ -3539,10 +3716,12 @@ input[type='checkbox']:focus-visible {
 
 .share-toast-pill {
   position: fixed;
+  inset: auto;
   top: calc(var(--gutter) + var(--nav-height) + var(--space-2));
   left: 50%;
+  margin: 0;
   z-index: var(--z-tooltip);
-  display: inline-flex;
+  display: none;
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-4);
@@ -3559,44 +3738,86 @@ input[type='checkbox']:focus-visible {
   pointer-events: none;
   opacity: 0;
   transform: translate(-50%, -6px);
-  transition:
-    opacity var(--duration-fast) var(--ease-out),
-    transform var(--duration-fast) var(--ease-out);
+  transition-property: opacity, transform, display, overlay;
+  transition-duration: var(--duration-fast);
+  transition-timing-function: var(--ease-out);
+  transition-behavior: allow-discrete;
 }
 
-.share-toast-pill.visible {
+.share-toast-pill:is(:popover-open, .visible) {
+  display: inline-flex;
   opacity: 1;
   transform: translate(-50%, 0);
+
+  @starting-style {
+    opacity: 0;
+    transform: translate(-50%, -6px);
+  }
 }
 
 /* =============================================================================
    16. MODALS
    ========================================================================== */
 
-.glass-modal-overlay,
-.export-modal-overlay {
-  position: fixed;
-  inset: 0;
+dialog.app-dialog {
+  pointer-events: auto;
+  flex-direction: column;
+  margin: auto;
+  padding: 0;
+  max-width: calc(100vw - var(--space-8));
+  max-width: calc(100dvw - var(--space-8));
+  opacity: 0;
+  transform: scale(0.97);
+  transition-property: opacity, transform, display, overlay;
+  transition-duration: var(--duration-base);
+  transition-timing-function: var(--ease-out);
+  transition-behavior: allow-discrete;
+}
+
+dialog.app-dialog:is([open], [data-closing]) {
+  display: flex;
+}
+
+dialog.app-dialog[open]:not([data-closing]) {
+  opacity: 1;
+  transform: scale(1);
+
+  @starting-style {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+}
+
+dialog.app-dialog:modal {
+  overscroll-behavior: contain;
+}
+
+dialog.app-dialog::backdrop {
+  background: rgba(6, 7, 11, 0);
+  backdrop-filter: blur(0px);
+  -webkit-backdrop-filter: blur(0px);
+  overflow: hidden;
+  overscroll-behavior: contain;
+  transition-property: background-color, backdrop-filter, -webkit-backdrop-filter, display, overlay;
+  transition-duration: var(--duration-base);
+  transition-timing-function: var(--ease-out);
+  transition-behavior: allow-discrete;
+}
+
+dialog.app-dialog[open]:not([data-closing])::backdrop {
   background: var(--surface-overlay);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  z-index: var(--z-modal);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-4);
-  animation: modal-fade-in var(--duration-base) var(--ease-out);
-}
 
-.glass-modal-overlay.fade-out {
-  animation: modal-fade-out var(--duration-base) var(--ease-out) forwards;
+  @starting-style {
+    background: rgba(6, 7, 11, 0);
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+  }
 }
 
 .glass-modal-card,
 .export-modal {
-  pointer-events: auto;
-  display: flex;
-  flex-direction: column;
   background: var(--gray-880);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-2xl);
@@ -3615,7 +3836,7 @@ input[type='checkbox']:focus-visible {
 }
 
 .glass-modal-title,
-.export-modal-header h3 {
+.export-modal-header h2 {
   font-size: var(--text-lg);
   font-weight: 600;
   color: var(--text-primary);
@@ -3669,12 +3890,14 @@ input[type='checkbox']:focus-visible {
 
 .info-modal-card {
   width: 540px;
-  max-width: 100%;
   max-height: 86vh;
+  max-height: 86dvh;
 }
 
 .glass-modal-body {
   overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .info-modal-summary {
@@ -3735,8 +3958,8 @@ input[type='checkbox']:focus-visible {
 
 .export-modal {
   width: 440px;
-  max-width: 100%;
   max-height: 86vh;
+  max-height: 86dvh;
 }
 
 .export-modal-body .control-group {
@@ -3769,6 +3992,7 @@ input[type='checkbox']:focus-visible {
   gap: var(--space-1);
   padding: 4px;
   max-width: calc(100vw - var(--space-8));
+  max-width: calc(100dvw - var(--space-8));
   background: var(--surface-panel);
   backdrop-filter: blur(20px) saturate(120%);
   -webkit-backdrop-filter: blur(20px) saturate(120%);
@@ -3873,6 +4097,11 @@ input[type='checkbox']:focus-visible {
 .hud-btn[data-tooltip]:focus-visible::after {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
+}
+
+.hud-btn[data-tooltip][data-tooltip-dismissed]::after {
+  opacity: 0;
+  transform: translateX(-50%) translateY(4px);
 }
 
 /* =============================================================================
@@ -4074,7 +4303,14 @@ body.zen-mode .is-loading-bar {
 /* --- Tier 2 (<= 1360px): compact brand & language select ----------------- */
 @media (max-width: 1360px) {
   .nav-brand .nav-title {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   .nav-tab {
@@ -4112,7 +4348,12 @@ body.zen-mode .is-loading-bar {
 /* --- Tier 3 (<= 1160px): scrollable hamburger dropdown drawer ------------ */
 @media (max-width: 1160px) {
   .nav-brand .nav-title {
-    display: inline;
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip-path: none;
   }
 
   .nav-tabs {
@@ -4193,6 +4434,8 @@ body.zen-mode .is-loading-bar {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto auto minmax(0, 1fr) auto;
     overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
     max-height: 100%;
     padding: var(--space-3);
   }
@@ -4366,6 +4609,7 @@ body.zen-mode .is-loading-bar {
     pointer-events: auto;
     width: max-content;
     max-width: 92vw;
+    max-width: 92dvw;
   }
 
   .mobile-float-btn {
@@ -4385,6 +4629,7 @@ body.zen-mode .is-loading-bar {
     font-weight: 600;
     white-space: nowrap;
     max-width: 46vw;
+    max-width: 46dvw;
   }
 
   .mobile-float-btn > span:last-child {
@@ -4415,10 +4660,6 @@ body.zen-mode .is-loading-bar {
 
   .element-inspector-panel {
     padding-top: var(--space-5);
-  }
-
-  .quick-inspector-card {
-    cursor: pointer;
   }
 
   .periodic-table-wrapper {
@@ -4472,6 +4713,7 @@ body.zen-mode .is-loading-bar {
   .viewport-hud {
     bottom: 68px;
     max-width: calc(100vw - var(--space-4));
+    max-width: calc(100dvw - var(--space-4));
   }
 
   .orientation-gizmo {
@@ -4552,7 +4794,7 @@ body.zen-mode .is-loading-bar {
   }
 
   .glass-modal-title,
-  .export-modal-header h3 {
+  .export-modal-header h2 {
     font-size: var(--text-md);
   }
 
@@ -4574,6 +4816,7 @@ body.zen-mode .is-loading-bar {
     bottom: var(--space-3);
     gap: var(--space-1);
     max-width: calc(100vw - var(--space-4));
+    max-width: calc(100dvw - var(--space-4));
   }
 
   .mobile-float-btn {
@@ -4581,6 +4824,7 @@ body.zen-mode .is-loading-bar {
     padding: 0 var(--space-3);
     font-size: var(--text-2xs);
     max-width: 44vw;
+    max-width: 44dvw;
   }
 
   .viewport-hud {
@@ -4611,7 +4855,14 @@ body.zen-mode .is-loading-bar {
 /* --- Tier 4 (<= 380px): ultra-narrow 320px phones ------------------------ */
 @media (max-width: 380px) {
   .nav-brand .nav-title {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
   }
 
   .nav-lang-switcher select {
@@ -4623,28 +4874,6 @@ body.zen-mode .is-loading-bar {
 /* =============================================================================
    23. MOTION
    ========================================================================== */
-
-@keyframes modal-fade-in {
-  from {
-    opacity: 0;
-    transform: scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes modal-fade-out {
-  from {
-    opacity: 1;
-    transform: scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: scale(0.97);
-  }
-}
 
 @keyframes slide-down {
   from {
@@ -4670,27 +4899,143 @@ body.zen-mode .is-loading-bar {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  :root {
-    --duration-fast: 0.01ms;
-    --duration-base: 0.01ms;
-    --duration-slow: 0.01ms;
-  }
-
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms;
-    animation-iteration-count: 1;
-    transition-duration: 0.01ms;
-    scroll-behavior: auto;
-  }
-
-  .hud-btn[data-tooltip]::after {
-    transition: none;
-  }
-
   .is-loading-bar {
     animation: none;
     transform: none;
+  }
+
+  .nav-tabs {
+    animation: none;
+  }
+
+  dialog.app-dialog,
+  dialog.app-dialog::backdrop {
+    transition-property: opacity, display, overlay;
+    transition-duration: 0ms;
+    transform: none;
+  }
+
+  .control-panel,
+  .orbital-physics-panel,
+  .molecule-overlay-panel,
+  .element-inspector-panel {
+    transition: opacity var(--duration-base) var(--ease-standard);
+  }
+
+  .share-toast-pill,
+  .hud-btn[data-tooltip]::after,
+  .zen-exit-chip {
+    transition: opacity var(--duration-fast) var(--ease-standard);
+  }
+
+  input[type='range']::-webkit-slider-thumb,
+  input[type='range']::-moz-range-thumb,
+  input[type='checkbox']::before,
+  .accordion-chevron,
+  .quick-inspector-main {
+    transition: none;
+  }
+}
+
+/* =============================================================================
+   24. ACCESSIBILITY: COARSE POINTER & FORCED COLORS
+   ========================================================================== */
+
+@media (pointer: coarse) {
+  :root {
+    --target-size: 44px;
+  }
+
+  input[type='range']::-webkit-slider-thumb {
+    width: 20px;
+    height: 20px;
+    margin-top: -8px;
+  }
+
+  input[type='range']::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+  }
+
+  .btn-info-icon::before {
+    inset: -13px;
+  }
+
+  .hud-btn,
+  .btn-close-modal,
+  .nav-action-btn {
+    position: relative;
+  }
+
+  .hud-btn::before,
+  .btn-close-modal::before,
+  .nav-action-btn::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+  }
+
+  select,
+  .search-input-wrapper input,
+  summary.accordion-header,
+  .mobile-float-btn,
+  .btn-primary,
+  .btn-secondary {
+    min-height: 44px;
+  }
+}
+
+@media (forced-colors: active) {
+  input[type='checkbox'] {
+    background-color: Canvas;
+    border-color: ButtonText;
+    forced-color-adjust: none;
+  }
+
+  input[type='checkbox']::before {
+    background-color: HighlightText;
+  }
+
+  input[type='checkbox']:checked {
+    background-color: Highlight;
+    border-color: Highlight;
+  }
+
+  input[type='range']::-webkit-slider-runnable-track {
+    background: GrayText;
+  }
+
+  input[type='range']::-moz-range-track {
+    background: GrayText;
+  }
+
+  input[type='range']::-moz-range-progress {
+    background: Highlight;
+  }
+
+  input[type='range']::-webkit-slider-thumb,
+  input[type='range']::-moz-range-thumb {
+    background: Highlight;
+    border: 2px solid ButtonText;
+  }
+
+  dialog.app-dialog,
+  .share-toast-pill,
+  .glass-panel,
+  .control-panel,
+  .orbital-physics-panel,
+  .molecule-overlay-panel,
+  .element-inspector-panel,
+  .viewport-hud {
+    border: 2px solid ButtonText;
+  }
+
+  :focus-visible,
+  select:focus-visible,
+  .search-input-wrapper input:focus-visible,
+  input[type='checkbox']:focus-visible,
+  input[type='range']:focus-visible {
+    outline: 2px solid Highlight;
+    outline-offset: 2px;
   }
 }

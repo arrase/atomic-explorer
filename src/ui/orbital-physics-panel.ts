@@ -161,7 +161,7 @@ export class OrbitalPhysicsPanel {
           <div class="physics-header-top">
             <div class="panel-title-group">
               <span class="panel-header-icon">${icon('chart')}</span>
-              <h3>${escapeHtml(strings.physicsPanelTitle)}</h3>
+              <h2>${escapeHtml(strings.physicsPanelTitle)}</h2>
             </div>
             <div class="panel-header-actions">
               <button type="button" class="panel-icon-btn panel-collapse-btn desktop-only" id="btn-collapse-physics" title="${escapeHtml(strings.collapsePanel)}" aria-label="${escapeHtml(strings.collapsePanel)}" aria-expanded="${!this.isCollapsed}" aria-controls="orbital-physics-panel">
@@ -180,7 +180,7 @@ export class OrbitalPhysicsPanel {
 
         <div class="physics-section radial-section">
           <div class="section-title">
-            <h4>${escapeHtml(strings.radialDistributionTitle)}</h4>
+            <h3>${escapeHtml(strings.radialDistributionTitle)}</h3>
             <button type="button" class="btn-info-icon" data-explain="explainRadialDistribution" aria-label="Info">${icon('info')}</button>
           </div>
           <div class="radial-sto-bar">
@@ -210,7 +210,7 @@ export class OrbitalPhysicsPanel {
         </div>
 
         <div class="physics-section nodes-section">
-          <h4 class="section-title">${escapeHtml(strings.nodalBreakdown)}</h4>
+          <h3 class="section-title">${escapeHtml(strings.nodalBreakdown)}</h3>
           <div class="nodes-grid">
             <div class="stat-tile node-item">
               <div class="node-header">
@@ -257,7 +257,7 @@ export class OrbitalPhysicsPanel {
 
         <div class="physics-section formula-section">
           <div class="section-title">
-            <h4>${escapeHtml(strings.wavefunctionFormula)}</h4>
+            <h3>${escapeHtml(strings.wavefunctionFormula)}</h3>
             <button type="button" class="btn-info-icon" data-formula="wavefunction" aria-label="${escapeHtml(strings.wavefunctionFormula)}">${icon('info')}</button>
           </div>
           <div class="formula-display">
@@ -270,7 +270,7 @@ export class OrbitalPhysicsPanel {
 
         <div class="physics-section shielding-section">
           <div class="section-title">
-            <h4>${escapeHtml(strings.shieldingTitle)}</h4>
+            <h3>${escapeHtml(strings.shieldingTitle)}</h3>
             <button type="button" class="btn-info-icon" data-explain="explainZeff" aria-label="Info">${icon('info')}</button>
           </div>
           <p class="shielding-note">

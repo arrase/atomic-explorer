@@ -318,7 +318,7 @@ export class BondingView {
       <div class="panel-header">
         <div class="panel-title-group">
           <span class="panel-header-icon">${icon('bond')}</span>
-          <h3>${escapeHtml(strings.bondingTitle)}</h3>
+          <h2>${escapeHtml(strings.bondingTitle)}</h2>
         </div>
         <div class="panel-header-actions">
           <button type="button" class="btn-export-hdr" id="btn-bonding-export" title="${escapeHtml(strings.exportImage)}" aria-label="${escapeHtml(strings.exportImage)}">
@@ -500,7 +500,7 @@ export class BondingView {
           <div class="physics-header-top">
             <div class="panel-title-group">
               <span class="panel-header-icon">${icon('chart')}</span>
-              <h3>${escapeHtml(strings.bondingEnergyPanelTitle)}</h3>
+              <h2>${escapeHtml(strings.bondingEnergyPanelTitle)}</h2>
             </div>
             <div class="panel-header-actions">
               <button type="button" class="panel-icon-btn panel-collapse-btn desktop-only" id="btn-collapse-bonding-energy" title="${escapeHtml(strings.collapsePanel)}" aria-label="${escapeHtml(strings.collapsePanel)}" aria-expanded="${!this.isRightCollapsed}" aria-controls="bonding-energy-panel">
@@ -519,7 +519,7 @@ export class BondingView {
 
         <div class="physics-section">
           <div class="section-title">
-            <h4>${escapeHtml(strings.potentialCurveTitle)}</h4>
+            <h3>${escapeHtml(strings.potentialCurveTitle)}</h3>
             <button type="button" class="btn-info-icon" data-explain="explainPotentialCurve" aria-label="Info">${icon('info')}</button>
           </div>
           <div class="radial-chart-wrapper potential-chart-wrapper" id="bonding-potential-chart"></div>
@@ -541,7 +541,7 @@ export class BondingView {
 
         <div class="physics-section">
           <div class="section-title">
-            <h4>${escapeHtml(strings.moDiagramTitle)}</h4>
+            <h3>${escapeHtml(strings.moDiagramTitle)}</h3>
             <button type="button" class="btn-info-icon" data-explain="explainBondOrder" aria-label="Info">${icon('info')}</button>
           </div>
           ${this.renderCorrelationSvg(strings)}
