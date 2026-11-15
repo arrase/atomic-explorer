@@ -3255,22 +3255,71 @@ details.control-accordion-section[open]::details-content {
 
 /* Spectroscopy & Quantum Jumps -------------------------------------------- */
 
+.spectroscopy-layer .orbital-physics-panel,
+.spectroscopy-layer .physics-header {
+  gap: var(--space-2);
+}
+
+.spectroscopy-layer .physics-header {
+  padding-bottom: var(--space-2);
+}
+
+.spectroscopy-layer .panel-header {
+  padding-bottom: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.spectroscopy-layer .control-accordion-container {
+  gap: 6px;
+}
+
+.spectroscopy-layer summary.accordion-header {
+  padding: 6px var(--space-3);
+}
+
+.spectroscopy-layer .accordion-body {
+  padding: var(--space-2);
+}
+
+.spectroscopy-layer .control-grid {
+  gap: var(--space-2);
+}
+
+.spectroscopy-layer .physics-section {
+  padding: var(--space-2);
+  gap: 6px;
+}
+
+@media (min-width: 769px) {
+  .spectroscopy-layer .control-panel,
+  .spectroscopy-layer .orbital-physics-panel {
+    padding: var(--space-3);
+  }
+}
+
 .spec-mode-actions {
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.spec-mode-actions .segmented-toggle-btn {
+  font-size: var(--text-2xs);
+  line-height: 1.2;
+  padding: var(--space-1);
 }
 
 .spec-presets-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .spec-preset-btn {
   display: flex;
-  align-items: center;
-  gap: var(--space-2);
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
   min-width: 0;
-  padding: var(--space-2);
+  padding: 6px var(--space-2);
   background: var(--surface-raised);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
@@ -3299,11 +3348,82 @@ details.control-accordion-section[open]::details-content {
   font-weight: 600;
 }
 
-.spec-preset-label {
+.spec-preset-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
   min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.spec-preset-title {
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.spec-preset-sub {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  line-height: 1.25;
+  color: var(--text-tertiary);
+  padding-inline-start: 15px;
+}
+
+.spec-quantum-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.spec-quantum-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.spec-q-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  min-height: 24px;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  font-weight: 600;
   white-space: nowrap;
+  direction: ltr;
+  unicode-bidi: isolate;
+  transition:
+    background-color var(--duration-fast) var(--ease-standard),
+    border-color var(--duration-fast) var(--ease-standard),
+    color var(--duration-fast) var(--ease-standard);
+}
+
+@media (hover: hover) {
+  .spec-q-pill:hover:not(:disabled) {
+    background: var(--surface-hover);
+    border-color: var(--border-default);
+    color: var(--text-primary);
+  }
+}
+
+.spec-q-pill.active {
+  background: var(--accent-subtle);
+  border-color: var(--accent-border);
+  color: var(--accent-text);
+}
+
+.spec-q-pill:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 .spec-swatch-dot {
@@ -3392,11 +3512,11 @@ details.control-accordion-section[open]::details-content {
 }
 
 .energy-diagram-wrapper {
-  height: 192px;
+  height: 172px;
 }
 
 .spectrum-strip-wrapper {
-  height: 86px;
+  height: 74px;
 }
 
 .energy-diagram-canvas,
@@ -3404,8 +3524,50 @@ details.control-accordion-section[open]::details-content {
   cursor: default;
 }
 
+.physics-section .section-title:has(.spec-false-color-note) {
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+
+.physics-section .section-title:has(.spec-false-color-note) > h3 {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.spec-false-color-note {
+  font-size: 0.625rem;
+  color: var(--text-tertiary);
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: normal;
+  white-space: nowrap;
+}
+
+.spec-readouts-grid {
+  gap: var(--space-1);
+}
+
+.spec-readouts-grid .stat-tile {
+  padding: var(--space-2) var(--space-1);
+}
+
+.spec-readouts-grid .node-label {
+  overflow-wrap: normal;
+  word-break: normal;
+  hyphens: none;
+}
+
 .spec-readouts-grid .node-value {
   font-size: var(--text-sm);
+}
+
+.spec-details-list .detail-row {
+  padding: var(--space-1) 0;
+}
+
+.spec-details-list .detail-row strong {
+  overflow-wrap: break-word;
 }
 
 .spec-band-pill {
@@ -3446,6 +3608,17 @@ details.control-accordion-section[open]::details-content {
   font-family: var(--font-mono);
   direction: ltr;
   unicode-bidi: isolate;
+}
+
+#spec-active-notation {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0 4px;
+}
+
+.spec-state-token {
+  white-space: nowrap;
 }
 
 /* Chemical Bonding (LCAO) ------------------------------------------------- */
@@ -3514,7 +3687,8 @@ details.control-accordion-section[open]::details-content {
   overflow-wrap: anywhere;
 }
 
-.segmented-toggle {
+.segmented-toggle,
+.spec-mode-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 2px;
@@ -3616,7 +3790,8 @@ details.control-accordion-section[open]::details-content {
   unicode-bidi: isolate;
 }
 
-.bonding-insight-text {
+.bonding-insight-text,
+.spec-insight-text {
   margin: 0;
   padding: var(--space-2) var(--space-3);
   background: var(--surface-sunken);
@@ -3643,7 +3818,23 @@ details.control-accordion-section[open]::details-content {
   color: var(--text-secondary);
 }
 
-.bonding-viewport-legend {
+.spec-insight-text.is-pi {
+  border-inline-start-color: var(--accent);
+  color: var(--text-primary);
+}
+
+.spec-insight-text.is-sigma {
+  border-inline-start-color: #a855f7;
+  color: var(--text-primary);
+}
+
+.spec-insight-text.is-forbidden {
+  border-inline-start-color: var(--danger);
+  color: var(--text-primary);
+}
+
+.bonding-viewport-legend,
+.spec-viewport-legend {
   position: absolute;
   top: 0;
   left: 50%;
@@ -3671,14 +3862,20 @@ details.control-accordion-section[open]::details-content {
   transition: opacity var(--duration-base) var(--ease-standard);
 }
 
-.bonding-legend-item {
+.bonding-legend-item,
+.spec-legend-item {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   white-space: nowrap;
 }
 
-.bonding-legend-swatch {
+.spec-legend-item.hidden {
+  display: none;
+}
+
+.bonding-legend-swatch,
+.spec-legend-swatch {
   width: 9px;
   height: 9px;
   border-radius: var(--radius-full);
@@ -3691,6 +3888,36 @@ details.control-accordion-section[open]::details-content {
   height: 0;
   border-top: 2px dashed #fb7185;
   flex-shrink: 0;
+}
+
+.spec-legend-arrow-swatch {
+  position: relative;
+  width: 14px;
+  height: 2px;
+  background: #fde047;
+  border-radius: 1px;
+  flex-shrink: 0;
+  margin-inline-end: 2px;
+}
+
+.spec-legend-arrow-swatch::after {
+  content: '';
+  position: absolute;
+  inset-inline-end: -2px;
+  top: 50%;
+  transform: translateY(-50%);
+  border-block: 3.5px solid transparent;
+  border-inline-start: 5px solid #fde047;
+}
+
+.spec-legend-wave-swatch {
+  width: 16px;
+  height: 10px;
+  flex-shrink: 0;
+  color: var(--accent-text);
+  background-color: currentColor;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 10'%3E%3Cpath d='M1.5 5Q3.375 1 5.25 5T9 5T12.75 5T16.5 5' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 18 10'%3E%3Cpath d='M1.5 5Q3.375 1 5.25 5T9 5T12.75 5T16.5 5' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
 }
 
 .mo-correlation-svg {
@@ -4235,7 +4462,7 @@ dialog.app-dialog[open]:not([data-closing])::backdrop {
 
 /* The gizmo must clear the right-hand column whether it holds the physics panel
    or, once collapsed, the dock pill that replaces it. */
-@media (min-width: 1025px) {
+@media (min-width: 769px) {
   :is(.orbitals-layer, .bonding-layer, .spectroscopy-layer).active ~ .orientation-gizmo {
     inset-inline-end: calc(var(--panel-w-physics) + var(--space-5));
   }
@@ -4311,6 +4538,7 @@ body.zen-mode .molecule-overlay-panel,
 body.zen-mode .orientation-gizmo,
 body.zen-mode .viewport-hud,
 body.zen-mode .bonding-viewport-legend,
+body.zen-mode .spec-viewport-legend,
 body.zen-mode .is-loading-bar {
   opacity: 0;
   pointer-events: none;
@@ -4828,7 +5056,8 @@ body.zen-mode .is-loading-bar {
     max-width: calc(100dvw - var(--space-4));
   }
 
-  .bonding-viewport-legend {
+  .bonding-viewport-legend,
+  .spec-viewport-legend {
     max-width: calc(100% - 120px);
     padding: 4px var(--space-2);
     border-radius: var(--radius-lg);
@@ -5145,7 +5374,8 @@ body.zen-mode .is-loading-bar {
   .molecule-overlay-panel,
   .element-inspector-panel,
   .viewport-hud,
-  .bonding-viewport-legend {
+  .bonding-viewport-legend,
+  .spec-viewport-legend {
     border: 2px solid ButtonText;
   }
 

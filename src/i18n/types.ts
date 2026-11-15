@@ -335,6 +335,18 @@ export interface I18nStrings {
   bandVisible: string;
   bandIR: string;
   presetForbidden2s1s: string;
+  spectrumAbsorptionTitle: string;
+  spectralSeriesShort: string;
+  specVisualModeLabel: string;
+  specModeSlice: string;
+  specModeVolume: string;
+  specLegendBeat: string;
+  specLegendDipole: string;
+  specLegendPhoton: string;
+  specInsightPi: string;
+  specInsightSigma: string;
+  specInsightForbidden: string;
+  specFalseColorNote: string;
   explainQuantumAntenna: ConceptExplanation;
   explainSelectionRules: ConceptExplanation;
   explainEinsteinA: ConceptExplanation;

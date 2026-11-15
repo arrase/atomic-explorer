@@ -6,6 +6,10 @@ export interface EnergyDiagramState {
   zEff: number;
   nLower: number;
   nUpper: number;
+  lLower: number;
+  lUpper: number;
+  mLower: number;
+  mUpper: number;
   mode: TransitionMode;
   isAllowed: boolean;
   photonHex: string;
@@ -20,7 +24,9 @@ export interface SpectrumStripState {
 
 const FONT = 'Inter, -apple-system, BlinkMacSystemFont, sans-serif';
 const LEVEL_COUNT = 7;
-const RYDBERG_COMPRESSION_DENOM = 1 - Math.pow(LEVEL_COUNT, -0.38);
+const RYDBERG_EXPONENT = -0.26;
+const RYDBERG_COMPRESSION_DENOM = 1 - Math.pow(LEVEL_COUNT, RYDBERG_EXPONENT);
+const SUBSHELL_LETTERS = ['s', 'p', 'd', 'f', 'g', 'h', 'i'] as const;
 
 const CHART_COLORS = {
   levelInactive: 'rgba(255, 255, 255, 0.16)',
@@ -36,7 +42,45 @@ const CHART_COLORS = {
 } as const;
 
 function levelYNorm(n: number): number {
-  return ((1 - Math.pow(n, -0.38)) / RYDBERG_COMPRESSION_DENOM) * 0.88;
+  return ((1 - Math.pow(n, RYDBERG_EXPONENT)) / RYDBERG_COMPRESSION_DENOM) * 0.88;
+}
+
+function formatSubshellLabel(n: number, l: number, m: number): string {
+  const letter = SUBSHELL_LETTERS[l];
+  const mStr = m > 0 ? `+${m}` : `${m}`;
+  return `${n}${letter} (m=${mStr})`;
+}
+
+function drawPillBadge(
+  ctx: CanvasRenderingContext2D,
+  rightX: number,
+  centerY: number,
+  text: string,
+  textColor: string,
+  borderColor: string,
+  fillColor: string,
+): void {
+  ctx.save();
+  ctx.font = `600 9.5px ${FONT}`;
+  const padX = 5;
+  const pillH = 14;
+  const pillW = ctx.measureText(text).width + padX * 2;
+  const x = rightX - pillW;
+  const y = centerY - pillH / 2;
+
+  ctx.fillStyle = fillColor;
+  ctx.strokeStyle = borderColor;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.roundRect(x, y, pillW, pillH, 4);
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = textColor;
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, rightX - padX, centerY);
+  ctx.restore();
 }
 
 function formatEnergyEv(ev: number): string {
@@ -136,6 +180,10 @@ export class EnergyLevelDiagram {
     zEff: 1.0,
     nLower: 2,
     nUpper: 3,
+    lLower: 1,
+    lUpper: 2,
+    mLower: 0,
+    mUpper: 0,
     mode: 'emission',
     isAllowed: true,
     photonHex: '#ff2b2b',
@@ -225,6 +273,7 @@ export class EnergyLevelDiagram {
     this.drawLevels(layout);
     this.drawEnergyLabels(layout);
     this.drawTransition(layout);
+    this.drawHoverBadge(layout);
   }
 
   private drawContinuum(layout: EnergyLayout): void {
@@ -262,28 +311,59 @@ export class EnergyLevelDiagram {
     return CHART_COLORS.textMuted;
   }
 
+  private computeLeftLabelYs(layout: EnergyLayout): number[] {
+    const minGap = 11;
+    const minY = layout.padTop + 10;
+    const maxY = layout.levelY(1);
+    const labelY: number[] = [];
+
+    for (let n = 1; n <= LEVEL_COUNT; n++) {
+      labelY[n] = layout.levelY(n);
+    }
+    for (let n = 2; n <= LEVEL_COUNT; n++) {
+      labelY[n] = Math.min(labelY[n], labelY[n - 1] - minGap);
+    }
+    labelY[LEVEL_COUNT] = Math.max(minY, labelY[LEVEL_COUNT]);
+    for (let n = LEVEL_COUNT - 1; n >= 1; n--) {
+      labelY[n] = Math.min(maxY, Math.max(labelY[n], labelY[n + 1] + minGap));
+    }
+    return labelY;
+  }
+
   private drawLevels(layout: EnergyLayout): void {
     const ctx = this.surface.ctx;
     const { nLower, nUpper, isAllowed, photonHex } = this.state;
     const activeColor = isAllowed ? photonHex : CHART_COLORS.forbidden;
+    const labelYs = this.computeLeftLabelYs(layout);
 
     for (let n = 1; n <= LEVEL_COUNT; n++) {
       const y = layout.levelY(n);
+      const ly = labelYs[n];
       const isActive = n === nLower || n === nUpper;
       const isHovered = n === this.hoveredLevel;
+      const stroke = this.resolveLevelStroke(isActive, isHovered, activeColor);
 
       ctx.beginPath();
       ctx.moveTo(layout.xLeft, y);
       ctx.lineTo(layout.xRight, y);
       ctx.lineWidth = isActive ? 2 : 1.1;
-      ctx.strokeStyle = this.resolveLevelStroke(isActive, isHovered, activeColor);
+      ctx.strokeStyle = stroke;
       ctx.stroke();
+
+      if (Math.abs(ly - y) > 1.5) {
+        ctx.beginPath();
+        ctx.moveTo(layout.xLeft - 4.5, ly);
+        ctx.lineTo(layout.xLeft, y);
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = stroke;
+        ctx.stroke();
+      }
 
       ctx.font = `${isActive ? '600 ' : ''}10px ${FONT}`;
       ctx.fillStyle = this.resolveLevelText(isActive, isHovered);
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
-      ctx.fillText(`n=${n}`, layout.xLeft - 6, y);
+      ctx.fillText(`n=${n}`, layout.xLeft - 6, ly);
     }
   }
 
@@ -328,13 +408,14 @@ export class EnergyLevelDiagram {
 
   private drawTransition(layout: EnergyLayout): void {
     const ctx = this.surface.ctx;
-    const { nLower, nUpper, mode, isAllowed, photonHex } = this.state;
+    const { nLower, nUpper, lLower, lUpper, mLower, mUpper, mode, isAllowed, photonHex } =
+      this.state;
     const yUpper = layout.levelY(nUpper);
     const yLower = layout.levelY(nLower);
     const yStart = mode === 'emission' ? yUpper : yLower;
     const yEnd = mode === 'emission' ? yLower : yUpper;
     const dir = yEnd > yStart ? 1 : -1;
-    const arrowX = layout.xLeft + (layout.xRight - layout.xLeft) * 0.36;
+    const arrowX = layout.xLeft + (layout.xRight - layout.xLeft) * 0.4;
     const strokeColor = isAllowed ? photonHex : CHART_COLORS.forbidden;
 
     ctx.save();
@@ -365,6 +446,30 @@ export class EnergyLevelDiagram {
     ctx.closePath();
     ctx.fill();
 
+    const labelColor = isAllowed ? CHART_COLORS.textPrimary : CHART_COLORS.forbidden;
+    const labelBorder = isAllowed ? 'rgba(255, 255, 255, 0.16)' : 'rgba(148, 163, 184, 0.28)';
+    const upperLabelY = Math.max(layout.padTop + 8, yUpper - 11);
+    const lowerLabelY = nLower === 1 ? yLower - 11 : yLower + 11;
+
+    drawPillBadge(
+      ctx,
+      arrowX - 6,
+      upperLabelY,
+      formatSubshellLabel(nUpper, lUpper, mUpper),
+      labelColor,
+      labelBorder,
+      'rgba(11, 14, 22, 0.86)',
+    );
+    drawPillBadge(
+      ctx,
+      arrowX - 6,
+      lowerLabelY,
+      formatSubshellLabel(nLower, lLower, mLower),
+      labelColor,
+      labelBorder,
+      'rgba(11, 14, 22, 0.86)',
+    );
+
     if (isAllowed) {
       const yMid = 0.5 * (yUpper + yLower);
       const waveLeft = arrowX + 8;
@@ -375,6 +480,22 @@ export class EnergyLevelDiagram {
         this.drawWavyPhoton(xFrom, xTo, yMid, photonHex, waveRight + 5);
       }
     }
+  }
+
+  private drawHoverBadge(layout: EnergyLayout): void {
+    if (this.hoveredLevel === null) return;
+    const n = this.hoveredLevel;
+    const y = Math.max(layout.padTop + 8, Math.min(layout.h - 10, layout.levelY(n)));
+    const text = `n=${n} · ${formatEnergyEv(energyLevelEv(n, this.state.zEff))}`;
+    drawPillBadge(
+      this.surface.ctx,
+      layout.xRight - 4,
+      y,
+      text,
+      CHART_COLORS.textPrimary,
+      'rgba(255, 255, 255, 0.28)',
+      'rgba(15, 20, 32, 0.94)',
+    );
   }
 
   private drawWavyPhoton(
@@ -582,14 +703,20 @@ export class DischargeSpectrumStrip {
 
     const xVisStart = tube.x + tube.width * 0.22;
     const xVisEnd = tube.x + tube.width * 0.78;
+    ctx.fillStyle = 'rgba(168, 85, 247, 0.06)';
+    ctx.fillRect(tube.x, tube.y, xVisStart - tube.x, tube.height);
+    ctx.fillStyle = 'rgba(190, 28, 61, 0.06)';
+    ctx.fillRect(xVisEnd, tube.y, tube.x + tube.width - xVisEnd, tube.height);
+
     ctx.fillStyle = fillVisibleSpectrumGradient(ctx, xVisStart, xVisEnd);
     ctx.fillRect(xVisStart, tube.y + tube.height - 3, xVisEnd - xVisStart, 3);
 
     for (const line of this.state.lines) {
       const lx = tube.toX(line.wavelengthNm);
       const isActive = line.nUpper === this.state.activeUpperN;
+      const isHovered = line.nUpper === this.hoveredUpperN;
       const isForbiddenActive = isActive && !this.state.isAllowed;
-      this.drawSingleEmissionLine(lx, tube, line.color.hex, isActive, isForbiddenActive);
+      this.drawSingleEmissionLine(lx, tube, line.color.hex, isActive, isHovered, isForbiddenActive);
     }
   }
 
@@ -598,29 +725,30 @@ export class DischargeSpectrumStrip {
     tube: TubeRect,
     hex: string,
     isActive: boolean,
+    isHovered: boolean,
     isForbiddenActive: boolean,
   ): void {
     const ctx = this.surface.ctx;
     ctx.save();
     if (isForbiddenActive) {
       ctx.setLineDash([3, 3]);
-      ctx.strokeStyle = 'rgba(148, 163, 184, 0.55)';
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = isHovered ? 'rgba(203, 213, 225, 0.85)' : 'rgba(148, 163, 184, 0.55)';
+      ctx.lineWidth = isHovered ? 2.2 : 1.5;
     } else {
       ctx.shadowColor = hex;
-      ctx.shadowBlur = isActive ? 12 : 6;
+      ctx.shadowBlur = isActive ? 12 : isHovered ? 11 : 6;
       ctx.strokeStyle = hex;
-      ctx.globalAlpha = isActive ? 1.0 : 0.78;
-      ctx.lineWidth = isActive ? 2.6 : 1.7;
+      ctx.globalAlpha = isActive || isHovered ? 1.0 : 0.78;
+      ctx.lineWidth = isActive ? 2.6 : isHovered ? 2.4 : 1.7;
     }
     ctx.beginPath();
     ctx.moveTo(lx, tube.y);
     ctx.lineTo(lx, tube.y + tube.height - 3);
     ctx.stroke();
 
-    if (isActive && !isForbiddenActive) {
+    if ((isActive || isHovered) && !isForbiddenActive) {
       ctx.shadowBlur = 0;
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+      ctx.strokeStyle = isActive ? 'rgba(255, 255, 255, 0.75)' : 'rgba(255, 255, 255, 0.55)';
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(lx, tube.y + 1);
@@ -653,16 +781,21 @@ export class DischargeSpectrumStrip {
     for (const line of this.state.lines) {
       const lx = tube.toX(line.wavelengthNm);
       const isActive = line.nUpper === this.state.activeUpperN;
+      const isHovered = line.nUpper === this.hoveredUpperN;
       const isForbiddenActive = isActive && !this.state.isAllowed;
 
       ctx.save();
       if (isForbiddenActive) {
         ctx.setLineDash([3, 3]);
-        ctx.strokeStyle = 'rgba(15, 23, 42, 0.55)';
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = isHovered ? 'rgba(15, 23, 42, 0.85)' : 'rgba(15, 23, 42, 0.55)';
+        ctx.lineWidth = isHovered ? 2.2 : 1.5;
       } else {
+        if (isHovered) {
+          ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+          ctx.shadowBlur = 5;
+        }
         ctx.strokeStyle = '#05060a';
-        ctx.lineWidth = isActive ? 2.8 : 1.8;
+        ctx.lineWidth = isActive ? 2.8 : isHovered ? 2.6 : 1.8;
       }
       ctx.beginPath();
       ctx.moveTo(lx, tube.y);
@@ -688,11 +821,47 @@ export class DischargeSpectrumStrip {
     ctx.restore();
   }
 
+  private resolveLowerN(): number {
+    let minUpper = this.state.lines[0].nUpper;
+    for (const line of this.state.lines) {
+      if (line.nUpper < minUpper) minUpper = line.nUpper;
+    }
+    return minUpper - 1;
+  }
+
   private drawActiveMarker(tube: TubeRect): void {
+    const ctx = this.surface.ctx;
+    const hoveredLine =
+      this.hoveredUpperN !== null
+        ? this.state.lines.find((l) => l.nUpper === this.hoveredUpperN)
+        : undefined;
+
+    let minLeft = tube.x;
+    if (hoveredLine) {
+      if (hoveredLine.nUpper !== this.state.activeUpperN) {
+        const hx = tube.toX(hoveredLine.wavelengthNm);
+        ctx.fillStyle = hoveredLine.color.hex;
+        ctx.beginPath();
+        ctx.moveTo(hx, tube.y - 1);
+        ctx.lineTo(hx - 3.5, tube.y - 6);
+        ctx.lineTo(hx + 3.5, tube.y - 6);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      const hoverCaption = `n=${hoveredLine.nUpper} → ${this.resolveLowerN()} · ${formatCompactWavelength(hoveredLine.wavelengthNm)}`;
+      ctx.font = `500 10px ${FONT}`;
+      const hoverW = ctx.measureText(hoverCaption).width;
+      ctx.fillStyle = CHART_COLORS.textSecondary;
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'bottom';
+      ctx.fillText(hoverCaption, tube.x, tube.y - 8);
+      minLeft = tube.x + hoverW + 8;
+    }
+
     const activeLine = this.state.lines.find((l) => l.nUpper === this.state.activeUpperN);
     if (!activeLine) return;
 
-    const ctx = this.surface.ctx;
     const ax = tube.toX(activeLine.wavelengthNm);
     const markerColor = this.state.isAllowed ? activeLine.color.hex : CHART_COLORS.forbidden;
 
@@ -707,7 +876,7 @@ export class DischargeSpectrumStrip {
     const caption = formatCompactWavelength(activeLine.wavelengthNm);
     ctx.font = `600 10px ${FONT}`;
     const textW = ctx.measureText(caption).width;
-    const clampedX = Math.max(tube.x, Math.min(tube.x + tube.width - textW, ax - textW / 2));
+    const clampedX = Math.max(minLeft, Math.min(tube.x + tube.width - textW, ax - textW / 2));
     ctx.fillStyle = this.state.isAllowed ? CHART_COLORS.textPrimary : CHART_COLORS.forbidden;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'bottom';

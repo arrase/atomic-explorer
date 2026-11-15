@@ -14,7 +14,7 @@ import {
   wavelengthToRgb,
 } from '../core/spectroscopy';
 import { I18nStrings, getStrings, onLanguageChange } from '../i18n';
-import { SpectroscopyRenderer } from '../render/spectroscopy-renderer';
+import { SpectroscopyRenderer, SpectroscopyVisualMode } from '../render/spectroscopy-renderer';
 import { icon } from './icons';
 import { ExplanationModal } from './info-modal';
 import { escapeHtml } from './modal-utils';
@@ -56,6 +56,62 @@ function presetSwatchHex(preset: SpectralLinePreset): string {
     energyLevelEv(preset.upper.n, preset.zEff) - energyLevelEv(preset.lower.n, preset.zEff),
   );
   return wavelengthToRgb(HC_EV_NM / deltaE).hex;
+}
+
+function splitPresetLabel(
+  preset: SpectralLinePreset,
+  strings: I18nStrings,
+): { title: string; sub: string } {
+  if (preset.id === 'forbidden-2s-1s') {
+    const match = /^(.+?)\s*\(([^)]+)\)$/.exec(strings.presetForbidden2s1s);
+    return match
+      ? { title: match[1], sub: match[2] }
+      : { title: preset.shortLabel, sub: strings.transitionForbidden };
+  }
+  const [title, sub] = preset.shortLabel.split(' · ');
+  return { title, sub };
+}
+
+function renderNPillButtons(
+  tier: 'upper' | 'lower',
+  minN: number,
+  maxN: number,
+  activeN: number,
+): string {
+  const buttons: string[] = [];
+  for (let n = minN; n <= maxN; n++) {
+    const isActive = n === activeN;
+    buttons.push(
+      `<button type="button" class="spec-q-pill ${isActive ? 'active' : ''}" data-tier="${tier}" data-q="n" data-val="${n}" aria-pressed="${isActive}">${n}</button>`,
+    );
+  }
+  return buttons.join('');
+}
+
+function renderLPillButtons(tier: 'upper' | 'lower', state: QuantumState): string {
+  const buttons: string[] = [];
+  for (let l = 0; l < state.n; l++) {
+    const isActive = l === state.l;
+    buttons.push(
+      `<button type="button" class="spec-q-pill ${isActive ? 'active' : ''}" data-tier="${tier}" data-q="l" data-val="${l}" aria-pressed="${isActive}">${l}${SUBSHELL_LETTERS[l]}</button>`,
+    );
+  }
+  return buttons.join('');
+}
+
+function renderMPillButtons(tier: 'upper' | 'lower', state: QuantumState): string {
+  if (state.l === 0) {
+    return '<button type="button" class="spec-q-pill active" disabled aria-pressed="true">0</button>';
+  }
+  const buttons: string[] = [];
+  for (let m = -state.l; m <= state.l; m++) {
+    const isActive = m === state.m;
+    const label = m > 0 ? `+${m}` : `${m}`;
+    buttons.push(
+      `<button type="button" class="spec-q-pill ${isActive ? 'active' : ''}" data-tier="${tier}" data-q="m" data-val="${m}" aria-pressed="${isActive}">${label}</button>`,
+    );
+  }
+  return buttons.join('');
 }
 
 function formatSubshellState(state: QuantumState): string {
@@ -142,6 +198,7 @@ export class SpectroscopyView {
   private lower: QuantumState = { n: 2, l: 1, m: 0 };
   private zEff = 1.0;
   private mode: TransitionMode = 'emission';
+  private visualMode: SpectroscopyVisualMode = 'slice';
   private speed = 1.0;
 
   private isLeftCollapsed = false;
@@ -258,6 +315,21 @@ export class SpectroscopyView {
         </button>
       </div>
 
+      <div class="spec-viewport-legend" id="spec-viewport-legend">
+        <span class="spec-legend-item" id="spec-legend-beat-item">
+          <span class="spec-legend-swatch" id="spec-legend-beat-swatch" aria-hidden="true"></span>
+          <span>${escapeHtml(strings.specLegendBeat)}</span>
+        </span>
+        <span class="spec-legend-item" id="spec-legend-dipole-item">
+          <span class="spec-legend-arrow-swatch" aria-hidden="true"></span>
+          <span>${escapeHtml(strings.specLegendDipole)}</span>
+        </span>
+        <span class="spec-legend-item" id="spec-legend-photon-item">
+          <span class="spec-legend-wave-swatch" id="spec-legend-photon-swatch" aria-hidden="true"></span>
+          <span>${escapeHtml(strings.specLegendPhoton)}</span>
+        </span>
+      </div>
+
       ${this.renderLeftPanel(strings)}
       ${this.renderRightPanel(strings)}
     `;
@@ -304,21 +376,21 @@ export class SpectroscopyView {
           </div>
         </div>
 
-        <div class="molecule-view-actions spec-mode-actions">
-          <button type="button" class="btn-action-toggle ${isEmission ? 'active' : ''}" id="btn-spec-emission" aria-pressed="${isEmission}">
-            <span>${escapeHtml(strings.modeEmission)}</span>
+        <div class="segmented-toggle spec-mode-actions" role="group" aria-label="${escapeHtml(strings.mode)}">
+          <button type="button" class="segmented-toggle-btn ${isEmission ? 'active' : ''}" id="btn-spec-emission" aria-pressed="${isEmission}">
+            ${escapeHtml(strings.modeEmission)}
           </button>
-          <button type="button" class="btn-action-toggle ${!isEmission ? 'active' : ''}" id="btn-spec-absorption" aria-pressed="${!isEmission}">
-            <span>${escapeHtml(strings.modeAbsorption)}</span>
+          <button type="button" class="segmented-toggle-btn ${!isEmission ? 'active' : ''}" id="btn-spec-absorption" aria-pressed="${!isEmission}">
+            ${escapeHtml(strings.modeAbsorption)}
           </button>
         </div>
 
         <div class="control-accordion-container">
           ${this.renderPresetsSection(strings)}
+          ${this.renderAntennaSection(strings)}
           ${this.renderQuantumSection('upper', strings.upperStateSection, 'n2', this.upper, 2, 7, strings)}
           ${this.renderQuantumSection('lower', strings.lowerStateSection, 'n1', this.lower, 1, 6, strings)}
           ${this.renderIonSection(strings)}
-          ${this.renderAntennaSection(strings)}
         </div>
       </div>
     `;
@@ -327,13 +399,15 @@ export class SpectroscopyView {
   private renderPresetsSection(strings: I18nStrings): string {
     const isOpen = this.openSections.presets;
     const buttonsHtml = SPECTRAL_PRESETS.map((preset) => {
-      const label =
-        preset.id === 'forbidden-2s-1s' ? strings.presetForbidden2s1s : preset.shortLabel;
+      const { title, sub } = splitPresetLabel(preset, strings);
       const swatch = presetSwatchHex(preset);
       return `
         <button type="button" class="spec-preset-btn" data-preset-id="${preset.id}" aria-pressed="false">
-          <span class="spec-swatch-dot" style="background-color: ${swatch};" aria-hidden="true"></span>
-          <span class="spec-preset-label">${escapeHtml(label)}</span>
+          <span class="spec-preset-top">
+            <span class="spec-swatch-dot" style="background: ${swatch};" aria-hidden="true"></span>
+            <span class="spec-preset-title">${escapeHtml(title)}</span>
+          </span>
+          <span class="spec-preset-sub">${escapeHtml(sub)}</span>
         </button>
       `;
     }).join('');
@@ -368,6 +442,7 @@ export class SpectroscopyView {
     const isOpen = this.openSections[sectionKey];
     const idx = tierSuffix === 'n2' ? '2' : '1';
     const subshellBadge = `${state.l} (${SUBSHELL_LETTERS[state.l]})`;
+    const mBadge = state.m > 0 ? `+${state.m}` : String(state.m);
 
     return `
       <details class="control-accordion-section" data-section="${sectionKey}"${isOpen ? ' open' : ''}>
@@ -380,33 +455,58 @@ export class SpectroscopyView {
         </summary>
         <div class="accordion-body" id="spec-acc-body-${sectionKey}">
           <div class="control-grid">
-            ${this.controlRow({
-              id: `spec-n${idx}`,
+            ${this.renderQuantumRow({
+              q: 'n',
+              idx,
               label: strings.principalQuantum,
-              valueId: `spec-n${idx}-val`,
               valueText: String(state.n),
               explainKey: 'explainN',
-              control: this.slider(`spec-n${idx}`, minN, maxN, state.n, 1),
+              pillsHtml: renderNPillButtons(sectionKey, minN, maxN, state.n),
             })}
-            ${this.controlRow({
-              id: `spec-l${idx}`,
+            ${this.renderQuantumRow({
+              q: 'l',
+              idx,
               label: strings.azimuthalQuantum,
-              valueId: `spec-l${idx}-val`,
               valueText: subshellBadge,
               explainKey: 'explainL',
-              control: this.slider(`spec-l${idx}`, 0, state.n - 1, state.l, 1),
+              dataAttr: `data-rendered-n="${state.n}"`,
+              pillsHtml: renderLPillButtons(sectionKey, state),
             })}
-            ${this.controlRow({
-              id: `spec-m${idx}`,
+            ${this.renderQuantumRow({
+              q: 'm',
+              idx,
               label: strings.magneticQuantum,
-              valueId: `spec-m${idx}-val`,
-              valueText: String(state.m),
+              valueText: mBadge,
               explainKey: 'explainM',
-              control: this.slider(`spec-m${idx}`, -state.l, state.l, state.m, 1),
+              dataAttr: `data-rendered-l="${state.l}"`,
+              pillsHtml: renderMPillButtons(sectionKey, state),
             })}
           </div>
         </div>
       </details>
+    `;
+  }
+
+  private renderQuantumRow(opts: {
+    q: 'n' | 'l' | 'm';
+    idx: '1' | '2';
+    label: string;
+    valueText: string;
+    explainKey: string;
+    dataAttr?: string;
+    pillsHtml: string;
+  }): string {
+    const extraAttr = opts.dataAttr ? ` ${opts.dataAttr}` : '';
+    return `
+      <div class="spec-quantum-row">
+        <div class="control-label-row">
+          <span class="control-label">${escapeHtml(opts.label)}<span class="val-badge" id="spec-${opts.q}${opts.idx}-val">${escapeHtml(opts.valueText)}</span></span>
+          <button type="button" class="btn-info-icon" data-explain="${opts.explainKey}" aria-label="Info">${icon('info')}</button>
+        </div>
+        <div class="spec-quantum-pills" id="spec-${opts.q}${opts.idx}-pills" role="group" aria-label="${escapeHtml(opts.label)}"${extraAttr}>
+          ${opts.pillsHtml}
+        </div>
+      </div>
     `;
   }
 
@@ -452,6 +552,7 @@ export class SpectroscopyView {
   private renderAntennaSection(strings: I18nStrings): string {
     const isOpen = this.openSections.antenna;
     const isPlaying = this.renderer.isPlaying();
+    const isSlice = this.visualMode === 'slice';
     const playLabel = isPlaying ? strings.antennaPause : strings.antennaPlay;
     const playIcon = isPlaying ? icon('pause') : icon('play');
 
@@ -466,6 +567,19 @@ export class SpectroscopyView {
         </summary>
         <div class="accordion-body" id="spec-acc-body-antenna">
           <div class="control-grid">
+            <div class="control-group">
+              <div class="control-label-row">
+                <span class="control-label">${escapeHtml(strings.specVisualModeLabel)}</span>
+              </div>
+              <div class="segmented-toggle" role="group" aria-label="${escapeHtml(strings.specVisualModeLabel)}">
+                <button type="button" class="segmented-toggle-btn ${isSlice ? 'active' : ''}" id="btn-spec-mode-slice" aria-pressed="${isSlice}">
+                  ${escapeHtml(strings.specModeSlice)}
+                </button>
+                <button type="button" class="segmented-toggle-btn ${!isSlice ? 'active' : ''}" id="btn-spec-mode-volume" aria-pressed="${!isSlice}">
+                  ${escapeHtml(strings.specModeVolume)}
+                </button>
+              </div>
+            </div>
             <div class="control-label-row">
               <button type="button" class="btn-action-toggle ${isPlaying ? 'active' : ''}" id="btn-spec-play" aria-pressed="${isPlaying}">
                 ${playIcon}
@@ -522,6 +636,7 @@ export class SpectroscopyView {
               <span class="spec-rule-badge is-allowed" id="spec-rule-badge">${escapeHtml(strings.transitionAllowed)}</span>
               <button type="button" class="btn-info-icon" data-explain="explainSelectionRules" aria-label="Info">${icon('info')}</button>
             </div>
+            <p class="spec-insight-text" id="spec-insight-text"></p>
           </div>
 
           <div class="physics-section">
@@ -533,7 +648,8 @@ export class SpectroscopyView {
 
           <div class="physics-section">
             <div class="section-title">
-              <h3>${escapeHtml(strings.spectrumStripTitle)}</h3>
+              <h3 id="spec-strip-title">${escapeHtml(this.mode === 'emission' ? strings.spectrumStripTitle : strings.spectrumAbsorptionTitle)}</h3>
+              <span class="spec-false-color-note">${escapeHtml(strings.specFalseColorNote)}</span>
             </div>
             <div class="spectrum-strip-wrapper radial-chart-wrapper" id="spec-spectrum-strip"></div>
           </div>
@@ -556,7 +672,7 @@ export class SpectroscopyView {
 
             <div class="mol-details spec-details-list">
               <div class="detail-row">
-                <span class="detail-row-label">${escapeHtml(strings.spectralSeries)}</span>
+                <span class="detail-row-label">${escapeHtml(strings.spectralSeriesShort)}</span>
                 <strong id="spec-val-series">--</strong>
               </div>
               <div class="detail-row">
@@ -608,7 +724,7 @@ export class SpectroscopyView {
     this.bindCollapseAndAccordionListeners();
     this.bindMobileDrawerListeners();
     this.bindModeAndPresetListeners();
-    this.bindQuantumSliderListeners();
+    this.bindQuantumPillListeners();
     this.bindIonAndAntennaListeners();
     ExplanationModal.attachInfoButtons(this.container);
   }
@@ -741,62 +857,62 @@ export class SpectroscopyView {
     });
   }
 
-  private bindQuantumSliderListeners(): void {
-    const n2Input = this.container.querySelector('#spec-n2') as HTMLInputElement;
-    const l2Input = this.container.querySelector('#spec-l2') as HTMLInputElement;
-    const m2Input = this.container.querySelector('#spec-m2') as HTMLInputElement;
-    const n1Input = this.container.querySelector('#spec-n1') as HTMLInputElement;
-    const l1Input = this.container.querySelector('#spec-l1') as HTMLInputElement;
-    const m1Input = this.container.querySelector('#spec-m1') as HTMLInputElement;
+  private bindQuantumPillListeners(): void {
+    const pillGroups = this.container.querySelectorAll<HTMLElement>('.spec-quantum-pills');
+    pillGroups.forEach((group) => {
+      group.addEventListener('click', (e) => {
+        const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.spec-q-pill');
+        if (!btn || btn.disabled) return;
+        const tier = btn.dataset.tier as 'upper' | 'lower';
+        const q = btn.dataset.q as 'n' | 'l' | 'm';
+        const value = Number.parseInt(btn.dataset.val as string, 10);
+        this.handleQuantumPillSelect(tier, q, value);
+      });
+    });
+  }
 
-    const handleUpperInput = () => {
-      this.upper = clampQuantumState(
-        {
-          n: Number.parseInt(n2Input.value, 10),
-          l: Number.parseInt(l2Input.value, 10),
-          m: Number.parseInt(m2Input.value, 10),
-        },
-        2,
-        7,
-      );
+  private handleQuantumPillSelect(
+    tier: 'upper' | 'lower',
+    q: 'n' | 'l' | 'm',
+    value: number,
+  ): void {
+    const current = tier === 'upper' ? this.upper : this.lower;
+    if (current[q] === value) return;
+
+    if (tier === 'upper') {
+      this.upper = clampQuantumState({ ...this.upper, [q]: value }, 2, 7);
       if (this.lower.n >= this.upper.n) {
         this.lower = clampQuantumState({ ...this.lower, n: this.upper.n - 1 }, 1, 6);
       }
-      this.syncControlsToDom();
-      this.notifyAndRefresh();
-    };
-
-    const handleLowerInput = () => {
-      this.lower = clampQuantumState(
-        {
-          n: Number.parseInt(n1Input.value, 10),
-          l: Number.parseInt(l1Input.value, 10),
-          m: Number.parseInt(m1Input.value, 10),
-        },
-        1,
-        6,
-      );
+    } else {
+      this.lower = clampQuantumState({ ...this.lower, [q]: value }, 1, 6);
       if (this.upper.n <= this.lower.n) {
         this.upper = clampQuantumState({ ...this.upper, n: this.lower.n + 1 }, 2, 7);
       }
-      this.syncControlsToDom();
-      this.notifyAndRefresh();
-    };
+    }
 
-    for (const input of [n2Input, l2Input, m2Input]) {
-      input.addEventListener('input', handleUpperInput);
-    }
-    for (const input of [n1Input, l1Input, m1Input]) {
-      input.addEventListener('input', handleLowerInput);
-    }
+    this.syncControlsToDom();
+    this.notifyAndRefresh();
   }
 
   private bindIonAndAntennaListeners(): void {
     const ionPills = this.container.querySelectorAll<HTMLButtonElement>('.spec-ion-pill');
     const zeffInput = this.container.querySelector('#spec-zeff') as HTMLInputElement;
+    const btnModeSlice = this.container.querySelector('#btn-spec-mode-slice') as HTMLButtonElement;
+    const btnModeVolume = this.container.querySelector('#btn-spec-mode-volume') as HTMLButtonElement;
     const playBtn = this.container.querySelector('#btn-spec-play') as HTMLButtonElement;
     const speedInput = this.container.querySelector('#spec-speed') as HTMLInputElement;
     const speedVal = this.container.querySelector('#spec-speed-val') as HTMLElement;
+
+    const setVisualMode = (nextMode: SpectroscopyVisualMode) => {
+      if (this.visualMode === nextMode) return;
+      this.visualMode = nextMode;
+      this.syncControlsToDom();
+      void this.refreshTransition();
+    };
+
+    btnModeSlice.addEventListener('click', () => setVisualMode('slice'));
+    btnModeVolume.addEventListener('click', () => setVisualMode('volume'));
 
     ionPills.forEach((pill) => {
       pill.addEventListener('click', () => {
@@ -874,8 +990,16 @@ export class SpectroscopyView {
     btnAbsorption.classList.toggle('active', !isEmission);
     btnAbsorption.setAttribute('aria-pressed', String(!isEmission));
 
-    this.syncSingleStateSliders('2', this.upper);
-    this.syncSingleStateSliders('1', this.lower);
+    const btnSlice = this.container.querySelector('#btn-spec-mode-slice') as HTMLButtonElement;
+    const btnVolume = this.container.querySelector('#btn-spec-mode-volume') as HTMLButtonElement;
+    const isSlice = this.visualMode === 'slice';
+    btnSlice.classList.toggle('active', isSlice);
+    btnSlice.setAttribute('aria-pressed', String(isSlice));
+    btnVolume.classList.toggle('active', !isSlice);
+    btnVolume.setAttribute('aria-pressed', String(!isSlice));
+
+    this.syncQuantumPills('upper', '2', this.upper);
+    this.syncQuantumPills('lower', '1', this.lower);
 
     const zeffInput = this.container.querySelector('#spec-zeff') as HTMLInputElement;
     const zeffVal = this.container.querySelector('#spec-zeff-val') as HTMLElement;
@@ -890,26 +1014,45 @@ export class SpectroscopyView {
     allRanges.forEach(syncRangeFill);
   }
 
-  private syncSingleStateSliders(idx: '1' | '2', state: QuantumState): void {
-    const nInput = this.container.querySelector(`#spec-n${idx}`) as HTMLInputElement;
-    const lInput = this.container.querySelector(`#spec-l${idx}`) as HTMLInputElement;
-    const mInput = this.container.querySelector(`#spec-m${idx}`) as HTMLInputElement;
-
+  private syncQuantumPills(tier: 'upper' | 'lower', idx: '1' | '2', state: QuantumState): void {
     const nVal = this.container.querySelector(`#spec-n${idx}-val`) as HTMLElement;
     const lVal = this.container.querySelector(`#spec-l${idx}-val`) as HTMLElement;
     const mVal = this.container.querySelector(`#spec-m${idx}-val`) as HTMLElement;
 
-    nInput.value = String(state.n);
     nVal.textContent = String(state.n);
-
-    lInput.max = String(state.n - 1);
-    lInput.value = String(state.l);
     lVal.textContent = `${state.l} (${SUBSHELL_LETTERS[state.l]})`;
+    mVal.textContent = state.m > 0 ? `+${state.m}` : String(state.m);
 
-    mInput.min = String(-state.l);
-    mInput.max = String(state.l);
-    mInput.value = String(state.m);
-    mVal.textContent = String(state.m);
+    const nPills = this.container.querySelector(`#spec-n${idx}-pills`) as HTMLElement;
+    nPills.querySelectorAll<HTMLButtonElement>('.spec-q-pill').forEach((btn) => {
+      const isActive = Number.parseInt(btn.dataset.val as string, 10) === state.n;
+      btn.classList.toggle('active', isActive);
+      btn.setAttribute('aria-pressed', String(isActive));
+    });
+
+    const lPills = this.container.querySelector(`#spec-l${idx}-pills`) as HTMLElement;
+    if (lPills.dataset.renderedN !== String(state.n)) {
+      lPills.dataset.renderedN = String(state.n);
+      lPills.innerHTML = renderLPillButtons(tier, state);
+    } else {
+      lPills.querySelectorAll<HTMLButtonElement>('.spec-q-pill').forEach((btn) => {
+        const isActive = Number.parseInt(btn.dataset.val as string, 10) === state.l;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-pressed', String(isActive));
+      });
+    }
+
+    const mPills = this.container.querySelector(`#spec-m${idx}-pills`) as HTMLElement;
+    if (mPills.dataset.renderedL !== String(state.l)) {
+      mPills.dataset.renderedL = String(state.l);
+      mPills.innerHTML = renderMPillButtons(tier, state);
+    } else if (state.l > 0) {
+      mPills.querySelectorAll<HTMLButtonElement>('.spec-q-pill').forEach((btn) => {
+        const isActive = Number.parseInt(btn.dataset.val as string, 10) === state.m;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-pressed', String(isActive));
+      });
+    }
   }
 
   private updatePresetAndIonHighlights(): void {
@@ -951,6 +1094,7 @@ export class SpectroscopyView {
     const upperSnap = { ...this.upper };
     const zEffSnap = this.zEff;
     const modeSnap = this.mode;
+    const visualModeSnap = this.visualMode;
 
     const [metrics, seriesLines] = await Promise.all([
       computeTransitionMetrics(zEffSnap, lowerSnap, upperSnap),
@@ -971,13 +1115,20 @@ export class SpectroscopyView {
       isAllowed: metrics.isAllowed,
       photonColorRgb: [metrics.color.r, metrics.color.g, metrics.color.b],
       dipoleIntegralBohr: metrics.dipoleIntegralBohr,
+      visualMode: visualModeSnap,
     });
   }
 
   private applyMetricsToDom(metrics: TransitionMetrics, seriesLines: SeriesLine[]): void {
     const strings = getStrings();
+    const beatSwatchEl = this.container.querySelector('#spec-legend-beat-swatch') as HTMLElement;
+    const dipoleItemEl = this.container.querySelector('#spec-legend-dipole-item') as HTMLElement;
+    const photonItemEl = this.container.querySelector('#spec-legend-photon-item') as HTMLElement;
+    const photonSwatchEl = this.container.querySelector('#spec-legend-photon-swatch') as HTMLElement;
     const notationEl = this.container.querySelector('#spec-active-notation') as HTMLElement;
     const ruleBadgeEl = this.container.querySelector('#spec-rule-badge') as HTMLElement;
+    const insightEl = this.container.querySelector('#spec-insight-text') as HTMLElement;
+    const stripTitleEl = this.container.querySelector('#spec-strip-title') as HTMLElement;
     const deltaEEl = this.container.querySelector('#spec-val-delta-e') as HTMLElement;
     const wavelengthEl = this.container.querySelector('#spec-val-wavelength') as HTMLElement;
     const frequencyEl = this.container.querySelector('#spec-val-frequency') as HTMLElement;
@@ -985,14 +1136,37 @@ export class SpectroscopyView {
     const einsteinEl = this.container.querySelector('#spec-val-einstein-a') as HTMLElement;
     const lifetimeEl = this.container.querySelector('#spec-val-lifetime') as HTMLElement;
 
-    const upperStr = formatSubshellState(this.upper);
-    const lowerStr = formatSubshellState(this.lower);
-    notationEl.textContent =
-      this.mode === 'emission' ? `${upperStr} → ${lowerStr}` : `${lowerStr} → ${upperStr}`;
+    beatSwatchEl.style.background = metrics.isAllowed
+      ? `linear-gradient(135deg, #335785 0%, ${metrics.color.hex} 100%)`
+      : 'linear-gradient(135deg, #33577a 0%, #75bde0 100%)';
+    dipoleItemEl.classList.toggle('hidden', !metrics.isAllowed);
+    photonItemEl.classList.toggle('hidden', !metrics.isAllowed);
+    photonSwatchEl.style.color = metrics.color.hex;
+
+    const firstState = this.mode === 'emission' ? this.upper : this.lower;
+    const secondState = this.mode === 'emission' ? this.lower : this.upper;
+    notationEl.innerHTML =
+      `<span class="spec-state-token">${escapeHtml(formatSubshellState(firstState))} →</span>` +
+      `<span class="spec-state-token">${escapeHtml(formatSubshellState(secondState))}</span>`;
 
     ruleBadgeEl.textContent = resolveRuleBadgeText(metrics, strings);
     ruleBadgeEl.classList.toggle('is-allowed', metrics.isAllowed);
     ruleBadgeEl.classList.toggle('is-forbidden', !metrics.isAllowed);
+
+    const deltaM = this.upper.m - this.lower.m;
+    const isPi = metrics.isAllowed && deltaM === 0;
+    const isSigma = metrics.isAllowed && Math.abs(deltaM) === 1;
+    insightEl.classList.toggle('is-forbidden', !metrics.isAllowed);
+    insightEl.classList.toggle('is-pi', isPi);
+    insightEl.classList.toggle('is-sigma', isSigma);
+    insightEl.textContent = !metrics.isAllowed
+      ? strings.specInsightForbidden
+      : isPi
+        ? strings.specInsightPi
+        : strings.specInsightSigma;
+
+    stripTitleEl.textContent =
+      this.mode === 'emission' ? strings.spectrumStripTitle : strings.spectrumAbsorptionTitle;
 
     const wlStr = formatWavelengthNm(metrics.wavelengthNm);
     const bandLabel = resolveBandLabel(metrics.color.band, strings);
@@ -1009,6 +1183,10 @@ export class SpectroscopyView {
       zEff: this.zEff,
       nLower: this.lower.n,
       nUpper: this.upper.n,
+      lLower: this.lower.l,
+      lUpper: this.upper.l,
+      mLower: this.lower.m,
+      mUpper: this.upper.m,
       mode: this.mode,
       isAllowed: metrics.isAllowed,
       photonHex: metrics.color.hex,
