@@ -1,6 +1,5 @@
 import type { TabId } from '../core/url-state';
 import { getStrings, getLanguage, setLanguage, onLanguageChange, type Language } from '../i18n';
-import { GlossaryModal } from './glossary-modal';
 import { ExplanationModal } from './info-modal';
 import { icon } from './icons';
 
@@ -23,9 +22,7 @@ export interface NavTab {
     | 'tabOrbitals'
     | 'tabBonding'
     | 'tabMolecules'
-    | 'tabSpectroscopy'
-    | 'tabNucleus'
-    | 'tabHistory';
+    | 'tabSpectroscopy';
   readonly icon: string;
 }
 
@@ -40,14 +37,11 @@ export const NAV_TABS: readonly NavTab[] = [
   { id: 'bonding', labelKey: 'tabBonding', icon: icon('bond') },
   { id: 'molecules', labelKey: 'tabMolecules', icon: icon('molecule') },
   { id: 'spectroscopy', labelKey: 'tabSpectroscopy', icon: icon('spectrum') },
-  { id: 'nucleus', labelKey: 'tabNucleus', icon: icon('nucleus') },
-  { id: 'history', labelKey: 'tabHistory', icon: icon('history') },
 ];
 
 export interface NavigationBarCallbacks {
   onTabChange: (tab: TabId) => void;
   onZenToggle?: () => void;
-  onOpenGuided?: () => void;
   onShareLink?: () => void;
 }
 
@@ -126,12 +120,10 @@ export class NavigationBar {
   private readonly container: HTMLElement;
   private activeTab: TabId = DEFAULT_TAB;
   private readonly callbacks: NavigationBarCallbacks;
-  private readonly glossaryModal: GlossaryModal;
 
   constructor(container: HTMLElement, callbacks: NavigationBarCallbacks) {
     this.container = container;
     this.callbacks = callbacks;
-    this.glossaryModal = new GlossaryModal();
     this.render();
     onLanguageChange(() => this.render());
 
@@ -174,14 +166,6 @@ export class NavigationBar {
           <div class="nav-tablist" role="tablist" aria-label="${strings.title}">
             ${tabsHtml}
           </div>
-          <button type="button" class="btn-ghost nav-aux-btn nav-guided-btn" id="nav-guided-btn" title="${strings.navGuidedBtn}" aria-label="${strings.navGuidedBtn}">
-            <span class="tab-icon">${icon('compass')}</span>
-            <span class="tab-label">${strings.navGuidedBtn}</span>
-          </button>
-          <button type="button" class="btn-ghost nav-aux-btn nav-glossary-btn" id="nav-glossary-btn" title="${strings.btnGlossary}" aria-label="${strings.btnGlossary}">
-            <span class="tab-icon">${icon('book')}</span>
-            <span class="tab-label">${strings.btnGlossary}</span>
-          </button>
           <button type="button" class="btn-ghost nav-aux-btn nav-intro-btn" id="nav-intro-btn" title="${strings.btnIntro}" aria-label="${strings.btnIntro}">
             <span class="tab-icon">${icon('help')}</span>
             <span class="tab-label">${strings.btnIntro}</span>
@@ -260,18 +244,6 @@ export class NavigationBar {
 
     navTablist.addEventListener('keydown', (e: KeyboardEvent) => {
       this.handleTablistKeydown(e);
-    });
-
-    const guidedBtn = this.container.querySelector('#nav-guided-btn') as HTMLElement;
-    guidedBtn.addEventListener('click', () => {
-      this.closeMobileMenu();
-      this.callbacks.onOpenGuided?.();
-    });
-
-    const glossaryBtn = this.container.querySelector('#nav-glossary-btn') as HTMLElement;
-    glossaryBtn.addEventListener('click', () => {
-      this.closeMobileMenu();
-      this.glossaryModal.open();
     });
 
     const introBtn = this.container.querySelector('#nav-intro-btn') as HTMLElement;

@@ -3,9 +3,7 @@ export type TabId =
   | 'orbitals'
   | 'bonding'
   | 'molecules'
-  | 'spectroscopy'
-  | 'nucleus'
-  | 'history';
+  | 'spectroscopy';
 
 export const VALID_TABS: readonly TabId[] = [
   'periodic-table',
@@ -13,14 +11,11 @@ export const VALID_TABS: readonly TabId[] = [
   'bonding',
   'molecules',
   'spectroscopy',
-  'nucleus',
-  'history',
 ];
 
 export type OrbitalModeParam = 'points' | 'isosurface' | 'raymarching';
 export type CutAxisParam = 'none' | 'x' | 'y' | 'z';
 export type BlockFilterParam = 'all' | 's' | 'p' | 'd' | 'f';
-export type HistoryEraParam = 'dalton' | 'thomson' | 'rutherford' | 'bohr' | 'schrodinger';
 
 export type DeepLinkState =
   | {
@@ -55,15 +50,6 @@ export type DeepLinkState =
       el?: number;
       n1?: number;
       n2?: number;
-    }
-  | {
-      tab: 'nucleus';
-      z?: number;
-      n?: number;
-    }
-  | {
-      tab: 'history';
-      era?: HistoryEraParam;
     };
 
 export interface UrlSyncController {
@@ -76,13 +62,6 @@ export interface UrlSyncController {
 const VALID_ORBITAL_MODES: readonly OrbitalModeParam[] = ['points', 'isosurface', 'raymarching'];
 const VALID_CUT_AXES: readonly CutAxisParam[] = ['none', 'x', 'y', 'z'];
 const VALID_BLOCKS: readonly BlockFilterParam[] = ['all', 's', 'p', 'd', 'f'];
-const VALID_HISTORY_ERAS: readonly HistoryEraParam[] = [
-  'dalton',
-  'thomson',
-  'rutherford',
-  'bohr',
-  'schrodinger',
-];
 const SAFE_TOKEN_PATTERN = /^[A-Za-z0-9_-]{1,32}$/;
 
 function round2(value: number): number {
@@ -196,21 +175,6 @@ function encodeSpectroscopy(
   setParam(params, 'n2', state.n2);
 }
 
-function encodeNucleus(
-  params: URLSearchParams,
-  state: Extract<DeepLinkState, { tab: 'nucleus' }>,
-): void {
-  setParam(params, 'z', state.z);
-  setParam(params, 'n', state.n);
-}
-
-function encodeHistory(
-  params: URLSearchParams,
-  state: Extract<DeepLinkState, { tab: 'history' }>,
-): void {
-  setParam(params, 'era', state.era);
-}
-
 function parsePeriodicTable(params: URLSearchParams): DeepLinkState {
   const state: Extract<DeepLinkState, { tab: 'periodic-table' }> = { tab: 'periodic-table' };
   assignDefined(state, 'el', parseClampedInt(params.get('el'), 1, 118));
@@ -261,19 +225,6 @@ function parseSpectroscopy(params: URLSearchParams): DeepLinkState {
   return state;
 }
 
-function parseNucleus(params: URLSearchParams): DeepLinkState {
-  const state: Extract<DeepLinkState, { tab: 'nucleus' }> = { tab: 'nucleus' };
-  assignDefined(state, 'z', parseClampedInt(params.get('z'), 1, 118));
-  assignDefined(state, 'n', parseClampedInt(params.get('n'), 0, 180));
-  return state;
-}
-
-function parseHistory(params: URLSearchParams): DeepLinkState {
-  const state: Extract<DeepLinkState, { tab: 'history' }> = { tab: 'history' };
-  assignDefined(state, 'era', parseEnum(params.get('era'), VALID_HISTORY_ERAS));
-  return state;
-}
-
 type TabEncoderMap = {
   [K in TabId]: (params: URLSearchParams, state: Extract<DeepLinkState, { tab: K }>) => void;
 };
@@ -284,8 +235,6 @@ const TAB_ENCODERS: TabEncoderMap = {
   bonding: encodeBonding,
   molecules: encodeMolecules,
   spectroscopy: encodeSpectroscopy,
-  nucleus: encodeNucleus,
-  history: encodeHistory,
 };
 
 const TAB_DECODERS: Record<TabId, (params: URLSearchParams) => DeepLinkState> = {
@@ -294,8 +243,6 @@ const TAB_DECODERS: Record<TabId, (params: URLSearchParams) => DeepLinkState> = 
   bonding: parseBonding,
   molecules: parseMolecules,
   spectroscopy: parseSpectroscopy,
-  nucleus: parseNucleus,
-  history: parseHistory,
 };
 
 export function encodeUrlState(state: DeepLinkState): string {

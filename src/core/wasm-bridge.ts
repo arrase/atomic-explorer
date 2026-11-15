@@ -12,13 +12,6 @@ import init, {
   is_dipole_transition_allowed,
   calculate_spontaneous_emission_rate,
   calculate_radial_dipole_integral,
-  get_nuclear_binding_energy,
-  get_nuclear_binding_per_nucleon,
-  get_nuclear_radius_fm,
-  get_nuclear_optimal_z,
-  predict_nuclear_decay,
-  evaluate_segre_grid,
-  evaluate_valley_ba_curve,
 } from '../../crates/atomic-math/pkg/atomic_math';
 
 export interface OrbitalParams {
@@ -265,34 +258,4 @@ export async function calculateRadialDipoleIntegral(
 ): Promise<number> {
   await ensureWasmLoaded();
   return calculate_radial_dipole_integral(n1, l1, n2, l2, zEff);
-}
-
-export interface RawNuclideMetrics {
-  bindingEnergyMeV: number;
-  bindingPerNucleonMeV: number;
-  radiusFm: number;
-  optimalZ: number;
-  decayCode: number;
-}
-
-export async function evaluateNuclideWasm(z: number, n: number): Promise<RawNuclideMetrics> {
-  await ensureWasmLoaded();
-  const a = z + n;
-  return {
-    bindingEnergyMeV: get_nuclear_binding_energy(z, n),
-    bindingPerNucleonMeV: get_nuclear_binding_per_nucleon(z, n),
-    radiusFm: get_nuclear_radius_fm(a),
-    optimalZ: get_nuclear_optimal_z(a),
-    decayCode: predict_nuclear_decay(z, n),
-  };
-}
-
-export async function getSegreGridWasm(maxZ: number, maxN: number): Promise<Uint8Array> {
-  await ensureWasmLoaded();
-  return evaluate_segre_grid(maxZ, maxN);
-}
-
-export async function getValleyBaCurveWasm(maxA: number): Promise<Float32Array> {
-  await ensureWasmLoaded();
-  return evaluate_valley_ba_curve(maxA);
 }

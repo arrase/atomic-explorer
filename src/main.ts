@@ -8,8 +8,6 @@ import { OrbitalRenderer } from './render/orbital-renderer';
 import { BondingRenderer } from './render/bonding-renderer';
 import { MoleculeRenderer } from './render/molecule-renderer';
 import { SpectroscopyRenderer } from './render/spectroscopy-renderer';
-import { NucleusRenderer } from './render/nucleus-renderer';
-import { HistoryRenderer } from './render/history-renderer';
 import { OrbitalPreview } from './render/orbital-preview';
 import { OrientationGizmo } from './render/orientation-gizmo';
 import { ViewportHUD } from './ui/viewport-hud';
@@ -22,9 +20,6 @@ import { PeriodicTableView, type ElementData } from './ui/periodic-table';
 import { BondingView } from './ui/bonding-view';
 import { MoleculeView } from './ui/molecule-view';
 import { SpectroscopyView } from './ui/spectroscopy-view';
-import { NucleusView } from './ui/nucleus-view';
-import { HistoryView } from './ui/history-view';
-import { GuidedLearningController, type AppController } from './ui/guided-learning';
 import { FPSDisplay } from './ui/fps-display';
 import { ImageExporterModal } from './ui/image-exporter';
 import { ExplanationModal } from './ui/info-modal';
@@ -412,8 +407,6 @@ interface DeepLinkTablesDeps {
   readonly bondingView: BondingView;
   readonly moleculeView: MoleculeView;
   readonly spectroscopyView: SpectroscopyView;
-  readonly nucleusView: NucleusView;
-  readonly historyView: HistoryView;
 }
 
 function createDeepLinkTables(deps: DeepLinkTablesDeps): {
@@ -438,8 +431,6 @@ function createDeepLinkTables(deps: DeepLinkTablesDeps): {
       tab: 'spectroscopy',
       ...deps.spectroscopyView.getDeepLinkParams(),
     }),
-    nucleus: () => ({ tab: 'nucleus', ...deps.nucleusView.getDeepLinkParams() }),
-    history: () => ({ tab: 'history', era: deps.historyView.getEra() }),
   };
 
   const stateAppliers: StateApplierMap = {
@@ -471,14 +462,6 @@ function createDeepLinkTables(deps: DeepLinkTablesDeps): {
       ensureTab('spectroscopy');
       deps.spectroscopyView.applyDeepLinkParams(s);
     },
-    nucleus: (s) => {
-      ensureTab('nucleus');
-      deps.nucleusView.applyDeepLinkParams(s);
-    },
-    history: (s) => {
-      if (s.era) deps.historyView.setEra(s.era);
-      ensureTab('history');
-    },
   };
 
   return { stateReaders, stateAppliers };
@@ -492,21 +475,18 @@ interface AppStateControllerDeps {
 }
 
 function createAppStateController(deps: AppStateControllerDeps): {
-  appController: AppController;
+  applyDeepLinkState: (state: DeepLinkState) => void;
+  shareCurrentUrl: () => Promise<void>;
   scheduleUrlSync: () => void;
 } {
   const urlSync = createUrlSync(250);
   let isApplyingDeepLink = false;
-  let challengeMasked = false;
 
   const getCurrentState = (): DeepLinkState => deps.stateReaders[deps.getActiveTab()]();
 
-  const getUrlTargetState = (): DeepLinkState =>
-    challengeMasked ? { tab: 'orbitals' } : getCurrentState();
-
   const scheduleUrlSync = (): void => {
     if (isApplyingDeepLink) return;
-    urlSync.sync(getUrlTargetState());
+    urlSync.sync(getCurrentState());
   };
 
   const applyDeepLinkState = (state: DeepLinkState): void => {
@@ -517,28 +497,15 @@ function createAppStateController(deps: AppStateControllerDeps): {
     scheduleUrlSync();
   };
 
-  const setChallengeMask = (masked: boolean): void => {
-    const wasMasked = challengeMasked;
-    challengeMasked = masked;
-    document.body.classList.toggle('orbital-challenge-active', masked);
-    if (wasMasked && !masked) {
-      scheduleUrlSync();
-    }
-  };
-
   const shareCurrentUrl = async (): Promise<void> => {
-    urlSync.flush(getUrlTargetState());
+    urlSync.flush(getCurrentState());
     await navigator.clipboard.writeText(window.location.href);
     deps.showShareToast();
   };
 
   return {
-    appController: {
-      getCurrentState,
-      applyDeepLinkState,
-      setChallengeMask,
-      shareCurrentUrl,
-    },
+    applyDeepLinkState,
+    shareCurrentUrl,
     scheduleUrlSync,
   };
 }
@@ -558,12 +525,12 @@ function stepOrbitalPrincipalQuantum(
 }
 
 function bootInitialState(
-  appController: AppController,
+  applyDeepLinkState: (state: DeepLinkState) => void,
   switchTab: (tab: TabId) => void,
 ): void {
   const initialLink = parseUrlState(window.location.search);
   if (initialLink !== null) {
-    appController.applyDeepLinkState(initialLink);
+    applyDeepLinkState(initialLink);
     return;
   }
 
@@ -601,16 +568,12 @@ function init(): void {
   const moleculeRenderer = new MoleculeRenderer({ canvas, renderer });
   moleculeRenderer.stop();
   const spectroscopyRenderer = new SpectroscopyRenderer({ canvas, renderer });
-  const nucleusRenderer = new NucleusRenderer({ canvas, renderer });
-  const historyRenderer = new HistoryRenderer({ canvas, renderer });
 
   const renderers3D: Record<Tab3D, BaseThreeRenderer> = {
     orbitals: orbitalRenderer,
     bonding: bondingRenderer,
     molecules: moleculeRenderer,
     spectroscopy: spectroscopyRenderer,
-    nucleus: nucleusRenderer,
-    history: historyRenderer,
   };
 
   // The element inspector's thumbnail keeps its own context, so it is not part of
@@ -644,7 +607,7 @@ function init(): void {
     },
     onToggleZenMode: toggleZenMode,
     onShareLink: () => {
-      void appController.shareCurrentUrl();
+      void shareCurrentUrl();
     },
   });
 
@@ -703,23 +666,6 @@ function init(): void {
     createTabScaleHandler(getActiveTab, viewportHud, 'spectroscopy'),
   );
 
-  const nucleusView = new NucleusView(
-    viewLayers['nucleus'],
-    nucleusRenderer,
-    createTabScaleHandler(getActiveTab, viewportHud, 'nucleus'),
-    openExporter,
-  );
-
-  historyRenderer.onScaleChange = createTabScaleHandler(getActiveTab, viewportHud, 'history');
-  const historyView = new HistoryView(
-    viewLayers['history'],
-    historyRenderer,
-    ({ n, l, m }) => {
-      controlPanel.setParams({ n, l, m, zEff: 1.0, useRealOrbital: true });
-      switchTab('orbitals');
-    },
-  );
-
   const tabActivators: Record<Tab3D, () => void> = {
     orbitals: () => {
       void loadOrbital(controlPanel.getParams());
@@ -730,8 +676,6 @@ function init(): void {
       moleculeView.getSelectedMolecule();
     },
     spectroscopy: () => spectroscopyView.activate(),
-    nucleus: () => nucleusView.activate(),
-    history: () => historyView.activate(),
   };
 
   const viewportContext: ViewportSwitchContext = {
@@ -744,9 +688,6 @@ function init(): void {
   };
 
   const switchTab = (newTab: TabId): void => {
-    if (newTab !== 'orbitals' && guidedLearning.isChallengeMasked()) {
-      guidedLearning.exitActiveMode();
-    }
     activeTab = newTab;
     resetOverlayCache();
     navBar.setActiveTab(newTab);
@@ -770,11 +711,9 @@ function init(): void {
     bondingView,
     moleculeView,
     spectroscopyView,
-    nucleusView,
-    historyView,
   });
 
-  const { appController, scheduleUrlSync } = createAppStateController({
+  const { applyDeepLinkState, shareCurrentUrl, scheduleUrlSync } = createAppStateController({
     getActiveTab,
     stateReaders,
     stateAppliers,
@@ -785,17 +724,12 @@ function init(): void {
   bondingView.onStateChange = scheduleUrlSync;
   moleculeView.onStateChange = scheduleUrlSync;
   spectroscopyView.onStateChange = scheduleUrlSync;
-  nucleusView.onStateChange = scheduleUrlSync;
-  historyView.onStateChange = scheduleUrlSync;
-
-  const guidedLearning = new GuidedLearningController(uiOverlay, appController);
 
   const navBar = new NavigationBar(navContainer, {
     onTabChange: switchTab,
     onZenToggle: toggleZenMode,
-    onOpenGuided: () => guidedLearning.openLauncher(),
     onShareLink: () => {
-      void appController.shareCurrentUrl();
+      void shareCurrentUrl();
     },
   });
 
@@ -819,7 +753,7 @@ function init(): void {
       stepOrbitalPrincipalQuantum(delta, controlPanel, loadOrbital, scheduleUrlSync),
   });
 
-  bootInitialState(appController, switchTab);
+  bootInitialState(applyDeepLinkState, switchTab);
 }
 
 window.addEventListener('DOMContentLoaded', () => {

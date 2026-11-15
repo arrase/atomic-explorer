@@ -1,7 +1,6 @@
 pub mod grid;
 pub mod lcao;
 pub mod math_utils;
-pub mod nuclear;
 pub mod sampling;
 pub mod slater;
 pub mod spherical_harmonics;
@@ -460,39 +459,4 @@ pub fn evaluate_lcao_curve(
     let a = lcao::AtomicBasis::new(n_a, l_a, m_a, z_eff_a)?;
     let b = lcao::AtomicBasis::new(n_b, l_b, m_b, z_eff_b)?;
     lcao::evaluate_lcao_curve_internal(&a, &b, r_min, r_max, steps)
-}
-
-#[wasm_bindgen]
-pub fn get_nuclear_binding_energy(z: u32, n: u32) -> Result<f64, String> {
-    nuclear::binding_energy_mev(z, n)
-}
-
-#[wasm_bindgen]
-pub fn get_nuclear_binding_per_nucleon(z: u32, n: u32) -> Result<f64, String> {
-    nuclear::binding_energy_per_nucleon_mev(z, n)
-}
-
-#[wasm_bindgen]
-pub fn get_nuclear_radius_fm(a: u32) -> Result<f64, String> {
-    nuclear::nuclear_radius_fm(a)
-}
-
-#[wasm_bindgen]
-pub fn get_nuclear_optimal_z(a: u32) -> Result<f64, String> {
-    nuclear::optimal_z(a)
-}
-
-#[wasm_bindgen]
-pub fn predict_nuclear_decay(z: u32, n: u32) -> Result<u8, String> {
-    nuclear::predict_decay_mode(z, n).map(|mode| mode as u8)
-}
-
-#[wasm_bindgen]
-pub fn evaluate_segre_grid(max_z: u32, max_n: u32) -> Vec<u8> {
-    nuclear::segre_decay_grid(max_z, max_n)
-}
-
-#[wasm_bindgen]
-pub fn evaluate_valley_ba_curve(max_a: u32) -> Vec<f32> {
-    nuclear::valley_binding_curve(max_a)
 }
