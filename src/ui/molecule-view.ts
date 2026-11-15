@@ -438,7 +438,7 @@ export class MoleculeView {
 
     if (gallery && cards.length > 0 && !CSS.supports('animation-timeline', 'scroll()')) {
       const first = cards[0];
-      const last = cards[cards.length - 1];
+      const last = cards.at(-1)!;
       this.galleryObserver = new IntersectionObserver(
         (entries) => {
           for (const { target, intersectionRatio } of entries) {

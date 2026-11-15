@@ -1,6 +1,13 @@
 import { getStrings } from '../i18n';
 import { bohrToPm, meanRadiusBohr } from '../core/physics-constants';
 import { ensureWasmLoaded, stoRadialProbabilitySync } from '../core/wasm-bridge';
+import {
+  CHART_FONT as FONT,
+  ChartSurface,
+  DEFAULT_PLOT_PAD as PAD,
+  createChartSurface,
+  preparePlotFrame,
+} from './chart-canvas';
 
 function factorial(n: number): number {
   if (n <= 1) return 1;
@@ -91,11 +98,6 @@ function findRadialNodes(n: number, l: number, zEff: number): number[] {
   return nodes;
 }
 
-const FONT = 'Inter, -apple-system, BlinkMacSystemFont, sans-serif';
-
-/** Plot insets, in CSS pixels. The bottom room fits the ticks + axis title. */
-const PAD = { top: 20, right: 14, bottom: 32, left: 42 } as const;
-
 interface ChartLayout {
   w: number;
   h: number;
@@ -131,12 +133,10 @@ const CHART = {
 } as const;
 
 export class RadialDistributionChart {
-
-  private readonly container: HTMLElement;
+  private readonly surface: ChartSurface;
   private readonly canvas: HTMLCanvasElement;
   private readonly ctx: CanvasRenderingContext2D;
-  private readonly resizeObserver: ResizeObserver;
-  private animationFrameId: number = 0;
+  private destroyed = false;
 
   private n: number = 1;
   private l: number = 0;
@@ -149,31 +149,28 @@ export class RadialDistributionChart {
   private radialNodes: number[] = [];
 
   constructor(container: HTMLElement) {
-    this.container = container;
-    this.canvas = document.createElement('canvas');
-    this.canvas.className = 'radial-chart-canvas';
-    this.container.appendChild(this.canvas);
-
-    this.ctx = this.canvas.getContext('2d')!;
-
-    this.resizeObserver = new ResizeObserver(() => {
-      if (this.animationFrameId) {
-        cancelAnimationFrame(this.animationFrameId);
-      }
-      this.animationFrameId = requestAnimationFrame(() => {
-        this.draw();
-      });
-    });
-    this.resizeObserver.observe(this.container);
+    this.surface = createChartSurface(container, 'radial-chart-canvas', () => this.draw());
+    this.canvas = this.surface.canvas;
+    this.ctx = this.surface.ctx;
 
     this.canvas.addEventListener('mousemove', this.handleMouseMove);
     this.canvas.addEventListener('mouseleave', this.handleMouseLeave);
-    void ensureWasmLoaded().then(() => this.draw());
   }
 
   public setShowSto(show: boolean): void {
     this.showSto = show;
     this.draw();
+    if (show) {
+      ensureWasmLoaded()
+        .then(() => {
+          if (!this.destroyed && this.showSto) {
+            this.draw();
+          }
+        })
+        .catch((error) => {
+          console.error('[atomic-explorer] Failed to load WASM for STO overlay', error);
+        });
+    }
   }
 
   public update(n: number, l: number, zEff: number): void {
@@ -267,36 +264,13 @@ export class RadialDistributionChart {
   }
 
   public draw(): void {
-    const rect = this.container.getBoundingClientRect();
-    if (rect.width <= 0 || rect.height <= 0) return;
+    const frame = preparePlotFrame(this.surface, PAD);
+    if (!frame) return;
 
-    const dpr = Math.max(1, window.devicePixelRatio);
-    const targetW = Math.round(rect.width * dpr);
-    const targetH = Math.round(rect.height * dpr);
-
-    if (this.canvas.width !== targetW || this.canvas.height !== targetH) {
-      this.canvas.width = targetW;
-      this.canvas.height = targetH;
-    }
-
-    const ctx = this.ctx;
-    ctx.resetTransform();
-    ctx.scale(dpr, dpr);
-
-    const w = rect.width;
-    const h = rect.height;
-
+    const { w, h, plotW, plotH } = frame;
     const padLeft = PAD.left;
     const padRight = PAD.right;
     const padTop = PAD.top;
-    const padBottom = PAD.bottom;
-
-    const plotW = w - padLeft - padRight;
-    const plotH = h - padTop - padBottom;
-
-    if (plotW <= 0 || plotH <= 0) return;
-
-    ctx.clearRect(0, 0, w, h);
 
     const rMax = this.currentRMax();
     const pointCount = Math.max(120, Math.floor(plotW * 1.5));
@@ -691,11 +665,8 @@ export class RadialDistributionChart {
   }
 
   public destroy(): void {
-    if (this.animationFrameId) {
-      cancelAnimationFrame(this.animationFrameId);
-      this.animationFrameId = 0;
-    }
-    this.resizeObserver.disconnect();
+    this.destroyed = true;
+    this.surface.destroy();
     this.canvas.removeEventListener('mousemove', this.handleMouseMove);
     this.canvas.removeEventListener('mouseleave', this.handleMouseLeave);
   }

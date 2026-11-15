@@ -20,6 +20,7 @@ import { ColorPalette, PALETTE_CONFIG } from '../render/orbital-point-cloud';
 import { icon } from './icons';
 import { ExplanationModal } from './info-modal';
 import { escapeHtml } from './modal-utils';
+import { bindCollapsiblePanel, bindDualMobileDrawers } from './panel-helpers';
 import { PotentialEnergyChart } from './potential-energy-chart';
 
 interface PresetUiMeta {
@@ -661,90 +662,37 @@ export class BondingView {
   }
 
   private bindPanelCollapseListeners(): void {
-    const leftPanel = this.container.querySelector('#bonding-controls-panel') as HTMLElement;
-    const btnCollapseLeft = this.container.querySelector('#btn-collapse-bonding-controls') as HTMLElement;
-    const btnExpandLeft = this.container.querySelector('#btn-expand-bonding-controls') as HTMLElement;
-
-    const rightPanel = this.container.querySelector('#bonding-energy-panel') as HTMLElement;
-    const btnCollapseRight = this.container.querySelector('#btn-collapse-bonding-energy') as HTMLElement;
-    const btnExpandRight = this.container.querySelector('#btn-expand-bonding-energy') as HTMLElement;
-
-    btnCollapseLeft.addEventListener('click', () => {
-      this.isLeftCollapsed = true;
-      leftPanel.classList.add('collapsed');
-      btnCollapseLeft.setAttribute('aria-expanded', 'false');
-      btnExpandLeft.classList.add('visible');
-      btnExpandLeft.setAttribute('aria-expanded', 'false');
+    bindCollapsiblePanel({
+      panel: this.container.querySelector('#bonding-controls-panel') as HTMLElement,
+      collapseBtn: this.container.querySelector('#btn-collapse-bonding-controls') as HTMLElement,
+      expandBtn: this.container.querySelector('#btn-expand-bonding-controls') as HTMLElement,
+      onChange: (collapsed) => {
+        this.isLeftCollapsed = collapsed;
+      },
     });
 
-    btnExpandLeft.addEventListener('click', () => {
-      this.isLeftCollapsed = false;
-      leftPanel.classList.remove('collapsed');
-      btnCollapseLeft.setAttribute('aria-expanded', 'true');
-      btnExpandLeft.classList.remove('visible');
-      btnExpandLeft.setAttribute('aria-expanded', 'true');
-    });
-
-    btnCollapseRight.addEventListener('click', () => {
-      this.isRightCollapsed = true;
-      rightPanel.classList.add('collapsed');
-      btnCollapseRight.setAttribute('aria-expanded', 'false');
-      btnExpandRight.classList.add('visible');
-      btnExpandRight.setAttribute('aria-expanded', 'false');
-    });
-
-    btnExpandRight.addEventListener('click', () => {
-      this.isRightCollapsed = false;
-      rightPanel.classList.remove('collapsed');
-      btnCollapseRight.setAttribute('aria-expanded', 'true');
-      btnExpandRight.classList.remove('visible');
-      btnExpandRight.setAttribute('aria-expanded', 'true');
-      this.potentialChart?.draw();
+    bindCollapsiblePanel({
+      panel: this.container.querySelector('#bonding-energy-panel') as HTMLElement,
+      collapseBtn: this.container.querySelector('#btn-collapse-bonding-energy') as HTMLElement,
+      expandBtn: this.container.querySelector('#btn-expand-bonding-energy') as HTMLElement,
+      onChange: (collapsed) => {
+        this.isRightCollapsed = collapsed;
+        if (!collapsed) this.potentialChart?.draw();
+      },
     });
   }
 
   private bindMobileDrawerListeners(): void {
-    const leftPanel = this.container.querySelector('#bonding-controls-panel') as HTMLElement;
-    const rightContainer = this.container.querySelector('#bonding-physics-container') as HTMLElement;
-    const backdrop = this.container.querySelector('#bonding-drawer-backdrop') as HTMLElement;
-    const btnShowControls = this.container.querySelector('#btn-show-bonding-controls') as HTMLElement;
-    const btnShowEnergy = this.container.querySelector('#btn-show-bonding-energy') as HTMLElement;
-    const btnCloseControls = this.container.querySelector('#btn-close-bonding-controls') as HTMLElement;
-    const btnCloseEnergy = this.container.querySelector('#btn-close-bonding-energy') as HTMLElement;
-
-    const closeAll = () => {
-      leftPanel.classList.remove('mobile-open');
-      rightContainer.classList.remove('mobile-open');
-      backdrop.classList.remove('active');
-      btnShowControls.classList.remove('active');
-      btnShowEnergy.classList.remove('active');
-      btnShowControls.setAttribute('aria-expanded', 'false');
-      btnShowEnergy.setAttribute('aria-expanded', 'false');
-    };
-
-    const toggleDrawer = (panel: HTMLElement, trigger: HTMLElement, closeBtn: HTMLElement) => {
-      if (panel.classList.contains('mobile-open')) {
-        closeAll();
-        return;
-      }
-      closeAll();
-      panel.classList.add('mobile-open');
-      backdrop.classList.add('active');
-      trigger.classList.add('active');
-      trigger.setAttribute('aria-expanded', 'true');
-      closeBtn.focus();
-      this.potentialChart?.draw();
-    };
-
-    btnShowControls.addEventListener('click', () =>
-      toggleDrawer(leftPanel, btnShowControls, btnCloseControls),
-    );
-    btnShowEnergy.addEventListener('click', () =>
-      toggleDrawer(rightContainer, btnShowEnergy, btnCloseEnergy),
-    );
-    btnCloseControls.addEventListener('click', closeAll);
-    btnCloseEnergy.addEventListener('click', closeAll);
-    backdrop.addEventListener('click', closeAll);
+    bindDualMobileDrawers({
+      leftPanel: this.container.querySelector('#bonding-controls-panel') as HTMLElement,
+      rightContainer: this.container.querySelector('#bonding-physics-container') as HTMLElement,
+      backdrop: this.container.querySelector('#bonding-drawer-backdrop') as HTMLElement,
+      showLeftBtn: this.container.querySelector('#btn-show-bonding-controls') as HTMLElement,
+      showRightBtn: this.container.querySelector('#btn-show-bonding-energy') as HTMLElement,
+      closeLeftBtn: this.container.querySelector('#btn-close-bonding-controls') as HTMLElement,
+      closeRightBtn: this.container.querySelector('#btn-close-bonding-energy') as HTMLElement,
+      onOpenRight: () => this.potentialChart?.draw(),
+    });
   }
 
   private bindPresetRadioListeners(): void {

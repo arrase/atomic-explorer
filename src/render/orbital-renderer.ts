@@ -487,9 +487,9 @@ export class OrbitalRenderer extends BaseThreeRenderer {
   /**
    * Furthest distance from the orbit target that the current mode can draw, a0.
    *
-   * Each mode sets this to match the geometry it builds; see `updateClipping`.
+   * Each mode sets this to match the geometry it builds; see `BaseThreeRenderer.updateClipping`.
    */
-  private clipReach = INITIAL_CLIP_REACH;
+  protected override clipReach = INITIAL_CLIP_REACH;
   private readonly drawingBufferSize = new THREE.Vector2();
   private updateToken = 0;
 
@@ -549,34 +549,6 @@ export class OrbitalRenderer extends BaseThreeRenderer {
    */
   private computeFrameDistance(radius: number): number {
     return computeFrameDistance(radius, this.camera.fov, this.camera.aspect, FRAME_MARGIN);
-  }
-
-  /**
-   * Brackets the depth range around the framed orbital.
-   *
-   * The depth range has to contain every drawn vertex, or the rasteriser drops
-   * the ones outside it before the fragment shader ever runs - and a dropped
-   * vertex leaves the clear colour, which reads as opaque black geometry rather
-   * than as a missing surface.
-   *
-   * `clipReach` is how far from the orbit target the current mode can draw, so
-   * the two ends are `distance -+ clipReach`. The volumetric modes draw a *cube*
-   * of half-size `boxExtent`, whose far corner sits `sqrt(3) * boxExtent` from
-   * the target in whatever direction the camera happens to look, which is why
-   * the reach is not simply the orbital radius: a range fitted to the orbital
-   * left the far plane inside the box and cut a hard-edged triangular wedge out
-   * of the middle of the cloud. `CLIP_HEADROOM` keeps the corner clear as the
-   * user orbits, and keeps the near plane clear of the near faces.
-   */
-  protected override updateClipping(): void {
-    const reach = Math.max(this.clipReach, Number.EPSILON);
-    const distance = this.camera.position.distanceTo(this.controls.target);
-    const near = Math.max(distance - reach, reach * 1e-4);
-    const far = distance + reach;
-    if (near === this.camera.near && far === this.camera.far) return;
-    this.camera.near = near;
-    this.camera.far = far;
-    this.camera.updateProjectionMatrix();
   }
 
   /**

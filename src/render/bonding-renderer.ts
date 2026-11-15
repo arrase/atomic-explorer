@@ -2,7 +2,12 @@ import * as THREE from 'three';
 import { MarchingCubes } from 'three/addons/objects/MarchingCubes.js';
 import { AtomOrbitalSpec } from '../core/lcao';
 import { ColorPalette, PALETTE_CONFIG, computeFrameDistance } from './orbital-point-cloud';
-import { BaseThreeRenderer, RendererTarget } from './render-utils';
+import {
+  BaseThreeRenderer,
+  RendererTarget,
+  createCircleBadgeSprite,
+  drawRoundedRect,
+} from './render-utils';
 
 export type BondingVisualMode = 'slice' | 'isosurface' | 'volume';
 
@@ -271,46 +276,6 @@ function createCircleLoopGeometry(plane: 'xz' | 'xy'): THREE.BufferGeometry {
   return new THREE.BufferGeometry().setFromPoints(points);
 }
 
-function createAtomBadgeSprite(
-  label: string,
-  borderColor: string,
-): { sprite: THREE.Sprite; texture: THREE.CanvasTexture; material: THREE.SpriteMaterial } {
-  const canvas = document.createElement('canvas');
-  canvas.width = 128;
-  canvas.height = 128;
-  const ctx = canvas.getContext('2d')!;
-
-  ctx.clearRect(0, 0, 128, 128);
-  ctx.beginPath();
-  ctx.arc(64, 64, 48, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(10, 15, 28, 0.88)';
-  ctx.fill();
-  ctx.lineWidth = 6;
-  ctx.strokeStyle = borderColor;
-  ctx.stroke();
-
-  ctx.fillStyle = '#f8fafc';
-  ctx.font = '700 58px system-ui, -apple-system, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(label, 64, 66);
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.needsUpdate = true;
-
-  const material = new THREE.SpriteMaterial({
-    map: texture,
-    transparent: true,
-    depthTest: false,
-    depthWrite: false,
-  });
-  const sprite = new THREE.Sprite(material);
-  sprite.renderOrder = 12;
-  sprite.frustumCulled = false;
-  return { sprite, texture, material };
-}
-
 function createDistanceBadge(): {
   sprite: THREE.Sprite;
   canvas: HTMLCanvasElement;
@@ -335,27 +300,6 @@ function createDistanceBadge(): {
   sprite.renderOrder = 12;
   sprite.frustumCulled = false;
   return { sprite, canvas, ctx, texture, material };
-}
-
-function drawRoundedRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number,
-): void {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
 }
 
 export class BondingRenderer extends BaseThreeRenderer {
@@ -427,7 +371,7 @@ export class BondingRenderer extends BaseThreeRenderer {
   private readonly piRimLine: THREE.Line;
 
   private framingRadius = INITIAL_FRAME_RADIUS;
-  private clipReach = INITIAL_FRAME_RADIUS * 2.0;
+  protected override clipReach = INITIAL_FRAME_RADIUS * 2.0;
   private hasFramedOnce = false;
 
   constructor(target: RendererTarget) {
@@ -529,12 +473,12 @@ export class BondingRenderer extends BaseThreeRenderer {
     this.nucleusBMesh.renderOrder = 10;
     this.scene.add(this.nucleusAMesh, this.nucleusBMesh);
 
-    const badgeA = createAtomBadgeSprite('A', '#60a5fa');
+    const badgeA = createCircleBadgeSprite('A', '#60a5fa');
     this.labelATexture = badgeA.texture;
     this.labelAMaterial = badgeA.material;
     this.labelASprite = badgeA.sprite;
 
-    const badgeB = createAtomBadgeSprite('B', '#fbbf24');
+    const badgeB = createCircleBadgeSprite('B', '#fbbf24');
     this.labelBTexture = badgeB.texture;
     this.labelBMaterial = badgeB.material;
     this.labelBSprite = badgeB.sprite;
@@ -773,17 +717,6 @@ export class BondingRenderer extends BaseThreeRenderer {
 
     this.mcPos.update();
     this.mcNeg.update();
-  }
-
-  protected override updateClipping(): void {
-    const reach = Math.max(this.clipReach, Number.EPSILON);
-    const distance = this.camera.position.distanceTo(this.controls.target);
-    const near = Math.max(distance - reach, reach * 1e-4);
-    const far = distance + reach;
-    if (near === this.camera.near && far === this.camera.far) return;
-    this.camera.near = near;
-    this.camera.far = far;
-    this.camera.updateProjectionMatrix();
   }
 
   protected override onViewportChanged(): void {

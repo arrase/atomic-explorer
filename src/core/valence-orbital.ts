@@ -27,7 +27,7 @@ export function hundDifferentiatingElectron(
  */
 export async function calculateValenceQuantumNumbers(z: number): Promise<ValenceQuantumNumbers> {
   const config = await getElectronConfiguration(z);
-  const valence = config[config.length - 1];
+  const valence = config.at(-1)!;
   const { m, s } = hundDifferentiatingElectron(valence.l, valence.electrons);
   const zEff = await getSlaterZEff(z, valence.n, valence.l);
   return {

@@ -27,7 +27,7 @@ export class ImageExporterModal {
   }
 
   public open(): void {
-    this.dialog.removeAttribute('data-closing');
+    delete this.dialog.dataset.closing;
     this.render();
     this.dialog.showModal();
 

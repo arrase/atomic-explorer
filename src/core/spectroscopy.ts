@@ -232,14 +232,19 @@ export async function computeSeriesLines(
   nLower: number,
   maxUpperN: number = Math.max(8, nLower + 6),
 ): Promise<SeriesLine[]> {
-  const lines: SeriesLine[] = [];
+  const upperLevels: number[] = [];
   for (let nUpper = nLower + 1; nUpper <= maxUpperN; nUpper += 1) {
-    const wavelengthNm = await calculateTransitionWavelength(zEff, nLower, nUpper);
-    lines.push({
+    upperLevels.push(nUpper);
+  }
+  const wavelengths = await Promise.all(
+    upperLevels.map((nUpper) => calculateTransitionWavelength(zEff, nLower, nUpper)),
+  );
+  return upperLevels.map((nUpper, i) => {
+    const wavelengthNm = wavelengths[i];
+    return {
       nUpper,
       wavelengthNm,
       color: wavelengthToRgb(wavelengthNm),
-    });
-  }
-  return lines;
+    };
+  });
 }

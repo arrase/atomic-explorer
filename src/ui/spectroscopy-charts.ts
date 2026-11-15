@@ -1,6 +1,7 @@
 import { energyLevelEv } from '../core/physics-constants';
 import { SeriesLine, TransitionMode, wavelengthToRgb } from '../core/spectroscopy';
 import { getStrings } from '../i18n';
+import { CHART_FONT as FONT, ChartSurface, createChartSurface } from './chart-canvas';
 
 export interface EnergyDiagramState {
   zEff: number;
@@ -22,7 +23,6 @@ export interface SpectrumStripState {
   isAllowed: boolean;
 }
 
-const FONT = 'Inter, -apple-system, BlinkMacSystemFont, sans-serif';
 const LEVEL_COUNT = 7;
 const RYDBERG_EXPONENT = -0.26;
 const RYDBERG_COMPRESSION_DENOM = 1 - Math.pow(LEVEL_COUNT, RYDBERG_EXPONENT);
@@ -94,12 +94,7 @@ function formatCompactWavelength(nm: number): string {
   return `${nm.toFixed(1)} nm`;
 }
 
-interface InteractiveCanvasSurface {
-  canvas: HTMLCanvasElement;
-  ctx: CanvasRenderingContext2D;
-  prepareFrame: () => { w: number; h: number } | null;
-  destroy: () => void;
-}
+type InteractiveCanvasSurface = ChartSurface;
 
 function createInteractiveCanvas(
   container: HTMLElement,
@@ -109,57 +104,24 @@ function createInteractiveCanvas(
   onLeave: () => void,
   onClick: (e: MouseEvent) => void,
 ): InteractiveCanvasSurface {
-  const canvas = document.createElement('canvas');
-  canvas.className = className;
+  const surface = createChartSurface(container, className, onDraw);
+  const { canvas } = surface;
   canvas.style.width = '100%';
   canvas.style.height = '100%';
   canvas.style.display = 'block';
-  container.appendChild(canvas);
-
-  const ctx = canvas.getContext('2d')!;
-  let rafId = 0;
-
-  const resizeObserver = new ResizeObserver(() => {
-    if (rafId) cancelAnimationFrame(rafId);
-    rafId = requestAnimationFrame(() => onDraw());
-  });
-  resizeObserver.observe(container);
 
   canvas.addEventListener('mousemove', onMove);
   canvas.addEventListener('mouseleave', onLeave);
   canvas.addEventListener('click', onClick);
 
-  const prepareFrame = (): { w: number; h: number } | null => {
-    const rect = container.getBoundingClientRect();
-    if (rect.width <= 0 || rect.height <= 0) return null;
-
-    const dpr = Math.max(1, window.devicePixelRatio);
-    const targetW = Math.round(rect.width * dpr);
-    const targetH = Math.round(rect.height * dpr);
-
-    if (canvas.width !== targetW || canvas.height !== targetH) {
-      canvas.width = targetW;
-      canvas.height = targetH;
-    }
-
-    ctx.resetTransform();
-    ctx.scale(dpr, dpr);
-    ctx.clearRect(0, 0, rect.width, rect.height);
-    return { w: rect.width, h: rect.height };
-  };
-
   const destroy = (): void => {
-    if (rafId) {
-      cancelAnimationFrame(rafId);
-      rafId = 0;
-    }
-    resizeObserver.disconnect();
+    surface.destroy();
     canvas.removeEventListener('mousemove', onMove);
     canvas.removeEventListener('mouseleave', onLeave);
     canvas.removeEventListener('click', onClick);
   };
 
-  return { canvas, ctx, prepareFrame, destroy };
+  return { ...surface, destroy };
 }
 
 interface EnergyLayout {
@@ -407,16 +369,35 @@ export class EnergyLevelDiagram {
   }
 
   private drawTransition(layout: EnergyLayout): void {
-    const ctx = this.surface.ctx;
-    const { nLower, nUpper, lLower, lUpper, mLower, mUpper, mode, isAllowed, photonHex } =
-      this.state;
+    const { nLower, nUpper, mode, isAllowed, photonHex } = this.state;
     const yUpper = layout.levelY(nUpper);
     const yLower = layout.levelY(nLower);
-    const yStart = mode === 'emission' ? yUpper : yLower;
-    const yEnd = mode === 'emission' ? yLower : yUpper;
+    const [yStart, yEnd] = mode === 'emission' ? [yUpper, yLower] : [yLower, yUpper];
     const dir = yEnd > yStart ? 1 : -1;
     const arrowX = layout.xLeft + (layout.xRight - layout.xLeft) * 0.4;
     const strokeColor = isAllowed ? photonHex : CHART_COLORS.forbidden;
+
+    this.drawTransitionArrow(arrowX, yStart, yEnd, dir, strokeColor);
+    this.drawTransitionBadges(layout, arrowX, yUpper, yLower);
+
+    if (!isAllowed) return;
+    const yMid = 0.5 * (yUpper + yLower);
+    const waveLeft = arrowX + 8;
+    const waveRight = Math.min(layout.xRight - 22, arrowX + 48);
+    if (waveRight <= waveLeft + 14) return;
+    const [xFrom, xTo] = mode === 'emission' ? [waveLeft, waveRight] : [waveRight, waveLeft];
+    this.drawWavyPhoton(xFrom, xTo, yMid, photonHex, waveRight + 5);
+  }
+
+  private drawTransitionArrow(
+    arrowX: number,
+    yStart: number,
+    yEnd: number,
+    dir: number,
+    strokeColor: string,
+  ): void {
+    const ctx = this.surface.ctx;
+    const { isAllowed, photonHex } = this.state;
 
     ctx.save();
     if (isAllowed) {
@@ -445,7 +426,16 @@ export class EnergyLevelDiagram {
     ctx.lineTo(arrowX + 4.5, yEnd - dir * 7);
     ctx.closePath();
     ctx.fill();
+  }
 
+  private drawTransitionBadges(
+    layout: EnergyLayout,
+    arrowX: number,
+    yUpper: number,
+    yLower: number,
+  ): void {
+    const ctx = this.surface.ctx;
+    const { nLower, nUpper, lLower, lUpper, mLower, mUpper, isAllowed } = this.state;
     const labelColor = isAllowed ? CHART_COLORS.textPrimary : CHART_COLORS.forbidden;
     const labelBorder = isAllowed ? 'rgba(255, 255, 255, 0.16)' : 'rgba(148, 163, 184, 0.28)';
     const upperLabelY = Math.max(layout.padTop + 8, yUpper - 11);
@@ -469,17 +459,6 @@ export class EnergyLevelDiagram {
       labelBorder,
       'rgba(11, 14, 22, 0.86)',
     );
-
-    if (isAllowed) {
-      const yMid = 0.5 * (yUpper + yLower);
-      const waveLeft = arrowX + 8;
-      const waveRight = Math.min(layout.xRight - 22, arrowX + 48);
-      if (waveRight > waveLeft + 14) {
-        const xFrom = mode === 'emission' ? waveLeft : waveRight;
-        const xTo = mode === 'emission' ? waveRight : waveLeft;
-        this.drawWavyPhoton(xFrom, xTo, yMid, photonHex, waveRight + 5);
-      }
-    }
   }
 
   private drawHoverBadge(layout: EnergyLayout): void {
@@ -580,6 +559,45 @@ function fillVisibleSpectrumGradient(
     grad.addColorStop(t, wavelengthToRgb(nm).hex);
   }
   return grad;
+}
+
+function pickLineMetric(
+  isActive: boolean,
+  isHovered: boolean,
+  activeVal: number,
+  hoverVal: number,
+  baseVal: number,
+): number {
+  if (isActive) return activeVal;
+  if (isHovered) return hoverVal;
+  return baseVal;
+}
+
+function strokeVerticalLine(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  yTop: number,
+  yBottom: number,
+): void {
+  ctx.beginPath();
+  ctx.moveTo(x, yTop);
+  ctx.lineTo(x, yBottom);
+  ctx.stroke();
+}
+
+function drawForbiddenSpectrumLine(
+  ctx: CanvasRenderingContext2D,
+  lx: number,
+  yTop: number,
+  yBottom: number,
+  isHovered: boolean,
+  hoverColor: string,
+  baseColor: string,
+): void {
+  ctx.setLineDash([3, 3]);
+  ctx.strokeStyle = isHovered ? hoverColor : baseColor;
+  ctx.lineWidth = isHovered ? 2.2 : 1.5;
+  strokeVerticalLine(ctx, lx, yTop, yBottom);
 }
 
 export class DischargeSpectrumStrip {
@@ -729,31 +747,36 @@ export class DischargeSpectrumStrip {
     isForbiddenActive: boolean,
   ): void {
     const ctx = this.surface.ctx;
+    const yBottom = tube.y + tube.height - 3;
     ctx.save();
-    if (isForbiddenActive) {
-      ctx.setLineDash([3, 3]);
-      ctx.strokeStyle = isHovered ? 'rgba(203, 213, 225, 0.85)' : 'rgba(148, 163, 184, 0.55)';
-      ctx.lineWidth = isHovered ? 2.2 : 1.5;
-    } else {
-      ctx.shadowColor = hex;
-      ctx.shadowBlur = isActive ? 12 : isHovered ? 11 : 6;
-      ctx.strokeStyle = hex;
-      ctx.globalAlpha = isActive || isHovered ? 1.0 : 0.78;
-      ctx.lineWidth = isActive ? 2.6 : isHovered ? 2.4 : 1.7;
-    }
-    ctx.beginPath();
-    ctx.moveTo(lx, tube.y);
-    ctx.lineTo(lx, tube.y + tube.height - 3);
-    ctx.stroke();
 
-    if ((isActive || isHovered) && !isForbiddenActive) {
+    if (isForbiddenActive) {
+      drawForbiddenSpectrumLine(
+        ctx,
+        lx,
+        tube.y,
+        yBottom,
+        isHovered,
+        'rgba(203, 213, 225, 0.85)',
+        'rgba(148, 163, 184, 0.55)',
+      );
+      ctx.restore();
+      return;
+    }
+
+    const highlighted = isActive || isHovered;
+    ctx.shadowColor = hex;
+    ctx.shadowBlur = pickLineMetric(isActive, isHovered, 12, 11, 6);
+    ctx.strokeStyle = hex;
+    ctx.globalAlpha = highlighted ? 1.0 : 0.78;
+    ctx.lineWidth = pickLineMetric(isActive, isHovered, 2.6, 2.4, 1.7);
+    strokeVerticalLine(ctx, lx, tube.y, yBottom);
+
+    if (highlighted) {
       ctx.shadowBlur = 0;
       ctx.strokeStyle = isActive ? 'rgba(255, 255, 255, 0.75)' : 'rgba(255, 255, 255, 0.55)';
       ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(lx, tube.y + 1);
-      ctx.lineTo(lx, tube.y + tube.height - 4);
-      ctx.stroke();
+      strokeVerticalLine(ctx, lx, tube.y + 1, yBottom - 1);
     }
     ctx.restore();
   }
@@ -783,26 +806,43 @@ export class DischargeSpectrumStrip {
       const isActive = line.nUpper === this.state.activeUpperN;
       const isHovered = line.nUpper === this.hoveredUpperN;
       const isForbiddenActive = isActive && !this.state.isAllowed;
-
-      ctx.save();
-      if (isForbiddenActive) {
-        ctx.setLineDash([3, 3]);
-        ctx.strokeStyle = isHovered ? 'rgba(15, 23, 42, 0.85)' : 'rgba(15, 23, 42, 0.55)';
-        ctx.lineWidth = isHovered ? 2.2 : 1.5;
-      } else {
-        if (isHovered) {
-          ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
-          ctx.shadowBlur = 5;
-        }
-        ctx.strokeStyle = '#05060a';
-        ctx.lineWidth = isActive ? 2.8 : isHovered ? 2.6 : 1.8;
-      }
-      ctx.beginPath();
-      ctx.moveTo(lx, tube.y);
-      ctx.lineTo(lx, tube.y + tube.height);
-      ctx.stroke();
-      ctx.restore();
+      this.drawSingleAbsorptionLine(lx, tube, isActive, isHovered, isForbiddenActive);
     }
+  }
+
+  private drawSingleAbsorptionLine(
+    lx: number,
+    tube: TubeRect,
+    isActive: boolean,
+    isHovered: boolean,
+    isForbiddenActive: boolean,
+  ): void {
+    const ctx = this.surface.ctx;
+    const yBottom = tube.y + tube.height;
+    ctx.save();
+
+    if (isForbiddenActive) {
+      drawForbiddenSpectrumLine(
+        ctx,
+        lx,
+        tube.y,
+        yBottom,
+        isHovered,
+        'rgba(15, 23, 42, 0.85)',
+        'rgba(15, 23, 42, 0.55)',
+      );
+      ctx.restore();
+      return;
+    }
+
+    if (isHovered) {
+      ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+      ctx.shadowBlur = 5;
+    }
+    ctx.strokeStyle = '#05060a';
+    ctx.lineWidth = pickLineMetric(isActive, isHovered, 2.8, 2.6, 1.8);
+    strokeVerticalLine(ctx, lx, tube.y, yBottom);
+    ctx.restore();
   }
 
   private drawZoneDividers(tube: TubeRect): void {

@@ -1,5 +1,12 @@
 import { BOND_R_MAX, BOND_R_MIN, LCAO_CURVE_STRIDE, MoOrderMode } from '../core/lcao';
 import { getStrings } from '../i18n';
+import {
+  CHART_FONT as FONT,
+  ChartSurface,
+  DEFAULT_PLOT_PAD as PAD,
+  createChartSurface,
+  preparePlotFrame,
+} from './chart-canvas';
 
 export interface PotentialChartData {
   curve: Float32Array;
@@ -24,9 +31,6 @@ interface PotentialLayout {
   toY: (e: number) => number;
 }
 
-const FONT = 'Inter, -apple-system, BlinkMacSystemFont, sans-serif';
-const PAD = { top: 20, right: 14, bottom: 32, left: 42 } as const;
-
 const PALETTE = {
   gridLine: 'rgba(255, 255, 255, 0.06)',
   axisLine: 'rgba(255, 255, 255, 0.14)',
@@ -47,34 +51,24 @@ const PALETTE = {
 } as const;
 
 export class PotentialEnergyChart {
-  private readonly container: HTMLElement;
+  private readonly surface: ChartSurface;
   private readonly canvas: HTMLCanvasElement;
   private readonly ctx: CanvasRenderingContext2D;
   private readonly onScrubR: (newR: number) => void;
-  private readonly resizeObserver: ResizeObserver;
-  private animationFrameId = 0;
   private isScrubbing = false;
   private data: PotentialChartData | null = null;
 
   constructor(container: HTMLElement, onScrubR: (newR: number) => void) {
-    this.container = container;
     this.onScrubR = onScrubR;
-
-    this.canvas = document.createElement('canvas');
-    this.canvas.className = 'radial-chart-canvas potential-chart-canvas';
+    this.surface = createChartSurface(
+      container,
+      'radial-chart-canvas potential-chart-canvas',
+      () => this.draw(),
+    );
+    this.canvas = this.surface.canvas;
+    this.ctx = this.surface.ctx;
     this.canvas.style.touchAction = 'none';
     this.canvas.style.cursor = 'ew-resize';
-    this.container.appendChild(this.canvas);
-
-    this.ctx = this.canvas.getContext('2d')!;
-
-    this.resizeObserver = new ResizeObserver(() => {
-      if (this.animationFrameId) {
-        cancelAnimationFrame(this.animationFrameId);
-      }
-      this.animationFrameId = requestAnimationFrame(() => this.draw());
-    });
-    this.resizeObserver.observe(this.container);
 
     this.canvas.addEventListener('pointerdown', this.handlePointerDown);
     this.canvas.addEventListener('pointermove', this.handlePointerMove);
@@ -117,29 +111,10 @@ export class PotentialEnergyChart {
   }
 
   public draw(): void {
-    const rect = this.container.getBoundingClientRect();
-    if (rect.width <= 0 || rect.height <= 0) return;
-
-    const dpr = Math.max(1, window.devicePixelRatio);
-    const targetW = Math.round(rect.width * dpr);
-    const targetH = Math.round(rect.height * dpr);
-
-    if (this.canvas.width !== targetW || this.canvas.height !== targetH) {
-      this.canvas.width = targetW;
-      this.canvas.height = targetH;
-    }
-
+    const frame = preparePlotFrame(this.surface, PAD);
+    if (!frame) return;
+    const { w, h, plotW, plotH } = frame;
     const ctx = this.ctx;
-    ctx.resetTransform();
-    ctx.scale(dpr, dpr);
-
-    const w = rect.width;
-    const h = rect.height;
-    const plotW = w - PAD.left - PAD.right;
-    const plotH = h - PAD.top - PAD.bottom;
-    if (plotW <= 0 || plotH <= 0) return;
-
-    ctx.clearRect(0, 0, w, h);
 
     const dEEv = this.data ? this.data.dEEv : 4.75;
     const yMin = -Math.max(dEEv * 1.35, 2.0);
@@ -413,11 +388,7 @@ export class PotentialEnergyChart {
   }
 
   public destroy(): void {
-    if (this.animationFrameId) {
-      cancelAnimationFrame(this.animationFrameId);
-      this.animationFrameId = 0;
-    }
-    this.resizeObserver.disconnect();
+    this.surface.destroy();
     this.canvas.removeEventListener('pointerdown', this.handlePointerDown);
     this.canvas.removeEventListener('pointermove', this.handlePointerMove);
     this.canvas.removeEventListener('pointerup', this.handlePointerEnd);

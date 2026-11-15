@@ -38,7 +38,9 @@ export class ViewportHUD {
       if (e.key === 'Escape') {
         this.inner
           .querySelectorAll<HTMLElement>('.hud-btn[data-tooltip]:hover, .hud-btn[data-tooltip]:focus-visible')
-          .forEach((btn) => btn.setAttribute('data-tooltip-dismissed', ''));
+          .forEach((btn) => {
+            btn.dataset.tooltipDismissed = '';
+          });
       }
     };
     document.addEventListener('keydown', this.keydownHandler);
@@ -90,7 +92,7 @@ export class ViewportHUD {
 
   private attachEvents(): void {
     const clearDismissed = (e: Event) => {
-      (e.currentTarget as HTMLElement).removeAttribute('data-tooltip-dismissed');
+      delete (e.currentTarget as HTMLElement).dataset.tooltipDismissed;
     };
     this.inner.querySelectorAll<HTMLElement>('.hud-btn[data-tooltip]').forEach((btn) => {
       btn.addEventListener('pointerleave', clearDismissed);

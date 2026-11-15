@@ -10,9 +10,10 @@ export function canTransitionDisplay(): boolean {
   const probe = document.createElement('div');
   probe.style.cssText = 'transition: display 1s allow-discrete !important; display: block;';
   document.body.appendChild(probe);
-  void getComputedStyle(probe).display;
+  const initialDisplay = getComputedStyle(probe).display;
   probe.style.display = 'none';
-  supportsDisplayTransition = getComputedStyle(probe).display === 'block';
+  supportsDisplayTransition =
+    initialDisplay === 'block' && getComputedStyle(probe).display === 'block';
   probe.remove();
   return supportsDisplayTransition;
 }
@@ -65,7 +66,7 @@ export function wireModalDialogLifecycle(
 }
 
 export function closeModalDialog(dialog: HTMLDialogElement): void {
-  if (!dialog.open || dialog.hasAttribute('data-closing')) {
+  if (!dialog.open || 'closing' in dialog.dataset) {
     return;
   }
 
@@ -75,23 +76,25 @@ export function closeModalDialog(dialog: HTMLDialogElement): void {
     return;
   }
 
-  dialog.setAttribute('data-closing', '');
+  dialog.dataset.closing = '';
   const animations = dialog.getAnimations();
   if (animations.length === 0) {
-    dialog.removeAttribute('data-closing');
+    delete dialog.dataset.closing;
     dialog.close();
     return;
   }
 
-  Promise.race([
-    Promise.allSettled(animations.map((a) => a.finished)),
-    new Promise((resolve) => setTimeout(resolve, 350)),
-  ]).then(() => {
-    dialog.removeAttribute('data-closing');
+  const finalizeClose = () => {
+    delete dialog.dataset.closing;
     if (dialog.open) {
       dialog.close();
     }
-  });
+  };
+
+  Promise.race([
+    Promise.allSettled(animations.map((a) => a.finished)),
+    new Promise((resolve) => setTimeout(resolve, 350)),
+  ]).then(finalizeClose, finalizeClose);
 }
 
 export async function waitDialogExitAnimations(dialog: HTMLDialogElement): Promise<void> {

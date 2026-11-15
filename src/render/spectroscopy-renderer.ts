@@ -1,5 +1,10 @@
 import * as THREE from 'three';
-import { BaseThreeRenderer, RendererTarget } from './render-utils';
+import {
+  BaseThreeRenderer,
+  RendererTarget,
+  createCircleBadgeSprite,
+  drawRoundedRect,
+} from './render-utils';
 import { computeDensityFloor, computeFrameDistance } from './orbital-point-cloud';
 import { QuantumState, TransitionMode } from '../core/spectroscopy';
 import {
@@ -330,67 +335,6 @@ const sliceFragmentShader = `
   }
 `;
 
-function drawRoundedRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number,
-): void {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-}
-
-function createCircleBadgeSprite(
-  label: string,
-  borderColor: string,
-): { sprite: THREE.Sprite; texture: THREE.CanvasTexture; material: THREE.SpriteMaterial } {
-  const canvas = document.createElement('canvas');
-  canvas.width = 128;
-  canvas.height = 128;
-  const ctx = canvas.getContext('2d')!;
-
-  ctx.clearRect(0, 0, 128, 128);
-  ctx.beginPath();
-  ctx.arc(64, 64, 48, 0, TWO_PI);
-  ctx.fillStyle = 'rgba(10, 15, 28, 0.88)';
-  ctx.fill();
-  ctx.lineWidth = 6;
-  ctx.strokeStyle = borderColor;
-  ctx.stroke();
-
-  ctx.fillStyle = '#f8fafc';
-  ctx.font = '700 58px system-ui, -apple-system, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(label, 64, 66);
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.needsUpdate = true;
-
-  const material = new THREE.SpriteMaterial({
-    map: texture,
-    transparent: true,
-    depthTest: false,
-    depthWrite: false,
-  });
-  const sprite = new THREE.Sprite(material);
-  sprite.renderOrder = 12;
-  sprite.frustumCulled = false;
-  return { sprite, texture, material };
-}
-
 function paintPillBadge(
   canvas: HTMLCanvasElement,
   ctx: CanvasRenderingContext2D,
@@ -553,7 +497,7 @@ export class SpectroscopyRenderer extends BaseThreeRenderer {
 
   private atomRadius = INITIAL_FRAME_RADIUS;
   private framingRadius = INITIAL_FRAME_RADIUS;
-  private clipReach = INITIAL_CLIP_REACH;
+  protected override clipReach = INITIAL_CLIP_REACH;
   private updateToken = 0;
   private hasTransition = false;
   private hasFramedOnce = false;
@@ -842,17 +786,6 @@ export class SpectroscopyRenderer extends BaseThreeRenderer {
     this.syncAnimatedOverlays();
   }
 
-  protected override updateClipping(): void {
-    const reach = Math.max(this.clipReach, Number.EPSILON);
-    const distance = this.camera.position.distanceTo(this.controls.target);
-    const near = Math.max(distance - reach, reach * 1e-4);
-    const far = distance + reach;
-    if (near === this.camera.near && far === this.camera.far) return;
-    this.camera.near = near;
-    this.camera.far = far;
-    this.camera.updateProjectionMatrix();
-  }
-
   protected override onViewportChanged(): void {
     if (this.hasFramedOnce) {
       this.applyFraming(this.framingRadius, false);
@@ -1102,27 +1035,50 @@ export class SpectroscopyRenderer extends BaseThreeRenderer {
 
     const xStart = 0.44 * this.atomRadius;
     const xSpan = 0.54 * this.atomRadius;
-    const amplitude = 0.13 * this.atomRadius;
-    const halfWidth = 0.022 * this.atomRadius;
     const dirSign = params.mode === 'emission' ? 1.0 : -1.0;
+
+    this.samplePhotonPacketCenters(xStart, xSpan, dirSign, deltaM);
+    this.buildPhotonRibbonGeometry(xStart + 0.5 * xSpan);
+
+    this.photonPositionAttr.needsUpdate = true;
+
+    const tipIdx = params.mode === 'emission' ? (PHOTON_SAMPLE_COUNT - 1) * 3 : 0;
+    const centers = this.photonCenters;
+    this.photonArrowMesh.position.set(centers[tipIdx], centers[tipIdx + 1], centers[tipIdx + 2]);
+  }
+
+  private samplePhotonPacketCenters(
+    xStart: number,
+    xSpan: number,
+    dirSign: number,
+    deltaM: number,
+  ): void {
+    const amplitude = 0.13 * this.atomRadius;
     const waveK = Math.PI * 8.0;
     const invLast = 1.0 / (PHOTON_SAMPLE_COUNT - 1);
     const centers = this.photonCenters;
+    const isLinear = deltaM === 0;
 
     for (let i = 0; i < PHOTON_SAMPLE_COUNT; i++) {
       const s = i * invLast;
       const centered = (s - 0.5) / 0.21;
       const envelope = amplitude * Math.exp(-0.5 * centered * centered);
       const wavePhase = waveK * s - dirSign * 2.0 * this.phase;
+      const cosWave = envelope * Math.cos(wavePhase);
 
       const idx = i * 3;
       centers[idx] = xStart + s * xSpan;
-      centers[idx + 1] = deltaM === 0 ? 0 : envelope * Math.cos(wavePhase);
-      centers[idx + 2] =
-        deltaM === 0 ? envelope * Math.cos(wavePhase) : envelope * deltaM * Math.sin(wavePhase);
+      centers[idx + 1] = isLinear ? 0 : cosWave;
+      centers[idx + 2] = isLinear ? cosWave : envelope * deltaM * Math.sin(wavePhase);
     }
+  }
 
-    this.scratchPacketCenter.set(xStart + 0.5 * xSpan, 0, 0);
+  private buildPhotonRibbonGeometry(centerX: number): void {
+    const halfWidth = 0.022 * this.atomRadius;
+    const centers = this.photonCenters;
+    const pos = this.photonPositions;
+
+    this.scratchPacketCenter.set(centerX, 0, 0);
     this.scratchViewDir.copy(this.camera.position).sub(this.scratchPacketCenter);
     if (this.scratchViewDir.lengthSq() < 1e-8) {
       this.scratchViewDir.copy(this.fallbackUp);
@@ -1130,22 +1086,23 @@ export class SpectroscopyRenderer extends BaseThreeRenderer {
       this.scratchViewDir.normalize();
     }
 
-    const pos = this.photonPositions;
     for (let i = 0; i < PHOTON_SAMPLE_COUNT; i++) {
-      const prevIdx = (i > 0 ? i - 1 : 0) * 3;
-      const nextIdx = (i < PHOTON_SAMPLE_COUNT - 1 ? i + 1 : PHOTON_SAMPLE_COUNT - 1) * 3;
-      this.scratchTangent.set(
-        centers[nextIdx] - centers[prevIdx],
-        centers[nextIdx + 1] - centers[prevIdx + 1],
-        centers[nextIdx + 2] - centers[prevIdx + 2],
-      ).normalize();
+      const prevIdx = Math.max(0, i - 1) * 3;
+      const nextIdx = Math.min(PHOTON_SAMPLE_COUNT - 1, i + 1) * 3;
+      this.scratchTangent
+        .set(
+          centers[nextIdx] - centers[prevIdx],
+          centers[nextIdx + 1] - centers[prevIdx + 1],
+          centers[nextIdx + 2] - centers[prevIdx + 2],
+        )
+        .normalize();
 
       this.scratchOffset.crossVectors(this.scratchTangent, this.scratchViewDir);
       if (this.scratchOffset.lengthSq() < 1e-8) {
         this.scratchOffset.crossVectors(this.scratchTangent, this.fallbackUp);
-        if (this.scratchOffset.lengthSq() < 1e-8) {
-          this.scratchOffset.crossVectors(this.scratchTangent, this.fallbackZ);
-        }
+      }
+      if (this.scratchOffset.lengthSq() < 1e-8) {
+        this.scratchOffset.crossVectors(this.scratchTangent, this.fallbackZ);
       }
       this.scratchOffset.normalize().multiplyScalar(halfWidth);
 
@@ -1165,11 +1122,6 @@ export class SpectroscopyRenderer extends BaseThreeRenderer {
       pos[vIdx + 4] = cy + oy;
       pos[vIdx + 5] = cz + oz;
     }
-
-    this.photonPositionAttr.needsUpdate = true;
-
-    const tipIdx = params.mode === 'emission' ? (PHOTON_SAMPLE_COUNT - 1) * 3 : 0;
-    this.photonArrowMesh.position.set(centers[tipIdx], centers[tipIdx + 1], centers[tipIdx + 2]);
   }
 
   protected override cleanupScene(): void {

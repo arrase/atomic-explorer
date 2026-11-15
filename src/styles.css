@@ -3588,7 +3588,7 @@ details.control-accordion-section[open]::details-content {
 .spec-band-pill.band-uv {
   color: #d8b4fe;
   border-color: rgba(216, 180, 254, 0.32);
-  background: rgba(216, 180, 254, 0.12);
+  background: #221f2d;
 }
 
 .spec-band-pill.band-visible {

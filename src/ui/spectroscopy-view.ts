@@ -18,7 +18,10 @@ import { SpectroscopyRenderer, SpectroscopyVisualMode } from '../render/spectros
 import { icon } from './icons';
 import { ExplanationModal } from './info-modal';
 import { escapeHtml } from './modal-utils';
+import { bindCollapsiblePanel, bindDualMobileDrawers } from './panel-helpers';
 import { DischargeSpectrumStrip, EnergyLevelDiagram } from './spectroscopy-charts';
+
+type QuantumNumberKey = 'n' | 'l' | 'm';
 
 const SUBSHELL_LETTERS = ['s', 'p', 'd', 'f', 'g', 'h', 'i'] as const;
 const HC_EV_NM = 1239.841984;
@@ -63,10 +66,16 @@ function splitPresetLabel(
   strings: I18nStrings,
 ): { title: string; sub: string } {
   if (preset.id === 'forbidden-2s-1s') {
-    const match = /^(.+?)\s*\(([^)]+)\)$/.exec(strings.presetForbidden2s1s);
-    return match
-      ? { title: match[1], sub: match[2] }
-      : { title: preset.shortLabel, sub: strings.transitionForbidden };
+    const raw = strings.presetForbidden2s1s;
+    const openIdx = raw.indexOf('(');
+    const closeIdx = raw.lastIndexOf(')');
+    if (openIdx > 0 && closeIdx > openIdx + 1 && closeIdx === raw.length - 1) {
+      return {
+        title: raw.slice(0, openIdx).trimEnd(),
+        sub: raw.slice(openIdx + 1, closeIdx),
+      };
+    }
+    return { title: preset.shortLabel, sub: strings.transitionForbidden };
   }
   const [title, sub] = preset.shortLabel.split(' · ');
   return { title, sub };
@@ -488,7 +497,7 @@ export class SpectroscopyView {
   }
 
   private renderQuantumRow(opts: {
-    q: 'n' | 'l' | 'm';
+    q: QuantumNumberKey;
     idx: '1' | '2';
     label: string;
     valueText: string;
@@ -730,44 +739,22 @@ export class SpectroscopyView {
   }
 
   private bindCollapseAndAccordionListeners(): void {
-    const leftPanel = this.container.querySelector('#spec-controls-panel') as HTMLElement;
-    const btnCollapseLeft = this.container.querySelector('#btn-collapse-spec-controls') as HTMLElement;
-    const btnExpandLeft = this.container.querySelector('#btn-expand-spec-controls') as HTMLElement;
-
-    btnCollapseLeft.addEventListener('click', () => {
-      this.isLeftCollapsed = true;
-      leftPanel.classList.add('collapsed');
-      btnCollapseLeft.setAttribute('aria-expanded', 'false');
-      btnExpandLeft.classList.add('visible');
-      btnExpandLeft.setAttribute('aria-expanded', 'false');
+    bindCollapsiblePanel({
+      panel: this.container.querySelector('#spec-controls-panel') as HTMLElement,
+      collapseBtn: this.container.querySelector('#btn-collapse-spec-controls') as HTMLElement,
+      expandBtn: this.container.querySelector('#btn-expand-spec-controls') as HTMLElement,
+      onChange: (collapsed) => {
+        this.isLeftCollapsed = collapsed;
+      },
     });
 
-    btnExpandLeft.addEventListener('click', () => {
-      this.isLeftCollapsed = false;
-      leftPanel.classList.remove('collapsed');
-      btnCollapseLeft.setAttribute('aria-expanded', 'true');
-      btnExpandLeft.classList.remove('visible');
-      btnExpandLeft.setAttribute('aria-expanded', 'true');
-    });
-
-    const rightPanel = this.container.querySelector('#spec-physics-panel') as HTMLElement;
-    const btnCollapseRight = this.container.querySelector('#btn-collapse-spec-physics') as HTMLElement;
-    const btnExpandRight = this.container.querySelector('#btn-expand-spec-physics') as HTMLElement;
-
-    btnCollapseRight.addEventListener('click', () => {
-      this.isRightCollapsed = true;
-      rightPanel.classList.add('collapsed');
-      btnCollapseRight.setAttribute('aria-expanded', 'false');
-      btnExpandRight.classList.add('visible');
-      btnExpandRight.setAttribute('aria-expanded', 'false');
-    });
-
-    btnExpandRight.addEventListener('click', () => {
-      this.isRightCollapsed = false;
-      rightPanel.classList.remove('collapsed');
-      btnCollapseRight.setAttribute('aria-expanded', 'true');
-      btnExpandRight.classList.remove('visible');
-      btnExpandRight.setAttribute('aria-expanded', 'true');
+    bindCollapsiblePanel({
+      panel: this.container.querySelector('#spec-physics-panel') as HTMLElement,
+      collapseBtn: this.container.querySelector('#btn-collapse-spec-physics') as HTMLElement,
+      expandBtn: this.container.querySelector('#btn-expand-spec-physics') as HTMLElement,
+      onChange: (collapsed) => {
+        this.isRightCollapsed = collapsed;
+      },
     });
 
     const accordionSections = this.container.querySelectorAll<HTMLDetailsElement>(
@@ -784,46 +771,15 @@ export class SpectroscopyView {
   }
 
   private bindMobileDrawerListeners(): void {
-    const leftPanel = this.container.querySelector('#spec-controls-panel') as HTMLElement;
-    const rightContainer = this.container.querySelector('.physics-panel-container') as HTMLElement;
-    const backdrop = this.container.querySelector('#spec-drawer-backdrop') as HTMLElement;
-    const btnShowControls = this.container.querySelector('#btn-show-spec-controls') as HTMLElement;
-    const btnShowPhysics = this.container.querySelector('#btn-show-spec-physics') as HTMLElement;
-    const btnCloseControls = this.container.querySelector('#btn-close-spec-controls') as HTMLElement;
-    const btnClosePhysics = this.container.querySelector('#btn-close-spec-physics') as HTMLElement;
-
-    const closeAll = () => {
-      leftPanel.classList.remove('mobile-open');
-      rightContainer.classList.remove('mobile-open');
-      backdrop.classList.remove('active');
-      btnShowControls.classList.remove('active');
-      btnShowPhysics.classList.remove('active');
-      btnShowControls.setAttribute('aria-expanded', 'false');
-      btnShowPhysics.setAttribute('aria-expanded', 'false');
-    };
-
-    const toggleDrawer = (panel: HTMLElement, trigger: HTMLElement, closeBtn: HTMLElement) => {
-      if (panel.classList.contains('mobile-open')) {
-        closeAll();
-        return;
-      }
-      closeAll();
-      panel.classList.add('mobile-open');
-      backdrop.classList.add('active');
-      trigger.classList.add('active');
-      trigger.setAttribute('aria-expanded', 'true');
-      closeBtn.focus();
-    };
-
-    btnShowControls.addEventListener('click', () =>
-      toggleDrawer(leftPanel, btnShowControls, btnCloseControls),
-    );
-    btnShowPhysics.addEventListener('click', () =>
-      toggleDrawer(rightContainer, btnShowPhysics, btnClosePhysics),
-    );
-    btnCloseControls.addEventListener('click', closeAll);
-    btnClosePhysics.addEventListener('click', closeAll);
-    backdrop.addEventListener('click', closeAll);
+    bindDualMobileDrawers({
+      leftPanel: this.container.querySelector('#spec-controls-panel') as HTMLElement,
+      rightContainer: this.container.querySelector('.physics-panel-container') as HTMLElement,
+      backdrop: this.container.querySelector('#spec-drawer-backdrop') as HTMLElement,
+      showLeftBtn: this.container.querySelector('#btn-show-spec-controls') as HTMLElement,
+      showRightBtn: this.container.querySelector('#btn-show-spec-physics') as HTMLElement,
+      closeLeftBtn: this.container.querySelector('#btn-close-spec-controls') as HTMLElement,
+      closeRightBtn: this.container.querySelector('#btn-close-spec-physics') as HTMLElement,
+    });
   }
 
   private bindModeAndPresetListeners(): void {
@@ -864,7 +820,7 @@ export class SpectroscopyView {
         const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.spec-q-pill');
         if (!btn || btn.disabled) return;
         const tier = btn.dataset.tier as 'upper' | 'lower';
-        const q = btn.dataset.q as 'n' | 'l' | 'm';
+        const q = btn.dataset.q as QuantumNumberKey;
         const value = Number.parseInt(btn.dataset.val as string, 10);
         this.handleQuantumPillSelect(tier, q, value);
       });
@@ -873,7 +829,7 @@ export class SpectroscopyView {
 
   private handleQuantumPillSelect(
     tier: 'upper' | 'lower',
-    q: 'n' | 'l' | 'm',
+    q: QuantumNumberKey,
     value: number,
   ): void {
     const current = tier === 'upper' ? this.upper : this.lower;
@@ -1159,11 +1115,13 @@ export class SpectroscopyView {
     insightEl.classList.toggle('is-forbidden', !metrics.isAllowed);
     insightEl.classList.toggle('is-pi', isPi);
     insightEl.classList.toggle('is-sigma', isSigma);
-    insightEl.textContent = !metrics.isAllowed
-      ? strings.specInsightForbidden
-      : isPi
-        ? strings.specInsightPi
-        : strings.specInsightSigma;
+    let insightText = strings.specInsightSigma;
+    if (!metrics.isAllowed) {
+      insightText = strings.specInsightForbidden;
+    } else if (isPi) {
+      insightText = strings.specInsightPi;
+    }
+    insightEl.textContent = insightText;
 
     stripTitleEl.textContent =
       this.mode === 'emission' ? strings.spectrumStripTitle : strings.spectrumAbsorptionTitle;
